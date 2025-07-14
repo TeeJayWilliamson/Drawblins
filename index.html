@@ -8,151 +8,79 @@
 </head>
 <body>
   <div class="container">
-      <img src="images/logo.png" alt="Drawblins" class="logo-img" />
+<img src="images/logo.png" alt="Drawblins" class="logo-img" />
+
+
+    <div id="start-screen">
+      <div id="round-info">
+        <span id="round-display">Round 1</span>
+      </div>
       
-      <div class="top-buttons">
-        <button class="info-button" onclick="openModal('info-modal')">How to Play</button>
-        <button class="menu-button" onclick="openModal('menu-modal')">Menu</button>
+      <label for="view-time">View Time (sec):</label>
+      <input type="number" id="view-time" value="20" min="5" max="60" />
+
+      <label for="describe-time">Describe Time (min):</label>
+      <input type="number" id="describe-time" value="2" min="1" max="10" />
+<br>
+      <div id="start-buttons">
+        <button id="start-btn">Start Round</button>
+        <button id="reset-rounds-btn" style="background-color: #e74c3c;">Reset Game</button>
       </div>
 
-      <div id="start-screen">
-        <div id="round-info">
-          <span id="round-display">Round 1</span>
-        </div>
-        
-        <label for="view-time">View Time (sec):</label>
-        <input type="number" id="view-time" value="20" min="5" max="60" />
+    </div>
 
-        <label for="describe-time">Describe Time (min):</label>
-        <input type="number" id="describe-time" value="2" min="1" max="10" />
-        <br>
-        <div id="start-buttons">
-          <button id="start-btn">Start Round</button>
-          <button id="reset-rounds-btn" style="background-color: #e74c3c;">Reset Game</button>
-        </div>
-      </div>
+    <div id="phase-indicator" class="hidden">Study the Monster!</div>
+    
+    <div id="image-container" class="hidden">
+      <img id="monster-image" src="" alt="Monster" />
+    </div>
 
-      <div id="phase-indicator" class="hidden">Study the Monster!</div>
-      
-      <div id="image-container" class="hidden">
-        <img id="monster-image" src="" alt="Monster" />
-      </div>
-
-      <div id="thinking-screen" class="hidden">
-        <h2>Time to Draw!</h2>
-        <p>Now describe what you saw to your team while they draw!</p>
-        <div class="thinking-tips">
-          <ul>
-            <li>Start with the basic shapes and how it looks</li>
-            <li>Describe features clearly</li>
-            <li>Use easy to understand descriptions</li>
-            <li>Guide your team step by step</li>
-          </ul>
-        </div>
-      </div>
-
-      <div id="timer-container" class="hidden">
-        <div id="progress-bar-container">
-          <div id="progress-bar"></div>
-        </div>
-        <p id="timer">00:00</p>
-      </div>
-
-      <div id="reveal-container" class="hidden">
-        <button id="reveal-btn">Reveal the Monster!</button>
-      </div>
-
-      <div id="end-screen" class="hidden">
-        <h2>🎉 Round Complete!</h2>
-        <p>How did your team do?</p>
-        <div id="end-buttons">
-          <button id="next-round-btn">Next Round</button>
-          <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
-        </div>
-
-        <div id="mobile-turn-picker" style="display: none;">
-          <h3>🎲 Touch to Decide Who Goes First</h3>
-          <p>Have each player place one finger on the screen, then tap a button:</p>
-          <div id="touch-area"></div>
-          <button onclick="chooseRandomFinger()">Pick Random Player</button>
-          <button onclick="shuffleOrder()">Decide Turn Order</button>
-        </div>
+    <div id="thinking-screen" class="hidden">
+      <h2>Time to Draw!</h2>
+      <p>Now describe what you saw to your team while they draw!</p>
+      <div class="thinking-tips">
+        <ul>
+          <li>Start with the basic shapes and how it looks</li>
+          <li>Describe features clearly</li>
+          <li>Use easy to understand descriptions</li>
+          <li>Guide your team step by step</li>
+        </ul>
       </div>
     </div>
 
-    <!-- Info Modal -->
-    <div id="info-modal" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="closeModal('info-modal')">&times;</span>
-        <h2>How to Play Dawblins</h2>
-        <div style="text-align: left; line-height: 1.6;">
-          <h3>🎯 Objective</h3>
-          <p>One player describes a monster image while the others draw it. Try to recreate the monster as accurately as possible!</p>
-          
-          <h3>🎮 Game Setup</h3>
-          <ul>
-            <li>Choose your viewing time (how long to study the monster)</li>
-            <li>Choose your drawing time (how long to describe and draw)</li>
-            <li>Use the touch picker to decide who goes first</li>
-          </ul>
-          
-          <h3>📝 How to Play</h3>
-          <ol>
-            <li><strong>Study Phase:</strong> The describer studies the monster image</li>
-            <li><strong>Drawing Phase:</strong> The describer tells the team what to draw while they sketch</li>
-            <li><strong>Reveal:</strong> Compare your drawings with the original!</li>
-          </ol>
-          
-          <h3>💡 Tips for Describers</h3>
-          <ul>
-            <li>Start with basic shapes and overall structure</li>
-            <li>Be specific about placement and proportions</li>
-            <li>Use simple, clear language</li>
-            <li>Guide step-by-step, don't rush</li>
-          </ul>
-        </div>
+    <div id="timer-container" class="hidden">
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
       </div>
+      <p id="timer">00:00</p>
     </div>
 
-    <!-- Menu Modal -->
-    <div id="menu-modal" class="modal">
-      <div class="modal-content">
-        <span class="close" onclick="closeModal('menu-modal')">&times;</span>
-        <h2>Game Menu</h2>
-        <div style="text-align: left;">
-          <h3>🔊 Sound Options</h3>
-          <p>
-            <button onclick="toggleSound()">Toggle Sound: <span id="sound-status">ON</span></button>
-          </p>
-          <p>
-            <label for="volume-slider">Volume: </label>
-            <input type="range" id="volume-slider" min="0" max="100" value="60" onchange="setVolume(this.value)">
-            <span id="volume-display">60%</span>
-          </p>
-          
-          <h3>🎮 Game Rules</h3>
-          <ul>
-            <li>Each round, a different player should be the describer</li>
-            <li>No peeking at the monster during drawing phase!</li>
-            <li>Describers can't draw or gesture - only words!</li>
-            <li>Have fun and be creative with your descriptions!</li>
-          </ul>
-          
-          <h3>🏆 Scoring Ideas</h3>
-          <ul>
-            <li>Rate each drawing from 1-10 for accuracy</li>
-            <li>Award points for specific features captured</li>
-            <li>Vote for the most creative interpretation</li>
-            <li>Keep track of rounds won by each team</li>
-          </ul>
-        </div>
-      </div>
+    <div id="reveal-container" class="hidden">
+      <button id="reveal-btn">Reveal the Monster!</button>
     </div>
 
-    <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
-    <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
-    <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
+    <div id="end-screen" class="hidden">
+      <h2>🎉 Round Complete!</h2>
+      <p>How did your team do?</p>
+      <div id="end-buttons">
+  <button id="next-round-btn">Next Round</button>
+  <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
+</div>
 
+<div id="mobile-turn-picker" style="display: none; margin-top: 2rem;">
+  <h3>🎲 Touch to Decide Who Goes First</h3>
+  <p>Have each player place one finger on the screen, then tap a button:</p>
+  <div id="touch-area"></div>
+  <button onclick="chooseRandomFinger()">Pick Random Player</button>
+  <button onclick="shuffleOrder()">Decide Turn Order</button>
+</div>
+
+    </div>
+  </div>
+
+  <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
+  <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
+<audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
 
   <script src="script.js"></script>
 </body>
