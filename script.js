@@ -100,11 +100,13 @@ function startGame() {
     phaseIndicator.style.backgroundColor = "#9b59b6";
     phaseIndicator.style.color = "white";
     
-    // Phase 2: Describe while team draws
-    startTimer(describeTime * 60, () => {
-      revealContainer.classList.remove('hidden');
-      endScreen.classList.remove('hidden');
-    });
+startTimer(describeTime * 60, () => {
+  thinkingScreen.classList.add('hidden');
+  phaseIndicator.classList.add('hidden');
+  revealContainer.classList.remove('hidden');
+  endScreen.classList.remove('hidden');
+});
+
   });
 }
 

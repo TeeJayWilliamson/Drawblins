@@ -228,6 +228,32 @@ input:focus, button:focus {
   max-width: 200px;    /* optional max width */
 }
 
+#end-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+#end-buttons button {
+  flex: 1;
+  max-width: 200px;
+}
+
+/* Stack vertically on mobile */
+@media (max-width: 600px) {
+  #end-buttons {
+    flex-direction: column;
+  }
+
+  #end-buttons button {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+
 /* On small screens, stack vertically and full width */
 @media (max-width: 600px) {
   #start-buttons {
