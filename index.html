@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsDRAWsity Helper</title>
+  <title>Dawblins</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Drawblins</h1>
-    <p class="game-subtitle">The Monster Drawing Game</p>
+<img src="images/logo.png" alt="Drawblins" class="logo-img" />
+
 
     <div id="start-screen">
       <div id="round-info">
@@ -67,10 +67,21 @@
   <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
 </div>
 
+<div id="mobile-turn-picker" style="display: none; margin-top: 2rem;">
+  <h3>🎲 Touch to Decide Who Goes First</h3>
+  <p>Have each player place one finger on the screen, then tap a button:</p>
+  <div id="touch-area"></div>
+  <button onclick="chooseRandomFinger()">Pick Random Player</button>
+  <button onclick="shuffleOrder()">Decide Turn Order</button>
+</div>
+
     </div>
   </div>
 
   <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
+  <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
+<audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
+
   <script src="script.js"></script>
 </body>
 </html>
