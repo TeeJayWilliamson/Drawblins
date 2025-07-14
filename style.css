@@ -198,6 +198,15 @@ button:hover {
   margin-bottom: 1rem;
 }
 
+@media (max-width: 600px) {
+  .logo-img {
+    max-width: 250px; /* or smaller as needed */
+    width: 80%;       /* or 100% if you want it full width */
+    height: auto;
+  }
+}
+
+
   .finger-dot {
     position: absolute;
     width: 50px;

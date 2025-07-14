@@ -68,6 +68,8 @@ document.addEventListener('click', initializeAudio);
 document.addEventListener('touchstart', initializeAudio);
 
 startBtn.addEventListener('click', () => {
+  initializeAudio();
+  
   viewTime = parseInt(document.getElementById('view-time').value);
   describeTime = parseInt(document.getElementById('describe-time').value);
 
@@ -234,18 +236,23 @@ function updateProgressBar(timeLeft) {
 }
 
 function playMusic(phase) {
+  if (!audioInitialized) {
+    console.log("Audio not initialized yet; skipping music play");
+    return;
+  }
+
   if (phase === 'drawing' && drawingMusic) {
-    // Crossfade from waiting to drawing
     if (waitingMusic && !waitingMusic.paused) {
       crossfadeAudio(waitingMusic, drawingMusic, 1500);
     } else {
       fadeInAudio(drawingMusic, 2000);
     }
   } else if (phase === 'waiting' && waitingMusic) {
-    stopAllMusicImmediate(); // Stop any currently playing music immediately
+    stopAllMusicImmediate();
     fadeInAudio(waitingMusic, 2000);
   }
 }
+
 
 function stopAllMusic() {
   // Clear any existing fade interval
