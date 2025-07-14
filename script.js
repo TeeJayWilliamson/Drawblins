@@ -1,4 +1,4 @@
-const totalImages = 200;
+const totalImages = 158;
 const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
 
 const startBtn = document.getElementById('start-btn');
@@ -123,7 +123,6 @@ function startTimer(duration, callback) {
     updateTimerDisplay(time);
     updateProgressBar(time);
     
-    // Add warning effect for last 10 seconds
     if (time <= 10 && time > 0) {
       timerDisplay.classList.add('timer-warning');
     } else {
@@ -133,10 +132,22 @@ function startTimer(duration, callback) {
     if (time <= 0) {
       clearInterval(currentTimer);
       timerDisplay.classList.remove('timer-warning');
+      
+      // Play buzzer
+      const buzzer = document.getElementById('buzzer');
+      if (buzzer) {
+        buzzer.currentTime = 0;
+        buzzer.play().catch(() => {
+          // Handle play promise rejection (user hasn't interacted)
+          // Just ignore or log if needed
+        });
+      }
+      
       callback();
     }
   }, 1000);
 }
+
 
 function updateTimerDisplay(seconds) {
   const min = String(Math.floor(seconds / 60)).padStart(2, '0');

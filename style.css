@@ -216,6 +216,31 @@ input:focus, button:focus {
   color: #e74c3c !important;
 }
 
+#start-buttons {
+  display: flex;
+  gap: 1rem;           /* space between buttons */
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+#start-buttons button {
+  flex: 1;             /* buttons share equal width */
+  max-width: 200px;    /* optional max width */
+}
+
+/* On small screens, stack vertically and full width */
+@media (max-width: 600px) {
+  #start-buttons {
+    flex-direction: column;
+  }
+  
+  #start-buttons button {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+
 @keyframes flash {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0.5; }
