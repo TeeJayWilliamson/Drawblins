@@ -32,7 +32,7 @@ function getRandomUnusedImage() {
   if (usedImages.length >= images.length) {
     usedImages = []; // Reset if all images used
   }
-  
+
   let availableImages = images.filter(img => !usedImages.includes(img));
   let randomImage = availableImages[Math.floor(Math.random() * availableImages.length)];
   usedImages.push(randomImage);
@@ -44,21 +44,26 @@ startBtn.addEventListener('click', () => {
   describeTime = parseInt(document.getElementById('describe-time').value);
 
   document.getElementById('start-screen').classList.add('hidden');
+  resetGameUI(); // Clear any lingering UI from previous round
   startGame();
 });
 
 restartBtn.addEventListener('click', () => {
+  resetGameUI();
   currentRound = 1;
   usedImages = [];
   updateRoundDisplay();
-  endScreen.classList.add('hidden');
+  // Ensure phase indicator is hidden before showing start screen
+  phaseIndicator.classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
 });
 
 nextRoundBtn.addEventListener('click', () => {
+  resetGameUI();
   currentRound++;
   updateRoundDisplay();
-  endScreen.classList.add('hidden');
+  // Ensure phase indicator is hidden before showing start screen
+  phaseIndicator.classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
 });
 
@@ -72,84 +77,113 @@ revealBtn.addEventListener('click', () => {
   revealContainer.classList.add('hidden');
   thinkingScreen.classList.add('hidden');
   imageContainer.classList.remove('hidden');
-  phaseIndicator.classList.remove('hidden');
+
   phaseIndicator.textContent = "The Monster Revealed!";
   phaseIndicator.style.backgroundColor = "#e74c3c";
   phaseIndicator.style.color = "white";
+  phaseIndicator.style.display = "block";
+  phaseIndicator.classList.remove('hidden');
 });
 
 function startGame() {
   const randomImage = getRandomUnusedImage();
   monsterImage.src = randomImage;
 
-  // Reset phase indicator
+  // Phase 1: Study the monster
+  imageContainer.classList.remove('hidden');
+  timerContainer.classList.remove('hidden');
+
   phaseIndicator.textContent = "Study the Monster!";
   phaseIndicator.style.backgroundColor = "#ecf0f1";
   phaseIndicator.style.color = "#34495e";
-
-  imageContainer.classList.remove('hidden');
+  phaseIndicator.style.display = "block";
   phaseIndicator.classList.remove('hidden');
-  timerContainer.classList.remove('hidden');
 
-  // Phase 1: View the monster
   startTimer(viewTime, () => {
+    // Transition to drawing phase
     imageContainer.classList.add('hidden');
-    phaseIndicator.classList.add('hidden');
     thinkingScreen.classList.remove('hidden');
+
     phaseIndicator.textContent = "Drawing Phase!";
     phaseIndicator.style.backgroundColor = "#9b59b6";
     phaseIndicator.style.color = "white";
-    
-startTimer(describeTime * 60, () => {
-  thinkingScreen.classList.add('hidden');
-  phaseIndicator.classList.add('hidden');
-  revealContainer.classList.remove('hidden');
-  endScreen.classList.remove('hidden');
-});
+    phaseIndicator.style.display = "block";
+    phaseIndicator.classList.remove('hidden');
 
+    startTimer(describeTime * 60, () => {
+      thinkingScreen.classList.add('hidden');
+      phaseIndicator.classList.add('hidden');
+      phaseIndicator.textContent = "";
+
+      revealContainer.classList.remove('hidden');
+      endScreen.classList.remove('hidden');
+    });
   });
+}
+
+function resetGameUI() {
+  imageContainer.classList.add('hidden');
+  thinkingScreen.classList.add('hidden');
+  timerContainer.classList.add('hidden');
+  revealContainer.classList.add('hidden');
+  endScreen.classList.add('hidden');
+
+  // Ensure phase indicator is properly reset
+  phaseIndicator.classList.add('hidden');
+  phaseIndicator.textContent = "";
+  phaseIndicator.style.backgroundColor = "";
+  phaseIndicator.style.color = "";
+  phaseIndicator.style.display = "none";
+  
+  timerDisplay.classList.remove('timer-warning');
+
+  if (currentTimer) {
+    clearInterval(currentTimer);
+    currentTimer = null;
+  }
+
+  // Reset progress bar just in case
+  updateProgressBar(0);
+  updateTimerDisplay(0);
 }
 
 function startTimer(duration, callback) {
   if (currentTimer) {
     clearInterval(currentTimer);
   }
-  
+
   let time = duration;
   totalDuration = duration;
   updateTimerDisplay(time);
   updateProgressBar(time);
-  
+
   currentTimer = setInterval(() => {
     time--;
     updateTimerDisplay(time);
     updateProgressBar(time);
-    
+
     if (time <= 10 && time > 0) {
       timerDisplay.classList.add('timer-warning');
     } else {
       timerDisplay.classList.remove('timer-warning');
     }
-    
+
     if (time <= 0) {
       clearInterval(currentTimer);
+      currentTimer = null;
       timerDisplay.classList.remove('timer-warning');
-      
-      // Play buzzer
+
+      // Play buzzer sound
       const buzzer = document.getElementById('buzzer');
       if (buzzer) {
         buzzer.currentTime = 0;
-        buzzer.play().catch(() => {
-          // Handle play promise rejection (user hasn't interacted)
-          // Just ignore or log if needed
-        });
+        buzzer.play().catch(() => {});
       }
-      
+
       callback();
     }
   }, 1000);
 }
-
 
 function updateTimerDisplay(seconds) {
   const min = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -160,8 +194,7 @@ function updateTimerDisplay(seconds) {
 function updateProgressBar(timeLeft) {
   const percentage = (timeLeft / totalDuration) * 100;
   progressBar.style.width = percentage + '%';
-  
-  // Change color based on time remaining
+
   if (percentage > 50) {
     progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
   } else if (percentage > 25) {
@@ -171,5 +204,11 @@ function updateProgressBar(timeLeft) {
   }
 }
 
-// Initialize round display
+// Initialize on page load
 updateRoundDisplay();
+// Ensure phase indicator is completely hidden and reset on page load
+phaseIndicator.classList.add('hidden');
+phaseIndicator.textContent = "";
+phaseIndicator.style.backgroundColor = "";
+phaseIndicator.style.color = "";
+phaseIndicator.style.display = "none";
