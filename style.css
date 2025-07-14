@@ -1,0 +1,248 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #e6f0fa;
+  text-align: center;
+  padding: 1rem;
+  margin: 0;
+  background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  width: 95%;
+  max-width: 900px;
+  background: #ffffff;
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.container:hover {
+  transform: scale(1.01);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.15);
+}
+
+h1 {
+  color: #2c3e50;
+  font-size: 2.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.game-subtitle {
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  font-style: italic;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 1rem;
+  display: block;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+input[type="number"] {
+  width: 80px;
+  padding: 0.4rem;
+  font-size: 1rem;
+  text-align: center;
+  margin: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f9f9f9;
+}
+
+button {
+  padding: 0.8rem 1.8rem;
+  font-size: 1rem;
+  margin-top: 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background-color: #388e3c;
+  transform: scale(1.03);
+}
+
+.hidden {
+  display: none;
+}
+
+/* UPDATED monster-image styles */
+#monster-image {
+  max-width: none !important;
+  width: 600px !important;  /* Adjust this to your preferred width */
+  height: auto !important;
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  margin: 1.5rem 0;
+  transition: transform 0.3s ease;
+  border: 3px solid #4CAF50;
+}
+
+#monster-image:hover {
+  transform: scale(1.02);
+}
+
+#timer-container {
+  margin: 2rem 0;
+}
+
+#timer-container p {
+  font-size: 2.5rem;
+  color: #d32f2f;
+  margin: 1rem 0;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+#progress-bar-container {
+  width: 100%;
+  background-color: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 20px;
+  margin: 1rem 0;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 1s linear;
+  border-radius: 10px;
+}
+
+#phase-indicator {
+  font-size: 1.3rem;
+  color: #34495e;
+  margin: 1rem 0;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  background-color: #ecf0f1;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+#thinking-screen {
+  padding: 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  color: white;
+  margin: 2rem 0;
+  animation: pulse 15s infinite;
+}
+
+#thinking-screen h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+#thinking-screen p {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.thinking-tips {
+  background-color: rgba(255,255,255,0.1);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+.thinking-tips ul {
+  list-style: none;
+  padding: 0;
+}
+
+.thinking-tips li {
+  padding: 0.3rem 0;
+  font-size: 1rem;
+}
+
+.thinking-tips li::before {
+  content: "⦿";
+  margin-right: 0.5rem;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+#round-info {
+  background-color: #3498db;
+  color: white;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+#start-screen, #end-screen, #reveal-container {
+  margin-top: 2rem;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+input:focus, button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+}
+
+.timer-warning {
+  animation: flash 1s infinite;
+  color: #e74c3c !important;
+}
+
+@keyframes flash {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.5; }
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    max-width: 100px;
+  }
+
+  #timer-container p {
+    font-size: 2rem;
+  }
+
+  /* Adjust monster image for small screens */
+  #monster-image {
+    max-width: 100% !important;
+    width: auto !important;
+    max-height: 60vh;
+  }
+}

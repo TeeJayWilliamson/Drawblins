@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsDRAWsity Helper</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Drawblins</h1>
+    <p class="game-subtitle">The Monster Drawing Game</p>
+
+    <div id="start-screen">
+      <div id="round-info">
+        <span id="round-display">Round 1</span>
+      </div>
+      
+      <label for="view-time">View Time (sec):</label>
+      <input type="number" id="view-time" value="20" min="5" max="60" />
+
+      <label for="describe-time">Describe Time (min):</label>
+      <input type="number" id="describe-time" value="2" min="1" max="10" />
+<br>
+      <button id="start-btn">Start Round</button>
+      <button id="reset-rounds-btn" style="background-color: #e74c3c; margin-left: 1rem;">Reset Game</button>
+    </div>
+
+    <div id="phase-indicator" class="hidden">Study the Monster!</div>
+    
+    <div id="image-container" class="hidden">
+      <img id="monster-image" src="" alt="Monster" />
+    </div>
+
+    <div id="thinking-screen" class="hidden">
+      <h2>Time to Draw!</h2>
+      <p>Now describe what you saw to your team while they draw!</p>
+      <div class="thinking-tips">
+        <ul>
+          <li>Start with basic shapes and overall structure</li>
+          <li>Describe distinctive features clearly</li>
+          <li>Use simple, clear language</li>
+          <li>Guide your team step by step</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="timer-container" class="hidden">
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+      </div>
+      <p id="timer">00:00</p>
+    </div>
+
+    <div id="reveal-container" class="hidden">
+      <button id="reveal-btn">Reveal the Monster!</button>
+    </div>
+
+    <div id="end-screen" class="hidden">
+      <h2>🎉 Round Complete!</h2>
+      <p>How did your team do?</p>
+      <button id="next-round-btn">Next Round</button>
+      <button id="restart-btn" style="background-color: #f39c12; margin-left: 1rem;">New Game</button>
+    </div>
+  </div>
+
+  <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
+  <script src="script.js"></script>
+</body>
+</html>
