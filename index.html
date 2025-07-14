@@ -8,8 +8,29 @@
 </head>
 <body>
   <div class="container">
-<img src="images/logo.png" alt="Drawblins" class="logo-img" />
+    <img src="images/logo.png" alt="Drawblins" class="logo-img" />
 
+    <!-- Info button - always visible -->
+<button id="info-btn" class="icon-button" aria-label="How to Play">
+  <svg class="icon-button__icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="12" fill="currentColor"/>
+    <text x="12" y="17" text-anchor="middle" font-size="13" fill="#fff" font-family="Arial, sans-serif" font-weight="bold">i</text>
+  </svg>
+</button>
+
+    <!-- Modal - add display: flex to center content -->
+    <div id="info-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+      <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 500px; margin: 1rem;">
+        <h3>How to Play Drawblins</h3>
+        <ul style="text-align: left; line-height: 1.6;">
+          <li>One player studies the monster image</li>
+          <li>During drawing phase, they describe it while others draw</li>
+          <li>Compare your drawings to the original!</li>
+          <li>Use the turn picker to decide who goes first</li>
+        </ul>
+        <button id="close-info" style="background-color: #e74c3c;">Close</button>
+      </div>
+    </div>
 
     <div id="start-screen">
       <div id="round-info">
@@ -21,12 +42,20 @@
 
       <label for="describe-time">Describe Time (min):</label>
       <input type="number" id="describe-time" value="2" min="1" max="10" />
-<br>
+      <br>
       <div id="start-buttons">
         <button id="start-btn">Start Round</button>
+        <button id="turn-picker-btn" style="background-color: #9b59b6;">Turn Picker</button>
         <button id="reset-rounds-btn" style="background-color: #e74c3c;">Reset Game</button>
       </div>
+    </div>
 
+    <div id="mobile-turn-picker" style="display: none; margin-top: 2rem;">
+      <h3>🎲 Touch to Decide Who Goes First</h3>
+      <p>Have each player place one finger on the screen, then tap a button:</p>
+      <div id="touch-area"></div>
+      <div id="picker-status">Place fingers on the screen...</div>
+      <button id="close-picker" style="background-color: #e74c3c;">Close</button>
     </div>
 
     <div id="phase-indicator" class="hidden">Study the Monster!</div>
@@ -63,24 +92,15 @@
       <h2>🎉 Round Complete!</h2>
       <p>How did your team do?</p>
       <div id="end-buttons">
-  <button id="next-round-btn">Next Round</button>
-  <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
-</div>
-
-<div id="mobile-turn-picker" style="display: none; margin-top: 2rem;">
-  <h3>🎲 Touch to Decide Who Goes First</h3>
-  <p>Have each player place one finger on the screen, then tap a button:</p>
-  <div id="touch-area"></div>
-  <button onclick="chooseRandomFinger()">Pick Random Player</button>
-  <button onclick="shuffleOrder()">Decide Turn Order</button>
-</div>
-
+        <button id="next-round-btn">Next Round</button>
+        <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
+      </div>
     </div>
   </div>
 
   <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
   <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
-<audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
+  <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
 
   <script src="script.js"></script>
 </body>
