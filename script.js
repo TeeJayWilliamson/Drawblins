@@ -501,16 +501,16 @@ function selectRandomPlayer() {
   updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
   
   const dots = document.querySelectorAll('.finger-dot');
-  dots.forEach((dot, index) => {
-    if (index === selectedIndex) {
-      dot.style.background = '#e74c3c';
-      dot.style.transform = 'scale(1.3)';
-      dot.style.border = '4px solid #fff';
-    } else {
-      dot.style.background = 'rgba(76, 175, 80, 0.5)';
-      dot.style.transform = 'scale(1)';
-    }
-  });
+dots.forEach((dot, index) => {
+  if (index === selectedIndex) {
+    dot.classList.add('winner');
+  } else {
+    dot.classList.remove('winner');
+    dot.style.background = 'rgba(76, 175, 80, 0.5)';
+    dot.style.transform = 'scale(1)';
+    dot.style.border = ''; // reset border
+  }
+});
   
   // Keep the dots visible for 4 seconds instead of hiding immediately
   setTimeout(() => {

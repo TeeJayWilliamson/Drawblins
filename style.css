@@ -357,6 +357,34 @@ button:hover {
   user-select: none;
 }
 
+.finger-dot.winner {
+  width: 140px !important;
+  height: 140px !important;
+  line-height: 140px !important;
+  font-size: 48px !important;
+  background: rgba(231, 76, 60, 0.95) !important;
+  border: 6px solid #e74c3c !important;
+  box-shadow: 0 0 20px 8px rgba(231, 76, 60, 0.7) !important;
+  transform: scale(1) !important;
+  z-index: 20 !important;
+  font-weight: 900 !important;
+  animation: pulse-red 1.5s infinite;
+  transition: all 0.3s ease !important;
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 20px 8px rgba(231, 76, 60, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px 12px rgba(231, 76, 60, 1);
+    transform: scale(1.1);
+  }
+}
+
+
+
 /* Prevent text selection and context menus globally */
 * {
   -webkit-user-select: none;
