@@ -4,31 +4,24 @@ body {
   text-align: center;
   margin: 0;
   background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
-  height: 100vh;          /* Use viewport height instead of min-height */
-  max-height: 100vh;      /* Prevent exceeding viewport */
-  overflow: hidden;       /* Prevent scrolling */
+  min-height: 100vh;
+  max-height: 100vh;      /* Add this */
+  overflow: hidden;       /* Add this */
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 0;             /* Remove padding that might cause overflow */
+  overflow-x: hidden;
 }
 
 .container {
+  height: 2000px;
   width: 95%;
   max-width: 900px;
   background: #ffffff;
-  padding: 1rem 1.5rem;    /* Reduced padding */
+  padding: 2rem 1.5rem;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
-  max-height: 95vh;        /* Limit container height */
-  overflow-y: auto;        /* Allow scrolling within container if needed */
-  margin: 1rem 0;          /* Add small margin for spacing */
-}
-
-.container:hover {
-  transform: scale(1.01);
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.15);
 }
 
 h1 {
