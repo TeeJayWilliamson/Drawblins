@@ -1,20 +1,19 @@
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #e6f0fa;
-  text-align: center;
-  margin: 0;
-  background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
-  min-height: 100vh;
-  max-height: 100vh;      /* Add this */
-  overflow: hidden;       /* Add this */
+  height: 100vh; /* Ensure full viewport height */
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch; /* allow child to grow full height */
+  margin: 0;
+  background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
   overflow-x: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+  padding: 0;
 }
 
+
 .container {
-  height: 2000px;
+  flex: 1; /* This makes it grow vertically to fill available height */
   width: 95%;
   max-width: 900px;
   background: #ffffff;
@@ -22,7 +21,11 @@ body {
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.3s ease;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
+
+
 
 h1 {
   color: #2c3e50;
@@ -120,8 +123,8 @@ button:hover {
 /* UPDATED monster-image styles */
 #monster-image {
   max-width: none !important;
-  max-height: 500px;
-  width: 600px !important;  /* Adjust this to your preferred width */
+  max-height: 400px;
+  width: 400px !important;  /* Adjust this to your preferred width */
   height: auto !important;
   border-radius: 16px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -223,20 +226,54 @@ button:hover {
   border-radius: 8px;
 }
 
-  .logo-img {
+.logo-wrapper {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 100;
+}
+
+
+.logo-img {
   max-width: 400px;
   width: 100%;
   height: auto;
+  display: block;
+  margin: 0 auto; /* center horizontally */
+}
+
+/* Flex row with spacing */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* or use gap if preferred */
+  width: 100%;
   margin-bottom: 1rem;
 }
 
+.icon-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #0077cc;
+}
+
+/* Responsive tweaks */
 @media (max-width: 600px) {
   .logo-img {
-    max-width: 250px; /* or smaller as needed */
-    width: 80%;       /* or 100% if you want it full width */
-    height: auto;
+    max-width: 250px;
+    width: 80%;
+  }
+
+  .header {
+    gap: 1rem; /* Space between logo and button */
   }
 }
+
 
 
 .picker-modal {
@@ -424,12 +461,6 @@ input:focus, button:focus {
     border-radius: 0;
     max-height: 100vh;
     padding: 1rem;
-  }
-  
-  .logo-img {
-    max-width: 200px;
-    width: 60%;
-    margin-bottom: 0.5rem;
   }
   
   /* Reduce spacing on mobile */

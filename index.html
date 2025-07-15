@@ -3,22 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dawblins</title>
+  <title>Drawblins</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <img src="images/logo.png" alt="Drawblins" class="logo-img" />
+    
+    <!-- Logo + Info Button -->
+    <div class="logo-wrapper">
+      <img src="images/logo.png" alt="Drawblins" class="logo-img" />
+      <button id="info-btn" class="icon-button" aria-label="How to Play">
+        <svg class="icon-button__icon" viewBox="0 0 24 24" width="24" height="24">
+          <circle cx="12" cy="12" r="12" fill="currentColor" />
+          <text x="12" y="17" text-anchor="middle" font-size="13" fill="#fff" font-family="Arial, sans-serif" font-weight="bold">i</text>
+        </svg>
+      </button>
+    </div>
 
-    <!-- Info button - always visible -->
-<button id="info-btn" class="icon-button" aria-label="How to Play">
-  <svg class="icon-button__icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-    <circle cx="12" cy="12" r="12" fill="currentColor"/>
-    <text x="12" y="17" text-anchor="middle" font-size="13" fill="#fff" font-family="Arial, sans-serif" font-weight="bold">i</text>
-  </svg>
-</button>
-
-    <!-- Modal - add display: flex to center content -->
+    <!-- Info Modal -->
     <div id="info-modal" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center;">
       <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 500px; margin: 1rem;">
         <h3>How to Play Drawblins</h3>
@@ -32,17 +34,18 @@
       </div>
     </div>
 
+    <!-- Start Screen -->
     <div id="start-screen">
       <div id="round-info">
         <span id="round-display">Round 1</span>
       </div>
-      
+
       <label for="view-time">View Time (sec):</label>
       <input type="number" id="view-time" value="20" min="5" max="60" />
 
       <label for="describe-time">Describe Time (min):</label>
       <input type="number" id="describe-time" value="2" min="1" max="10" />
-      <br>
+
       <div id="start-buttons">
         <button id="start-btn">Start Round</button>
         <button id="turn-picker-btn" style="background-color: #9b59b6;">Turn Picker</button>
@@ -50,22 +53,26 @@
       </div>
     </div>
 
-<div id="mobile-turn-picker" class="picker-modal hidden">
-  <div class="picker-content">
-    <h3>🎲 Touch to Decide Who Goes First</h3>
-    <p>Have each player place one finger on the screen, then wait:</p>
-    <div id="touch-area"></div>
-    <div id="picker-status">Place fingers on the screen...</div>
-    <button id="close-picker" style="background-color: #e74c3c;">Close</button>
-  </div>
-</div>
+    <!-- Turn Picker -->
+    <div id="mobile-turn-picker" class="picker-modal hidden">
+      <div class="picker-content">
+        <h3>🎲 Touch to Decide Who Goes First</h3>
+        <p>Have each player place one finger on the screen, then wait:</p>
+        <div id="touch-area"></div>
+        <div id="picker-status">Place fingers on the screen...</div>
+        <button id="close-picker" style="background-color: #e74c3c;">Close</button>
+      </div>
+    </div>
 
+    <!-- Phase Indicator -->
     <div id="phase-indicator" class="hidden">Study the Monster!</div>
-    
+
+    <!-- Monster Image -->
     <div id="image-container" class="hidden">
       <img id="monster-image" src="" alt="Monster" />
     </div>
 
+    <!-- Thinking Screen -->
     <div id="thinking-screen" class="hidden">
       <h2>Time to Draw!</h2>
       <p>Now describe what you saw to your team while they draw!</p>
@@ -79,6 +86,7 @@
       </div>
     </div>
 
+    <!-- Timer Section -->
     <div id="timer-container" class="hidden">
       <div id="progress-bar-container">
         <div id="progress-bar"></div>
@@ -86,10 +94,12 @@
       <p id="timer">00:00</p>
     </div>
 
+    <!-- Reveal Button -->
     <div id="reveal-container" class="hidden">
       <button id="reveal-btn">Reveal the Monster!</button>
     </div>
 
+    <!-- End Screen -->
     <div id="end-screen" class="hidden">
       <h2>Round Complete!</h2>
       <p>How did your team do?</p>
@@ -100,10 +110,12 @@
     </div>
   </div>
 
+  <!-- Audio -->
   <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
   <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
   <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
 
+  <!-- Scripts -->
   <script src="script.js"></script>
 </body>
 </html>
