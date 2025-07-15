@@ -306,15 +306,24 @@ button:hover {
 .picker-content {
   background: white;
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1rem;
   max-width: 600px;
   width: 100%;
+  box-sizing: border-box;
   max-height: 90vh;
   overflow-y: hidden;
   overflow-x: hidden;
   overflow: hidden;
   text-align: center;
 }
+
+@media (max-width: 400px) {
+  .picker-content {
+    max-width: 95vw; /* or 100vw minus some margin */
+    padding: 1rem;
+  }
+}
+
 
 .picker-content h3 {
   color: #2c3e50;
