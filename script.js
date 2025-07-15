@@ -417,16 +417,27 @@
     let pickerTimeout = null;
     let activeTouches = [];
 
-    // Show turn picker for all devices
-    document.getElementById('turn-picker-btn').addEventListener('click', () => {
-      document.getElementById('mobile-turn-picker').style.display = 'block';
-      activatePickerMode();
-    });
+document.getElementById('turn-picker-btn').addEventListener('click', () => {
+  document.getElementById('mobile-turn-picker').classList.remove('hidden');
+  activatePickerMode();
+});
 
-    document.getElementById('close-picker').addEventListener('click', () => {
-      document.getElementById('mobile-turn-picker').style.display = 'none';
-      deactivatePickerMode();
-    });
+document.getElementById('close-picker').addEventListener('click', () => {
+  document.getElementById('mobile-turn-picker').classList.add('hidden');
+  deactivatePickerMode();
+});
+
+// Prevent context menu on touch area
+document.getElementById('touch-area').addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Prevent context menu globally on mobile
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
 
     function activatePickerMode() {
       pickerActive = true;
@@ -508,25 +519,25 @@ function selectRandomPlayer() {
   }, 4000);  // changed from 3000 to 4000
 }
 
-    function drawTouches(touches) {
-      const container = document.getElementById("touch-area");
-      container.innerHTML = "";
-      
-      touches.forEach((touch, index) => {
-        const rect = container.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        
-        if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-          const dot = document.createElement("div");
-          dot.className = "finger-dot";
-          dot.style.left = `${x - 25}px`;
-          dot.style.top = `${y - 25}px`;
-          dot.innerText = index + 1;
-          container.appendChild(dot);
-        }
-      });
+function drawTouches(touches) {
+  const container = document.getElementById("touch-area");
+  container.innerHTML = "";
+  
+  touches.forEach((touch, index) => {
+    const rect = container.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+      const dot = document.createElement("div");
+      dot.className = "finger-dot";
+      dot.style.left = `${x - 35}px`;  // adjusted for new size
+      dot.style.top = `${y - 35}px`;   // adjusted for new size
+      dot.innerText = index + 1;
+      container.appendChild(dot);
     }
+  });
+}
 
     // Touch event listeners for the picker
     document.addEventListener("touchstart", (e) => {

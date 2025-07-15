@@ -50,13 +50,15 @@
       </div>
     </div>
 
-    <div id="mobile-turn-picker" style="display: none; margin-top: 2rem;">
-      <h3>🎲 Touch to Decide Who Goes First</h3>
-      <p>Have each player place one finger on the screen, then tap a button:</p>
-      <div id="touch-area"></div>
-      <div id="picker-status">Place fingers on the screen...</div>
-      <button id="close-picker" style="background-color: #e74c3c;">Close</button>
-    </div>
+<div id="mobile-turn-picker" class="picker-modal hidden">
+  <div class="picker-content">
+    <h3>🎲 Touch to Decide Who Goes First</h3>
+    <p>Have each player place one finger on the screen, then wait:</p>
+    <div id="touch-area"></div>
+    <div id="picker-status">Place fingers on the screen...</div>
+    <button id="close-picker" style="background-color: #e74c3c;">Close</button>
+  </div>
+</div>
 
     <div id="phase-indicator" class="hidden">Study the Monster!</div>
     
