@@ -1,4 +1,4 @@
-    const totalImages = 158;
+    const totalImages = 178;
     const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
 
     const startBtn = document.getElementById('start-btn');
