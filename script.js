@@ -480,30 +480,33 @@
       }, 3000);
     }
 
-    function selectRandomPlayer() {
-      if (activeTouches.length === 0) {
-        updatePickerStatus("No fingers detected! Try again.");
-        return;
-      }
-      
-      const selectedIndex = Math.floor(Math.random() * activeTouches.length);
-      updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
-      
-      const dots = document.querySelectorAll('.finger-dot');
-      dots.forEach((dot, index) => {
-        if (index === selectedIndex) {
-          dot.style.background = '#e74c3c';
-          dot.style.transform = 'scale(1.2)';
-        } else {
-          dot.style.background = 'rgba(76, 175, 80, 0.5)';
-        }
-      });
-      
-      setTimeout(() => {
-        document.getElementById('mobile-turn-picker').style.display = 'none';
-        deactivatePickerMode();
-      }, 3000);
+function selectRandomPlayer() {
+  if (activeTouches.length === 0) {
+    updatePickerStatus("No fingers detected! Try again.");
+    return;
+  }
+  
+  const selectedIndex = Math.floor(Math.random() * activeTouches.length);
+  updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
+  
+  const dots = document.querySelectorAll('.finger-dot');
+  dots.forEach((dot, index) => {
+    if (index === selectedIndex) {
+      dot.style.background = '#e74c3c';
+      dot.style.transform = 'scale(1.3)';
+      dot.style.border = '4px solid #fff';
+    } else {
+      dot.style.background = 'rgba(76, 175, 80, 0.5)';
+      dot.style.transform = 'scale(1)';
     }
+  });
+  
+  // Keep the dots visible for 4 seconds instead of hiding immediately
+  setTimeout(() => {
+    document.getElementById('mobile-turn-picker').style.display = 'none';
+    deactivatePickerMode();
+  }, 4000);  // changed from 3000 to 4000
+}
 
     function drawTouches(touches) {
       const container = document.getElementById("touch-area");
