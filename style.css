@@ -310,7 +310,9 @@ button:hover {
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow: hidden;
   text-align: center;
 }
 
@@ -323,6 +325,7 @@ button:hover {
 .picker-content p {
   color: #7f8c8d;
   margin-bottom: 1.5rem;
+  overflow: hidden;
 }
 
 #touch-area {

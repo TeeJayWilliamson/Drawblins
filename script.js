@@ -413,22 +413,19 @@
       }, stepInterval);
     }
 
-  let pickerActive = false;
-  let pickerHasWinner = false;
-  let activeTouches = [];
-  let pickerTimeout = null;
+let pickerActive = false;
+let pickerHasWinner = false;
+let pickerTimeout = null;
+let countdownInterval = null;
+let activeTouches = [];
+let pickerReady = false; // ✅ NEW FLAG
+
 
 
 document.getElementById('turn-picker-btn').addEventListener('click', () => {
   document.getElementById('mobile-turn-picker').classList.remove('hidden');
   activatePickerMode();
 });
-
-document.getElementById('close-picker').addEventListener('click', () => {
-  document.getElementById('mobile-turn-picker').classList.add('hidden');
-  deactivatePickerMode();
-});
-
 
 // Prevent context menu on touch area
 document.getElementById('touch-area').addEventListener('contextmenu', (e) => {
@@ -444,28 +441,27 @@ document.addEventListener('contextmenu', (e) => {
 
 function activatePickerMode() {
   pickerActive = true;
-  pickerHasWinner = false; // ✅ Unlock touch
+  pickerHasWinner = false;
+  pickerReady = false;
   activeTouches = [];
   updatePickerStatus("Place fingers on the screen...");
-
-  if (pickerTimeout) {
-    clearTimeout(pickerTimeout);
-    pickerTimeout = null;
-  }
-
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-    countdownInterval = null;
-  }
-
   document.getElementById("touch-area").innerHTML = "";
+
+  // Clean any old intervals
+  if (pickerTimeout) clearTimeout(pickerTimeout);
+  if (countdownInterval) clearInterval(countdownInterval);
+
+  // ✅ Delay event binding until ready
+  setTimeout(() => {
+    pickerReady = true;
+    document.addEventListener("touchstart", onTouchStart);
+    document.addEventListener("touchend", onTouchEnd);
+  }, 300);
 }
-
-
-
 
 function deactivatePickerMode() {
   pickerActive = false;
+  pickerReady = false;
   pickerHasWinner = false;
   activeTouches = [];
 
@@ -473,16 +469,20 @@ function deactivatePickerMode() {
     clearTimeout(pickerTimeout);
     pickerTimeout = null;
   }
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
 
-  const container = document.getElementById("touch-area");
-  container.innerHTML = "";
+  document.getElementById("touch-area").innerHTML = "";
   updatePickerStatus("Waiting for touches...");
 
-  document.querySelectorAll('.finger-dot').forEach(dot => {
-  dot.classList.remove('winner');
-  dot.style.opacity = '';
-});
+  // ❗️Remove touch event listeners to prevent leftover triggers
+  document.removeEventListener("touchstart", onTouchStart);
+  document.removeEventListener("touchend", onTouchEnd);
 }
+
+
 
 
     function updatePickerStatus(message) {
@@ -495,23 +495,24 @@ function startPickerCountdown() {
   let countdown = 3;
   updatePickerStatus(`Selecting in ${countdown}...`);
 
-  const countdownInterval = setInterval(() => {
+countdownInterval = setInterval(() => {
+  countdown--;
+  if (countdown > 0) {
+    updatePickerStatus(`Selecting in ${countdown}...`);
+  } else {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+    selectRandomPlayer();
+  }
+}, 1000);
 
-    let countdownInterval = null;
-    countdown--;
-    if (countdown > 0) {
-      updatePickerStatus(`Selecting in ${countdown}...`);
-    } else {
-      clearInterval(countdownInterval);
-      selectRandomPlayer();
-    }
-  }, 1000);
 
 pickerTimeout = setTimeout(() => {
   clearInterval(countdownInterval);
   countdownInterval = null;
   selectRandomPlayer();
 }, 3000);
+
 
 }
 
@@ -577,8 +578,8 @@ function drawTouches(touches) {
 
 
     // Touch event listeners for the picker
-document.addEventListener("touchstart", (e) => {
-  if (!pickerActive || pickerHasWinner) return;
+function onTouchStart(e) {
+if (!pickerActive || pickerHasWinner || !pickerReady) return;
 
   activeTouches = Array.from(e.touches);
   drawTouches(activeTouches);
@@ -586,30 +587,29 @@ document.addEventListener("touchstart", (e) => {
   if (activeTouches.length > 0) {
     startPickerCountdown();
   }
-});
+}
 
 
-document.addEventListener("touchend", (e) => {
-  if (!pickerActive || pickerHasWinner) return;
+
+function onTouchEnd(e) {
+  if (!pickerActive || pickerHasWinner || !pickerReady) return;
 
   activeTouches = Array.from(e.touches);
   drawTouches(activeTouches);
 
-  if (activeTouches.length === 0) {
+  if (activeTouches.length > 0) {
+    startPickerCountdown();
+  } else {
     if (pickerTimeout) {
       clearTimeout(pickerTimeout);
       pickerTimeout = null;
     }
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
     updatePickerStatus("Place fingers on the screen...");
   }
-});
+}
 
 document.getElementById("touch-area").addEventListener("mousedown", (e) => {
-  if (!pickerActive || pickerHasWinner) return;
+  if (!pickerActive || pickerHasWinner || !pickerReady) return;
 
   const rect = e.target.getBoundingClientRect();
   const mockTouch = {
@@ -622,23 +622,6 @@ document.getElementById("touch-area").addEventListener("mousedown", (e) => {
   startPickerCountdown();
 });
 
-
-
-
-    // For desktop testing - mouse events
-    document.getElementById("touch-area").addEventListener("mousedown", (e) => {
-      if (!pickerActive) return;
-      
-      const rect = e.target.getBoundingClientRect();
-      const mockTouch = {
-        clientX: e.clientX,
-        clientY: e.clientY
-      };
-      
-      activeTouches = [mockTouch];
-      drawTouches(activeTouches);
-      startPickerCountdown();
-    });
 
     // How to Play modal logic
     const infoBtn = document.getElementById('info-btn');
