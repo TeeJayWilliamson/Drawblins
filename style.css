@@ -1,14 +1,23 @@
+html, body {
+  overscroll-behavior-y: contain; /* Prevent scroll chaining and bounce */
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+}
+
 body {
   height: 100vh; /* Ensure full viewport height */
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: stretch; /* allow child to grow full height */
   margin: 0;
   background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
   overflow-x: hidden;
+  overflow-y: auto;
+  position: fixed;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   text-align: center;
   padding: 0;
+  
 }
 
 
@@ -355,6 +364,7 @@ button:hover {
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  transition: opacity 03s ease, transform 0.3s ease;
 }
 
 .finger-dot.winner {

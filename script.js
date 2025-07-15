@@ -30,6 +30,7 @@
     let audioInitialized = false;
     let currentFadeInterval = null;
     let targetVolume = 0.6;
+    
 
     // Stop music when page is about to unload
     window.addEventListener('beforeunload', () => {
@@ -412,10 +413,11 @@
       }, stepInterval);
     }
 
-    // Mobile touch picker code
-    let pickerActive = false;
-    let pickerTimeout = null;
-    let activeTouches = [];
+  let pickerActive = false;
+  let pickerHasWinner = false;
+  let activeTouches = [];
+  let pickerTimeout = null;
+
 
 document.getElementById('turn-picker-btn').addEventListener('click', () => {
   document.getElementById('mobile-turn-picker').classList.remove('hidden');
@@ -426,6 +428,7 @@ document.getElementById('close-picker').addEventListener('click', () => {
   document.getElementById('mobile-turn-picker').classList.add('hidden');
   deactivatePickerMode();
 });
+
 
 // Prevent context menu on touch area
 document.getElementById('touch-area').addEventListener('contextmenu', (e) => {
@@ -439,134 +442,188 @@ document.addEventListener('contextmenu', (e) => {
   return false;
 });
 
-    function activatePickerMode() {
-      pickerActive = true;
-      activeTouches = [];
-      updatePickerStatus("Place fingers on the screen...");
-      
-      if (pickerTimeout) {
-        clearTimeout(pickerTimeout);
-        pickerTimeout = null;
-      }
-    }
+function activatePickerMode() {
+  pickerActive = true;
+  pickerHasWinner = false; // ✅ Unlock touch
+  activeTouches = [];
+  updatePickerStatus("Place fingers on the screen...");
 
-    function deactivatePickerMode() {
-      pickerActive = false;
-      activeTouches = [];
-      
-      if (pickerTimeout) {
-        clearTimeout(pickerTimeout);
-        pickerTimeout = null;
-      }
-      
-      document.getElementById("touch-area").innerHTML = "";
-      updatePickerStatus("Waiting for touches...");
-    }
+  if (pickerTimeout) {
+    clearTimeout(pickerTimeout);
+    pickerTimeout = null;
+  }
+
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  document.getElementById("touch-area").innerHTML = "";
+}
+
+
+
+
+function deactivatePickerMode() {
+  pickerActive = false;
+  pickerHasWinner = false;
+  activeTouches = [];
+
+  if (pickerTimeout) {
+    clearTimeout(pickerTimeout);
+    pickerTimeout = null;
+  }
+
+  const container = document.getElementById("touch-area");
+  container.innerHTML = "";
+  updatePickerStatus("Waiting for touches...");
+
+  document.querySelectorAll('.finger-dot').forEach(dot => {
+  dot.classList.remove('winner');
+  dot.style.opacity = '';
+});
+}
+
 
     function updatePickerStatus(message) {
       document.getElementById("picker-status").textContent = message;
     }
 
-    function startPickerCountdown() {
-      if (pickerTimeout) {
-        clearTimeout(pickerTimeout);
-      }
-      
-      let countdown = 3;
-      updatePickerStatus(`Selecting in ${countdown}...`);
-      
-      const countdownInterval = setInterval(() => {
-        countdown--;
-        if (countdown > 0) {
-          updatePickerStatus(`Selecting in ${countdown}...`);
-        } else {
-          clearInterval(countdownInterval);
-          selectRandomPlayer();
-        }
-      }, 1000);
-      
-      pickerTimeout = setTimeout(() => {
-        clearInterval(countdownInterval);
-        selectRandomPlayer();
-      }, 3000);
-    }
+function startPickerCountdown() {
+  if (pickerTimeout || pickerHasWinner) return; // 👈 prevent multiple timers or running after winner
 
-function selectRandomPlayer() {
-  if (activeTouches.length === 0) {
-    updatePickerStatus("No fingers detected! Try again.");
-    return;
-  }
-  
-  const selectedIndex = Math.floor(Math.random() * activeTouches.length);
-  updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
-  
-  const dots = document.querySelectorAll('.finger-dot');
-dots.forEach((dot, index) => {
-  if (index === selectedIndex) {
-    dot.classList.add('winner');
-  } else {
-    dot.classList.remove('winner');
-    dot.style.background = 'rgba(76, 175, 80, 0.5)';
-    dot.style.transform = 'scale(1)';
-    dot.style.border = ''; // reset border
-  }
-});
-  
-  // Keep the dots visible for 4 seconds instead of hiding immediately
-  setTimeout(() => {
-    document.getElementById('mobile-turn-picker').style.display = 'none';
-    deactivatePickerMode();
-  }, 4000);  // changed from 3000 to 4000
+  let countdown = 3;
+  updatePickerStatus(`Selecting in ${countdown}...`);
+
+  const countdownInterval = setInterval(() => {
+
+    let countdownInterval = null;
+    countdown--;
+    if (countdown > 0) {
+      updatePickerStatus(`Selecting in ${countdown}...`);
+    } else {
+      clearInterval(countdownInterval);
+      selectRandomPlayer();
+    }
+  }, 1000);
+
+pickerTimeout = setTimeout(() => {
+  clearInterval(countdownInterval);
+  countdownInterval = null;
+  selectRandomPlayer();
+}, 3000);
+
 }
 
+
+function selectRandomPlayer() {
+  if (activeTouches.length === 0 || pickerHasWinner) return;
+
+  pickerHasWinner = true; // ✅ LOCK everything
+
+  const selectedIndex = Math.floor(Math.random() * activeTouches.length);
+  updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
+
+  const dots = document.querySelectorAll('.finger-dot');
+  dots.forEach((dot, index) => {
+    if (index === selectedIndex) {
+      dot.classList.add('winner');
+    } else {
+      dot.style.opacity = '0.3';
+    }
+  });
+
+  // Cleanup countdowns
+  if (pickerTimeout) {
+    clearTimeout(pickerTimeout);
+    pickerTimeout = null;
+  }
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+
+  // Allow player to view for a few seconds before closing
+  setTimeout(() => {
+    document.getElementById('mobile-turn-picker').classList.add('hidden');
+    deactivatePickerMode();
+  }, 4000);
+}
+
+
+
+
 function drawTouches(touches) {
+  if (pickerHasWinner) return; // ✅ BLOCK drawing after winner selected
+
   const container = document.getElementById("touch-area");
   container.innerHTML = "";
-  
+
   touches.forEach((touch, index) => {
     const rect = container.getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    
+
     if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
       const dot = document.createElement("div");
       dot.className = "finger-dot";
-      dot.style.left = `${x - 35}px`;  // adjusted for new size
-      dot.style.top = `${y - 35}px`;   // adjusted for new size
+      dot.style.left = `${x - 35}px`;
+      dot.style.top = `${y - 35}px`;
       dot.innerText = index + 1;
       container.appendChild(dot);
     }
   });
 }
 
-    // Touch event listeners for the picker
-    document.addEventListener("touchstart", (e) => {
-      if (!pickerActive) return;
-      
-      activeTouches = Array.from(e.touches);
-      drawTouches(activeTouches);
-      
-      if (activeTouches.length > 0) {
-        startPickerCountdown();
-      }
-    });
 
-    document.addEventListener("touchend", (e) => {
-      if (!pickerActive) return;
-      
-      activeTouches = Array.from(e.touches);
-      drawTouches(activeTouches);
-      
-      if (activeTouches.length > 0) {
-        startPickerCountdown();
-      } else {
-        if (pickerTimeout) {
-          clearTimeout(pickerTimeout);
-          pickerTimeout = null;
-        }
-        updatePickerStatus("Place fingers on the screen...");
-      }
-    });
+    // Touch event listeners for the picker
+document.addEventListener("touchstart", (e) => {
+  if (!pickerActive || pickerHasWinner) return;
+
+  activeTouches = Array.from(e.touches);
+  drawTouches(activeTouches);
+
+  if (activeTouches.length > 0) {
+    startPickerCountdown();
+  }
+});
+
+
+document.addEventListener("touchend", (e) => {
+  if (!pickerActive || pickerHasWinner) return;
+
+  activeTouches = Array.from(e.touches);
+  drawTouches(activeTouches);
+
+  if (activeTouches.length === 0) {
+    if (pickerTimeout) {
+      clearTimeout(pickerTimeout);
+      pickerTimeout = null;
+    }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    updatePickerStatus("Place fingers on the screen...");
+  }
+});
+
+document.getElementById("touch-area").addEventListener("mousedown", (e) => {
+  if (!pickerActive || pickerHasWinner) return;
+
+  const rect = e.target.getBoundingClientRect();
+  const mockTouch = {
+    clientX: e.clientX,
+    clientY: e.clientY
+  };
+
+  activeTouches = [mockTouch];
+  drawTouches(activeTouches);
+  startPickerCountdown();
+});
+
+
+
 
     // For desktop testing - mouse events
     document.getElementById("touch-area").addEventListener("mousedown", (e) => {
@@ -603,3 +660,12 @@ function drawTouches(touches) {
     phaseIndicator.style.backgroundColor = "";
     phaseIndicator.style.color = "";
     phaseIndicator.style.display = "none";
+
+    window.addEventListener('load', () => {
+    window.scrollTo(0, 0);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      window.scrollTo(0, 0);
+    });
+    
