@@ -289,18 +289,17 @@ button:hover {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw; /* ensure no horizontal overflow */
+  height: 100vh; /* full viewport height */
   background: rgba(0, 0, 0, 0.9);
   z-index: 2000;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
-}
-
-.picker-modal.hidden {
-  display: none !important;
+  padding-left: 1rem;
+  padding-right: 1rem;  /* add explicit right padding */
+  box-sizing: border-box; /* include padding in width */
+  overflow: hidden; /* prevent scrolling outside */
 }
 
 .picker-content {
@@ -309,20 +308,19 @@ button:hover {
   padding: 1rem;
   max-width: 600px;
   width: 100%;
-  box-sizing: border-box;
+  box-sizing: border-box; /* very important */
   max-height: 90vh;
-  overflow-y: hidden;
-  overflow-x: hidden;
-  overflow: hidden;
+  overflow-y: auto; /* allow scrolling inside modal if content too tall */
   text-align: center;
+  margin: 0 auto; /* center horizontally */
 }
 
-@media (max-width: 400px) {
+@media (max-width: 450px) {
   .picker-content {
-    max-width: 95vw; /* or 100vw minus some margin */
-    padding: 1rem;
+    max-width: 95vw; /* make sure it fits on small phones */
   }
 }
+
 
 
 .picker-content h3 {
