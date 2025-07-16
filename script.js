@@ -46,12 +46,47 @@ function initializeSettings() {
   
 window.addEventListener('blur', () => {
   wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
-  stopAllMusicImmediate();
+  // Just mute, don't stop
+  if (waitingMusic && !waitingMusic.paused) {
+    waitingMusic.volume = 0;
+  }
+  if (drawingMusic && !drawingMusic.paused) {
+    drawingMusic.volume = 0;
+  }
 });
 
 window.addEventListener('focus', () => {
-  if (wasPlayingBeforePause || currentMusicPhase) {
-    resumeMusic();
+  if (wasPlayingBeforePause && soundEnabled) {
+    // Restore volume
+    if (waitingMusic && !waitingMusic.paused) {
+      waitingMusic.volume = gameVolume;
+    }
+    if (drawingMusic && !drawingMusic.paused) {
+      drawingMusic.volume = gameVolume;
+    }
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
+    // Just mute, don't stop
+    if (waitingMusic && !waitingMusic.paused) {
+      waitingMusic.volume = 0;
+    }
+    if (drawingMusic && !drawingMusic.paused) {
+      drawingMusic.volume = 0;
+    }
+  } else {
+    if (wasPlayingBeforePause && soundEnabled) {
+      // Restore volume
+      if (waitingMusic && !waitingMusic.paused) {
+        waitingMusic.volume = gameVolume;
+      }
+      if (drawingMusic && !drawingMusic.paused) {
+        drawingMusic.volume = gameVolume;
+      }
+    }
   }
 });
   
@@ -73,21 +108,45 @@ window.addEventListener('focus', () => {
     }
   });
   
+// Sound toggle functionality
+soundToggle.addEventListener('change', (e) => {
+  soundEnabled = e.target.checked;
+  toggleLabel.classList.toggle('active', soundEnabled);
+  
+  if (soundEnabled) {
+    // Unmute current playing audio
+    if (waitingMusic && !waitingMusic.paused) {
+      waitingMusic.volume = gameVolume;
+    }
+    if (drawingMusic && !drawingMusic.paused) {
+      drawingMusic.volume = gameVolume;
+    }
+  } else {
+    // Mute current playing audio
+    if (waitingMusic && !waitingMusic.paused) {
+      waitingMusic.volume = 0;
+    }
+    if (drawingMusic && !drawingMusic.paused) {
+      drawingMusic.volume = 0;
+    }
+  }
+});
+
   // Difficulty selector
-const difficultySelect = document.getElementById('difficulty-select');
 difficultySelect.addEventListener('change', (e) => {
   switch(e.target.value) {
     case 'easy':
-      difficultyRange = { min: 1, max: 158 }; // Easy monsters (bulk of collection)
+      difficultyRange = { min: 1, max: 158 };
       break;
-    case 'medium':
-      difficultyRange = { min: 1, max: 185 }; // All monsters (standard gameplay)
+    case 'standard':
+      difficultyRange = { min: 159, max: 185 };
       break;
-    case 'hard':
-      difficultyRange = { min: 159, max: 185 }; // Hard monsters (smaller subset)
+    case 'all':
+      difficultyRange = { min: 1, max: 185 };
       break;
   }
 });
+
   
   // Rule buttons
   const ruleButtons = document.querySelectorAll('.rule-btn');
@@ -416,13 +475,9 @@ function stopAllMusicImmediate() {
   }
 
   if (waitingMusic) {
-    waitingMusic.pause();
-    waitingMusic.currentTime = 0;
     waitingMusic.volume = 0;
   }
   if (drawingMusic) {
-    drawingMusic.pause();
-    drawingMusic.currentTime = 0;
     drawingMusic.volume = 0;
   }
 }
