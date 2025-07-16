@@ -30,6 +30,103 @@
     let audioInitialized = false;
     let currentFadeInterval = null;
     let targetVolume = 0.6;
+    let soundEnabled = true;
+    let gameVolume = 0.6;
+    let difficultyRange = { min: 1, max: 185 }; // All images by default
+    let currentViewTime = 20;
+    let currentDescribeTime = 2;
+    let currentMusicPhase = null; // Track what music should be playing
+    let wasPlayingBeforePause = false; // Track if music was playing before pause
+
+// Initialize settings
+function initializeSettings() {
+  // Sound toggle
+  const soundToggle = document.getElementById('sound-toggle');
+  const toggleLabel = soundToggle.nextElementSibling;
+  
+window.addEventListener('blur', () => {
+  wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
+  stopAllMusicImmediate();
+});
+
+window.addEventListener('focus', () => {
+  if (wasPlayingBeforePause || currentMusicPhase) {
+    resumeMusic();
+  }
+});
+  
+  // Volume slider
+  const volumeSlider = document.getElementById('volume-slider');
+  const volumeDisplay = document.getElementById('volume-display');
+  
+  volumeSlider.addEventListener('input', (e) => {
+    gameVolume = e.target.value / 100;
+    targetVolume = gameVolume;
+    volumeDisplay.textContent = `${e.target.value}%`;
+    
+    // Update current playing audio
+    if (waitingMusic && !waitingMusic.paused) {
+      waitingMusic.volume = gameVolume;
+    }
+    if (drawingMusic && !drawingMusic.paused) {
+      drawingMusic.volume = gameVolume;
+    }
+  });
+  
+  // Difficulty selector
+const difficultySelect = document.getElementById('difficulty-select');
+difficultySelect.addEventListener('change', (e) => {
+  switch(e.target.value) {
+    case 'easy':
+      difficultyRange = { min: 1, max: 158 }; // Easy monsters (bulk of collection)
+      break;
+    case 'medium':
+      difficultyRange = { min: 1, max: 185 }; // All monsters (standard gameplay)
+      break;
+    case 'hard':
+      difficultyRange = { min: 159, max: 185 }; // Hard monsters (smaller subset)
+      break;
+  }
+});
+  
+  // Rule buttons
+  const ruleButtons = document.querySelectorAll('.rule-btn');
+  ruleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const viewTime = parseInt(btn.dataset.view);
+      const drawTime = parseInt(btn.dataset.draw);
+      
+      if (viewTime) {
+        currentViewTime = viewTime;
+        // Update other view time buttons
+        ruleButtons.forEach(b => {
+          if (b.dataset.view) {
+            b.classList.toggle('active', b.dataset.view === viewTime.toString());
+          }
+        });
+      }
+      
+      if (drawTime) {
+        currentDescribeTime = drawTime;
+        // Update other draw time buttons
+        ruleButtons.forEach(b => {
+          if (b.dataset.draw) {
+            b.classList.toggle('active', b.dataset.draw === drawTime.toString());
+          }
+        });
+      }
+      
+      // Update the input fields
+      document.getElementById('view-time').value = currentViewTime;
+      document.getElementById('describe-time').value = currentDescribeTime;
+    });
+  });
+  
+  // Set initial active states
+  toggleLabel.classList.add('active');
+  document.querySelector('[data-view="20"]').classList.add('active');
+  document.querySelector('[data-draw="2"]').classList.add('active');
+}
     
 
     // Stop music when page is about to unload
@@ -43,25 +140,41 @@
     });
 
     // Stop music when page becomes hidden (mobile backgrounding)
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        stopAllMusicImmediate();
-      }
-    });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
+    stopAllMusicImmediate();
+  } else {
+    if (wasPlayingBeforePause || currentMusicPhase) {
+      resumeMusic();
+    }
+  }
+});
 
     function updateRoundDisplay() {
       roundDisplay.textContent = `Round ${currentRound}`;
     }
 
-    function getRandomUnusedImage() {
-      if (usedImages.length >= images.length) {
-        usedImages = [];
-      }
-      let availableImages = images.filter(img => !usedImages.includes(img));
-      let randomImage = availableImages[Math.floor(Math.random() * availableImages.length)];
-      usedImages.push(randomImage);
-      return randomImage;
-    }
+function getRandomUnusedImage() {
+  // Filter images based on difficulty
+  const availableImages = images.filter((img, index) => {
+    const imageNum = index + 1;
+    return imageNum >= difficultyRange.min && imageNum <= difficultyRange.max;
+  });
+  
+  // Filter out used images
+  const unusedImages = availableImages.filter(img => !usedImages.includes(img));
+  
+  // Reset if all images in range have been used
+  if (unusedImages.length === 0) {
+    usedImages = usedImages.filter(img => !availableImages.includes(img));
+    return getRandomUnusedImage();
+  }
+  
+  const randomImage = unusedImages[Math.floor(Math.random() * unusedImages.length)];
+  usedImages.push(randomImage);
+  return randomImage;
+}
 
     // Initialize audio for iPad Safari on first interaction
     function initializeAudio() {
@@ -85,16 +198,17 @@
     document.addEventListener('click', initializeAudio);
     document.addEventListener('touchstart', initializeAudio);
 
-    startBtn.addEventListener('click', () => {
-      initializeAudio();
-      
-      viewTime = parseInt(document.getElementById('view-time').value);
-      describeTime = parseInt(document.getElementById('describe-time').value);
+startBtn.addEventListener('click', () => {
+  initializeAudio();
+  
+  // Use settings values instead of input values
+  viewTime = currentViewTime;
+  describeTime = currentDescribeTime;
 
-      document.getElementById('start-screen').classList.add('hidden');
-      resetGameUI();
-      startGame();
-    });
+  document.getElementById('start-screen').classList.add('hidden');
+  resetGameUI();
+  startGame();
+});
 
     restartBtn.addEventListener('click', () => {
       resetGameUI();
@@ -195,6 +309,9 @@
 
       updateProgressBar(0);
       updateTimerDisplay(0);
+
+        currentMusicPhase = null;
+        wasPlayingBeforePause = false;
     }
 
     function startTimer(duration, callback) {
@@ -253,55 +370,68 @@
       }
     }
 
-    function playMusic(phase) {
-      if (!audioInitialized) {
-        console.log("Audio not initialized yet; skipping music play");
-        return;
-      }
+function playMusic(phase) {
+  if (!audioInitialized) {
+    return;
+  }
 
-      if (phase === 'drawing' && drawingMusic) {
-        if (waitingMusic && !waitingMusic.paused) {
-          crossfadeAudio(waitingMusic, drawingMusic, 1500);
-        } else {
-          fadeInAudio(drawingMusic, 2000);
-        }
-      } else if (phase === 'waiting' && waitingMusic) {
-        stopAllMusicImmediate();
-        fadeInAudio(waitingMusic, 2000);
-      }
+  currentMusicPhase = phase; // Always track what phase we're in
+  
+  if (!soundEnabled) {
+    return; // Don't play if sound is disabled, but still track the phase
+  }
+
+  if (phase === 'drawing' && drawingMusic) {
+    if (waitingMusic && !waitingMusic.paused) {
+      crossfadeAudio(waitingMusic, drawingMusic, 1500);
+    } else {
+      fadeInAudio(drawingMusic, 2000);
     }
+  } else if (phase === 'waiting' && waitingMusic) {
+    stopAllMusicImmediate();
+    fadeInAudio(waitingMusic, 2000);
+  }
+}
 
-    function stopAllMusic() {
-      if (currentFadeInterval) {
-        clearInterval(currentFadeInterval);
-        currentFadeInterval = null;
-      }
+function stopAllMusic() {
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
 
-      if (waitingMusic && !waitingMusic.paused) {
-        fadeOutAudio(waitingMusic, 2000);
-      }
-      if (drawingMusic && !drawingMusic.paused) {
-        fadeOutAudio(drawingMusic, 2000);
-      }
-    }
+  if (waitingMusic && !waitingMusic.paused) {
+    fadeOutAudio(waitingMusic, 2000);
+  }
+  if (drawingMusic && !drawingMusic.paused) {
+    fadeOutAudio(drawingMusic, 2000);
+  }
+  
+  currentMusicPhase = null; // Clear the phase when stopping
+}
 
-    function stopAllMusicImmediate() {
-      if (currentFadeInterval) {
-        clearInterval(currentFadeInterval);
-        currentFadeInterval = null;
-      }
+function stopAllMusicImmediate() {
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
 
-      if (waitingMusic) {
-        waitingMusic.pause();
-        waitingMusic.currentTime = 0;
-        waitingMusic.volume = 0;
-      }
-      if (drawingMusic) {
-        drawingMusic.pause();
-        drawingMusic.currentTime = 0;
-        drawingMusic.volume = 0;
-      }
-    }
+  if (waitingMusic) {
+    waitingMusic.pause();
+    waitingMusic.currentTime = 0;
+    waitingMusic.volume = 0;
+  }
+  if (drawingMusic) {
+    drawingMusic.pause();
+    drawingMusic.currentTime = 0;
+    drawingMusic.volume = 0;
+  }
+}
+
+function resumeMusic() {
+  if (currentMusicPhase && soundEnabled && audioInitialized) {
+    playMusic(currentMusicPhase);
+  }
+}
 
     function fadeInAudio(audio, duration = 2000) {
       if (!audio) return;
@@ -662,3 +792,13 @@ document.getElementById('close-settings').addEventListener('click', () => {
       window.scrollTo(0, 0);
     });
     
+    // Initialize settings when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  initializeSettings();
+  
+  // Show reset button and round info only after first game
+  if (currentRound > 1) {
+    document.getElementById('round-info').classList.remove('hidden');
+    document.getElementById('reset-rounds-btn').classList.remove('hidden');
+  }
+});

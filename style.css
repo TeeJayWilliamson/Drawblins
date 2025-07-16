@@ -283,6 +283,120 @@ button:hover {
   margin-bottom: 1rem;
 }
 
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.setting-group {
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.setting-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  position: relative;
+  width: 60px;
+  height: 30px;
+  background: #ccc;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.toggle-label.active {
+  background: #4CAF50;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-label.active .toggle-slider {
+  transform: translateX(30px);
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+#difficulty-select {
+  font-size: large;
+}
+
+.rule-btn {
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  background: #ecf0f1;
+  color: #2c3e50;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.rule-btn.active {
+  background: #3498db;
+  color: white;
+  border-color: #2980b9;
+}
+
+.close-btn {
+  background-color: #e74c3c;
+  margin-top: 1rem;
+}
+
+#volume-slider {
+  width: 100%;
+  margin-right: 1rem;
+}
+
+#volume-display {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
 /* Responsive tweaks */
 @media (max-width: 600px) {
   .logo-img {

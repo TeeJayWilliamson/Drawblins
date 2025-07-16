@@ -95,45 +95,54 @@
         </div>
 
         <div class="setting-group">
-          <label>📏 Difficulty</label>
+          <label>Goblin difficulty</label>
           <select id="difficulty-select">
-            <option value="easy">Easy (1-158)</option>
-            <option value="medium">Medium (159-185)</option>
-            <option value="hard">Hard (All Images)</option>
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Standard</option>
+            <option value="hard">All</option>
           </select>
         </div>
 
-        <div class="setting-group">
-          <label>⏱️ Game Rules</label>
-          <div class="rules-grid">
-            <button class="rule-btn active" data-view="30" data-draw="3">Easy (30s/3min)</button>
-            <button class="rule-btn" data-view="20" data-draw="2">Standard (20s/2min)</button>
-            <button class="rule-btn" data-view="10" data-draw="1">Hard (10s/1min)</button>
-          </div>
-        </div>
+<div class="setting-group">
+  <label>⏱️ View Time</label>
+  <div class="rules-grid">
+    <button class="rule-btn" data-view="30">Easy (30s)</button>
+    <button class="rule-btn active" data-view="20">Standard (20s)</button>
+    <button class="rule-btn" data-view="10">Hard (10s)</button>
+  </div>
+</div>
+
+<div class="setting-group">
+  <label>✏️ Drawing Time</label>
+  <div class="rules-grid">
+    <button class="rule-btn" data-draw="3">Easy (3min)</button>
+    <button class="rule-btn active" data-draw="2">Standard (2min)</button>
+    <button class="rule-btn" data-draw="1">Hard (1min)</button>
+  </div>
+</div>
 
         <button id="close-settings" class="close-btn">Save Settings</button>
       </div>
     </div>
 
     <!-- Start Screen -->
-    <div id="start-screen">
-      <div id="round-info">
-        <span id="round-display">Round 1</span>
-      </div>
+<div id="start-screen">
+  <div id="round-info" class="hidden">
+    <span id="round-display">Round 1</span>
+  </div>
 
-      <label for="view-time">View Time (sec):</label>
-      <input type="number" id="view-time" value="20" min="5" max="60" />
+  <label for="view-time">View Time (sec):</label>
+  <input type="number" id="view-time" value="20" min="5" max="60" readonly />
 
-      <label for="describe-time">Describe Time (min):</label>
-      <input type="number" id="describe-time" value="2" min="1" max="10" />
+  <label for="describe-time">Describe Time (min):</label>
+  <input type="number" id="describe-time" value="2" min="1" max="10" readonly />
 
-      <div id="start-buttons">
-        <button id="start-btn">Start Round</button>
-        <button id="turn-picker-btn" style="background-color: #9b59b6;">Player Order</button>
-        <button id="reset-rounds-btn" style="background-color: #e74c3c;">Reset Game</button>
-      </div>
-    </div>
+  <div id="start-buttons">
+    <button id="start-btn">Start Round</button>
+    <button id="turn-picker-btn" style="background-color: #9b59b6;">Player Order</button>
+    <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
+  </div>
+</div>
 
     <!-- Turn Picker -->
     <div id="mobile-turn-picker" class="picker-modal hidden">
