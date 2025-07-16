@@ -622,6 +622,16 @@ document.getElementById("touch-area").addEventListener("mousedown", (e) => {
   startPickerCountdown();
 });
 
+// SETTINGS MODAL TOGGLE
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.getElementById('settings-modal').classList.remove('hidden');
+});
+
+document.getElementById('close-settings').addEventListener('click', () => {
+  document.getElementById('settings-modal').classList.add('hidden');
+});
+
+
 
     // How to Play modal logic
     const infoBtn = document.getElementById('info-btn');
