@@ -16,6 +16,8 @@
     const endScreen = document.getElementById('end-screen');
     const revealContainer = document.getElementById('reveal-container');
     const roundDisplay = document.getElementById('round-display');
+    const difficultySelect = document.getElementById('difficulty-select');
+
 
     const waitingMusic = document.getElementById('waiting-music');
     const drawingMusic = document.getElementById('drawing-music');
@@ -44,31 +46,8 @@ function initializeSettings() {
   const soundToggle = document.getElementById('sound-toggle');
   const toggleLabel = soundToggle.nextElementSibling;
   
-window.addEventListener('blur', () => {
-  wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
-  // Just mute, don't stop
-  if (waitingMusic && !waitingMusic.paused) {
-    waitingMusic.volume = 0;
-  }
-  if (drawingMusic && !drawingMusic.paused) {
-    drawingMusic.volume = 0;
-  }
-});
-
-window.addEventListener('focus', () => {
-  if (wasPlayingBeforePause && soundEnabled) {
-    // Restore volume
-    if (waitingMusic && !waitingMusic.paused) {
-      waitingMusic.volume = gameVolume;
-    }
-    if (drawingMusic && !drawingMusic.paused) {
-      drawingMusic.volume = gameVolume;
-    }
-  }
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
+  // CONSOLIDATED focus/blur handling - remove duplicates
+  window.addEventListener('blur', () => {
     wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
     // Just mute, don't stop
     if (waitingMusic && !waitingMusic.paused) {
@@ -77,7 +56,9 @@ document.addEventListener('visibilitychange', () => {
     if (drawingMusic && !drawingMusic.paused) {
       drawingMusic.volume = 0;
     }
-  } else {
+  });
+
+  window.addEventListener('focus', () => {
     if (wasPlayingBeforePause && soundEnabled) {
       // Restore volume
       if (waitingMusic && !waitingMusic.paused) {
@@ -87,8 +68,30 @@ document.addEventListener('visibilitychange', () => {
         drawingMusic.volume = gameVolume;
       }
     }
-  }
-});
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
+      // Just mute, don't stop
+      if (waitingMusic && !waitingMusic.paused) {
+        waitingMusic.volume = 0;
+      }
+      if (drawingMusic && !drawingMusic.paused) {
+        drawingMusic.volume = 0;
+      }
+    } else {
+      if (wasPlayingBeforePause && soundEnabled) {
+        // Restore volume
+        if (waitingMusic && !waitingMusic.paused) {
+          waitingMusic.volume = gameVolume;
+        }
+        if (drawingMusic && !drawingMusic.paused) {
+          drawingMusic.volume = gameVolume;
+        }
+      }
+    }
+  });
   
   // Volume slider
   const volumeSlider = document.getElementById('volume-slider');
@@ -108,44 +111,44 @@ document.addEventListener('visibilitychange', () => {
     }
   });
   
-// Sound toggle functionality
-soundToggle.addEventListener('change', (e) => {
-  soundEnabled = e.target.checked;
-  toggleLabel.classList.toggle('active', soundEnabled);
-  
-  if (soundEnabled) {
-    // Unmute current playing audio
-    if (waitingMusic && !waitingMusic.paused) {
-      waitingMusic.volume = gameVolume;
+  // Sound toggle functionality
+  soundToggle.addEventListener('change', (e) => {
+    soundEnabled = e.target.checked;
+    toggleLabel.classList.toggle('active', soundEnabled);
+    
+    if (soundEnabled) {
+      // Unmute current playing audio
+      if (waitingMusic && !waitingMusic.paused) {
+        waitingMusic.volume = gameVolume;
+      }
+      if (drawingMusic && !drawingMusic.paused) {
+        drawingMusic.volume = gameVolume;
+      }
+    } else {
+      // Mute current playing audio
+      if (waitingMusic && !waitingMusic.paused) {
+        waitingMusic.volume = 0;
+      }
+      if (drawingMusic && !drawingMusic.paused) {
+        drawingMusic.volume = 0;
+      }
     }
-    if (drawingMusic && !drawingMusic.paused) {
-      drawingMusic.volume = gameVolume;
-    }
-  } else {
-    // Mute current playing audio
-    if (waitingMusic && !waitingMusic.paused) {
-      waitingMusic.volume = 0;
-    }
-    if (drawingMusic && !drawingMusic.paused) {
-      drawingMusic.volume = 0;
-    }
-  }
-});
+  });
 
   // Difficulty selector
-difficultySelect.addEventListener('change', (e) => {
-  switch(e.target.value) {
-    case 'easy':
-      difficultyRange = { min: 1, max: 158 };
-      break;
-    case 'standard':
-      difficultyRange = { min: 159, max: 185 };
-      break;
-    case 'all':
-      difficultyRange = { min: 1, max: 185 };
-      break;
-  }
-});
+  difficultySelect.addEventListener('change', (e) => {
+    switch(e.target.value) {
+      case 'easy':
+        difficultyRange = { min: 1, max: 158 };
+        break;
+      case 'all':  // Changed from 'standard' to 'all'
+        difficultyRange = { min: 1, max: 185 };
+        break;
+      case 'standard':  // Changed from 'hard' to 'standard'
+        difficultyRange = { min: 159, max: 185 };
+        break;
+    }
+  });
 
   
   // Rule buttons
@@ -181,6 +184,7 @@ difficultySelect.addEventListener('change', (e) => {
     });
   });
   
+  
   // Set initial active states
   toggleLabel.classList.add('active');
   document.querySelector('[data-view="20"]').classList.add('active');
@@ -193,22 +197,6 @@ difficultySelect.addEventListener('change', (e) => {
       stopAllMusicImmediate();
     });
 
-    // Stop music when page loses focus (mobile backgrounding)
-    window.addEventListener('blur', () => {
-      stopAllMusicImmediate();
-    });
-
-    // Stop music when page becomes hidden (mobile backgrounding)
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
-    stopAllMusicImmediate();
-  } else {
-    if (wasPlayingBeforePause || currentMusicPhase) {
-      resumeMusic();
-    }
-  }
-});
 
     function updateRoundDisplay() {
       roundDisplay.textContent = `Round ${currentRound}`;
