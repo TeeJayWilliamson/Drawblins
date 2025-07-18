@@ -1,97 +1,355 @@
-    const totalImages = 185;
-    const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
+let masterSoundEnabled = true;
+let windowHasFocus = true;
 
-    const startBtn = document.getElementById('start-btn');
-    const restartBtn = document.getElementById('restart-btn');
-    const nextRoundBtn = document.getElementById('next-round-btn');
-    const resetRoundsBtn = document.getElementById('reset-rounds-btn');
-    const revealBtn = document.getElementById('reveal-btn');
-    const monsterImage = document.getElementById('monster-image');
-    const imageContainer = document.getElementById('image-container');
-    const thinkingScreen = document.getElementById('thinking-screen');
-    const timerContainer = document.getElementById('timer-container');
-    const timerDisplay = document.getElementById('timer');
-    const progressBar = document.getElementById('progress-bar');
-    const phaseIndicator = document.getElementById('phase-indicator');
-    const endScreen = document.getElementById('end-screen');
-    const revealContainer = document.getElementById('reveal-container');
-    const roundDisplay = document.getElementById('round-display');
-    const difficultySelect = document.getElementById('difficulty-select');
+const totalImages = 185;
+const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
 
+const startBtn = document.getElementById('start-btn');
+const restartBtn = document.getElementById('restart-btn');
+const nextRoundBtn = document.getElementById('next-round-btn');
+const resetRoundsBtn = document.getElementById('reset-rounds-btn');
+const revealBtn = document.getElementById('reveal-btn');
+const monsterImage = document.getElementById('monster-image');
+const imageContainer = document.getElementById('image-container');
+const thinkingScreen = document.getElementById('thinking-screen');
+const timerContainer = document.getElementById('timer-container');
+const timerDisplay = document.getElementById('timer');
+const progressBar = document.getElementById('progress-bar');
+const phaseIndicator = document.getElementById('phase-indicator');
+const endScreen = document.getElementById('end-screen');
+const revealContainer = document.getElementById('reveal-container');
+const roundDisplay = document.getElementById('round-display');
+const difficultySelect = document.getElementById('difficulty-select');
+const waitingMusic = document.getElementById('waiting-music');
+const drawingMusic = document.getElementById('drawing-music');
+const buzzer = document.getElementById('buzzer');
 
-    const waitingMusic = document.getElementById('waiting-music');
-    const drawingMusic = document.getElementById('drawing-music');
-    const buzzer = document.getElementById('buzzer');
+let viewTime = 20;
+let describeTime = 2;
+let currentRound = 1;
+let currentTimer = null;
+let totalDuration = 0;
+let usedImages = [];
+let audioInitialized = false;
+let currentFadeInterval = null;
+let targetVolume = 0.6;
+let soundEnabled = true;
+let gameVolume = 0.6;
+let difficultyRange = { min: 1, max: 185 };
+let currentViewTime = 20;
+let currentDescribeTime = 2;
+let currentMusicPhase = null;
+let wasPlayingBeforePause = false;
 
-    let viewTime = 20;
-    let describeTime = 2;
-    let currentRound = 1;
-    let currentTimer = null;
-    let totalDuration = 0;
-    let usedImages = [];
-    let audioInitialized = false;
-    let currentFadeInterval = null;
-    let targetVolume = 0.6;
-    let soundEnabled = true;
-    let gameVolume = 0.6;
-    let difficultyRange = { min: 1, max: 185 }; // All images by default
-    let currentViewTime = 20;
-    let currentDescribeTime = 2;
-    let currentMusicPhase = null; // Track what music should be playing
-    let wasPlayingBeforePause = false; // Track if music was playing before pause
+function initializeUnifiedSoundSystem() {
+  const soundToggle = document.getElementById('sound-toggle');
+  const toggleLabel = soundToggle.nextElementSibling;
+  const volumeSlider = document.getElementById('volume-slider');
+  const volumeDisplay = document.getElementById('volume-display');
+  
+  // Set initial states
+  soundToggle.checked = masterSoundEnabled;
+  toggleLabel.classList.toggle('active', masterSoundEnabled);
+  
+  // Volume slider
+  volumeSlider.addEventListener('input', (e) => {
+    gameVolume = e.target.value / 100;
+    volumeDisplay.textContent = `${e.target.value}%`;
+    updateAudioVolumes();
+  });
+  
+  // Sound toggle - this is the master control
+  soundToggle.addEventListener('change', (e) => {
+    masterSoundEnabled = e.target.checked;
+    toggleLabel.classList.toggle('active', masterSoundEnabled);
+    updateAudioVolumes();
+  });
+
+  // Window focus/blur handling
+  window.addEventListener('blur', () => {
+    windowHasFocus = false;
+    updateSoundToggle();
+    updateAudioVolumes();
+  });
+
+  window.addEventListener('focus', () => {
+    windowHasFocus = true;
+    updateSoundToggle();
+    updateAudioVolumes();
+  });
+
+  // Visibility change (for mobile/tab switching)
+  document.addEventListener('visibilitychange', () => {
+    windowHasFocus = !document.hidden;
+    updateSoundToggle();
+    updateAudioVolumes();
+  });
+}
+
+// Update the sound toggle to reflect current state
+function updateSoundToggle() {
+  const soundToggle = document.getElementById('sound-toggle');
+  const toggleLabel = soundToggle.nextElementSibling;
+  
+  // Auto-disable sound when window loses focus
+  if (!windowHasFocus) {
+    soundToggle.checked = false;
+    toggleLabel.classList.remove('active');
+  } else {
+    // Re-enable sound when window regains focus (if master sound is enabled)
+    soundToggle.checked = masterSoundEnabled;
+    toggleLabel.classList.toggle('active', masterSoundEnabled);
+  }
+}
+
+// Determine if sound should actually play
+function shouldPlaySound() {
+  return masterSoundEnabled && windowHasFocus && audioInitialized;
+}
+
+// Update all audio volumes based on current state
+function updateAudioVolumes() {
+  const targetVol = shouldPlaySound() ? gameVolume : 0;
+  
+  if (waitingMusic && !waitingMusic.paused) {
+    waitingMusic.volume = targetVol;
+  }
+  if (drawingMusic && !drawingMusic.paused) {
+    drawingMusic.volume = targetVol;
+  }
+}
+
+// Initialize audio for iPad Safari on first interaction
+function initializeAudio() {
+  if (audioInitialized) return;
+  
+  const audioElements = [buzzer, waitingMusic, drawingMusic].filter(el => el);
+  
+  audioElements.forEach(audio => {
+    if (audio) {
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = 0;
+      }).catch(() => {});
+    }
+  });
+  
+  audioInitialized = true;
+}
+
+// Play music based on phase
+function playMusic(phase) {
+  if (!audioInitialized) return;
+
+  currentMusicPhase = phase;
+  
+  if (!shouldPlaySound()) {
+    // Still track the phase but don't play
+    return;
+  }
+
+  if (phase === 'drawing' && drawingMusic) {
+    if (waitingMusic && !waitingMusic.paused) {
+      crossfadeAudio(waitingMusic, drawingMusic, 1500);
+    } else {
+      fadeInAudio(drawingMusic, 2000);
+    }
+  } else if (phase === 'waiting' && waitingMusic) {
+    stopAllMusicImmediate();
+    fadeInAudio(waitingMusic, 2000);
+  }
+}
+
+// Stop all music
+function stopAllMusic() {
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
+
+  if (waitingMusic && !waitingMusic.paused) {
+    fadeOutAudio(waitingMusic, 2000);
+  }
+  if (drawingMusic && !drawingMusic.paused) {
+    fadeOutAudio(drawingMusic, 2000);
+  }
+  
+  currentMusicPhase = null;
+}
+
+// Immediate stop (for cleanup)
+function stopAllMusicImmediate() {
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
+
+  if (waitingMusic) {
+    waitingMusic.pause();
+    waitingMusic.currentTime = 0;
+    waitingMusic.volume = 0;
+  }
+  if (drawingMusic) {
+    drawingMusic.pause();
+    drawingMusic.currentTime = 0;
+    drawingMusic.volume = 0;
+  }
+}
+
+// Resume music if it should be playing
+function resumeMusic() {
+  if (currentMusicPhase && shouldPlaySound()) {
+    playMusic(currentMusicPhase);
+  }
+}
+
+// Fade in audio
+function fadeInAudio(audio, duration = 2000) {
+  if (!audio || !shouldPlaySound()) return;
+  
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
+  
+  audio.pause();
+  audio.currentTime = 0;
+  audio.volume = 0;
+  
+  audio.play().catch((error) => {
+    console.log('Audio play failed:', error);
+    return;
+  });
+  
+  const steps = 40;
+  const stepSize = gameVolume / steps;
+  const stepInterval = duration / steps;
+  let currentStep = 0;
+  
+  currentFadeInterval = setInterval(() => {
+    if (audio.paused || !shouldPlaySound()) {
+      clearInterval(currentFadeInterval);
+      currentFadeInterval = null;
+      return;
+    }
+    
+    currentStep++;
+    audio.volume = Math.min(gameVolume, currentStep * stepSize);
+    
+    if (currentStep >= steps) {
+      clearInterval(currentFadeInterval);
+      currentFadeInterval = null;
+      audio.volume = shouldPlaySound() ? gameVolume : 0;
+    }
+  }, stepInterval);
+}
+
+// Crossfade between two audio tracks
+function crossfadeAudio(fadeOutAudio, fadeInAudio, duration = 1500) {
+  if (!fadeOutAudio || !fadeInAudio) return;
+  
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+    currentFadeInterval = null;
+  }
+  
+  fadeInAudio.pause();
+  fadeInAudio.currentTime = 0;
+  fadeInAudio.volume = 0;
+  
+  if (shouldPlaySound()) {
+    fadeInAudio.play().catch(() => {});
+  }
+  
+  const steps = 30;
+  const stepInterval = duration / steps;
+  const fadeOutStart = fadeOutAudio.volume;
+  const fadeOutStep = fadeOutStart / steps;
+  const fadeInStep = gameVolume / steps;
+  let currentStep = 0;
+  
+  currentFadeInterval = setInterval(() => {
+    currentStep++;
+    
+    if (!fadeOutAudio.paused) {
+      fadeOutAudio.volume = Math.max(0, fadeOutStart - (currentStep * fadeOutStep));
+    }
+    
+    if (!fadeInAudio.paused && shouldPlaySound()) {
+      fadeInAudio.volume = Math.min(gameVolume, currentStep * fadeInStep);
+    }
+    
+    if (currentStep >= steps) {
+      clearInterval(currentFadeInterval);
+      currentFadeInterval = null;
+      
+      fadeOutAudio.pause();
+      fadeOutAudio.currentTime = 0;
+      fadeOutAudio.volume = 0;
+      
+      if (shouldPlaySound()) {
+        fadeInAudio.volume = gameVolume;
+      } else {
+        fadeInAudio.pause();
+        fadeInAudio.volume = 0;
+      }
+    }
+  }, stepInterval);
+}
+
+// Fade out audio
+function fadeOutAudio(audio, duration = 2000) {
+  if (!audio || audio.paused) return;
+  
+  if (currentFadeInterval) {
+    clearInterval(currentFadeInterval);
+  }
+  
+  const startVolume = audio.volume;
+  const steps = 40;
+  const stepSize = startVolume / steps;
+  const stepInterval = duration / steps;
+  let currentStep = 0;
+  
+  currentFadeInterval = setInterval(() => {
+    currentStep++;
+    audio.volume = Math.max(0, startVolume - (currentStep * stepSize));
+    
+    if (currentStep >= steps || audio.volume <= 0) {
+      clearInterval(currentFadeInterval);
+      currentFadeInterval = null;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0;
+    }
+  }, stepInterval);
+}
+
+// Play buzzer sound
+function playBuzzer() {
+  if (!shouldPlaySound() || !buzzer) return;
+  
+  buzzer.currentTime = 0;
+  buzzer.volume = gameVolume;
+  buzzer.play().catch(() => {});
+}
+
+// Export functions for use in your main game logic
+window.gameAudio = {
+  playMusic,
+  stopAllMusic,
+  stopAllMusicImmediate,
+  resumeMusic,
+  playBuzzer,
+  initializeAudio
+};
 
 // Initialize settings
 function initializeSettings() {
   // Sound toggle
   const soundToggle = document.getElementById('sound-toggle');
   const toggleLabel = soundToggle.nextElementSibling;
-  
-  // CONSOLIDATED focus/blur handling - remove duplicates
-  window.addEventListener('blur', () => {
-    wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
-    // Just mute, don't stop
-    if (waitingMusic && !waitingMusic.paused) {
-      waitingMusic.volume = 0;
-    }
-    if (drawingMusic && !drawingMusic.paused) {
-      drawingMusic.volume = 0;
-    }
-  });
-
-  window.addEventListener('focus', () => {
-    if (wasPlayingBeforePause && soundEnabled) {
-      // Restore volume
-      if (waitingMusic && !waitingMusic.paused) {
-        waitingMusic.volume = gameVolume;
-      }
-      if (drawingMusic && !drawingMusic.paused) {
-        drawingMusic.volume = gameVolume;
-      }
-    }
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      wasPlayingBeforePause = (waitingMusic && !waitingMusic.paused) || (drawingMusic && !drawingMusic.paused);
-      // Just mute, don't stop
-      if (waitingMusic && !waitingMusic.paused) {
-        waitingMusic.volume = 0;
-      }
-      if (drawingMusic && !drawingMusic.paused) {
-        drawingMusic.volume = 0;
-      }
-    } else {
-      if (wasPlayingBeforePause && soundEnabled) {
-        // Restore volume
-        if (waitingMusic && !waitingMusic.paused) {
-          waitingMusic.volume = gameVolume;
-        }
-        if (drawingMusic && !drawingMusic.paused) {
-          drawingMusic.volume = gameVolume;
-        }
-      }
-    }
-  });
   
   // Volume slider
   const volumeSlider = document.getElementById('volume-slider');
@@ -110,30 +368,6 @@ function initializeSettings() {
       drawingMusic.volume = gameVolume;
     }
   });
-  
-  // Sound toggle functionality
-  soundToggle.addEventListener('change', (e) => {
-    soundEnabled = e.target.checked;
-    toggleLabel.classList.toggle('active', soundEnabled);
-    
-    if (soundEnabled) {
-      // Unmute current playing audio
-      if (waitingMusic && !waitingMusic.paused) {
-        waitingMusic.volume = gameVolume;
-      }
-      if (drawingMusic && !drawingMusic.paused) {
-        drawingMusic.volume = gameVolume;
-      }
-    } else {
-      // Mute current playing audio
-      if (waitingMusic && !waitingMusic.paused) {
-        waitingMusic.volume = 0;
-      }
-      if (drawingMusic && !drawingMusic.paused) {
-        drawingMusic.volume = 0;
-      }
-    }
-  });
 
   // Difficulty selector
   difficultySelect.addEventListener('change', (e) => {
@@ -141,16 +375,15 @@ function initializeSettings() {
       case 'easy':
         difficultyRange = { min: 1, max: 158 };
         break;
-      case 'all':  // Changed from 'standard' to 'all'
+      case 'all':
         difficultyRange = { min: 1, max: 185 };
         break;
-      case 'standard':  // Changed from 'hard' to 'standard'
+      case 'standard':
         difficultyRange = { min: 159, max: 185 };
         break;
     }
   });
 
-  
   // Rule buttons
   const ruleButtons = document.querySelectorAll('.rule-btn');
   ruleButtons.forEach(btn => {
@@ -178,29 +411,40 @@ function initializeSettings() {
         });
       }
       
-      // Update the input fields
-      document.getElementById('view-time').value = currentViewTime;
-      document.getElementById('describe-time').value = currentDescribeTime;
+      // Update the input fields if they exist
+      const viewTimeInput = document.getElementById('view-time');
+      const describeTimeInput = document.getElementById('describe-time');
+      if (viewTimeInput) viewTimeInput.value = currentViewTime;
+      if (describeTimeInput) describeTimeInput.value = currentDescribeTime;
     });
   });
   
-  
   // Set initial active states
-  toggleLabel.classList.add('active');
-  document.querySelector('[data-view="20"]').classList.add('active');
-  document.querySelector('[data-draw="2"]').classList.add('active');
+  if (toggleLabel) toggleLabel.classList.add('active');
+  const defaultViewBtn = document.querySelector('[data-view="20"]');
+  const defaultDrawBtn = document.querySelector('[data-draw="2"]');
+  if (defaultViewBtn) defaultViewBtn.classList.add('active');
+  if (defaultDrawBtn) defaultDrawBtn.classList.add('active');
 }
-    
 
-    // Stop music when page is about to unload
-    window.addEventListener('beforeunload', () => {
-      stopAllMusicImmediate();
-    });
+// Initialize everything
+document.addEventListener('DOMContentLoaded', () => {
+  initializeUnifiedSoundSystem();
+  initializeSettings();
+});
 
+// Initialize audio on first user interaction
+document.addEventListener('click', initializeAudio);
+document.addEventListener('touchstart', initializeAudio);
 
-    function updateRoundDisplay() {
-      roundDisplay.textContent = `Round ${currentRound}`;
-    }
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+  stopAllMusicImmediate();
+});
+
+function updateRoundDisplay() {
+  roundDisplay.textContent = `Round ${currentRound}`;
+}
 
 function getRandomUnusedImage() {
   // Filter images based on difficulty
@@ -223,32 +467,9 @@ function getRandomUnusedImage() {
   return randomImage;
 }
 
-    // Initialize audio for iPad Safari on first interaction
-    function initializeAudio() {
-      if (audioInitialized) return;
-      
-      const audioElements = [buzzer, waitingMusic, drawingMusic].filter(el => el);
-      
-      audioElements.forEach(audio => {
-        if (audio) {
-          audio.play().then(() => {
-            audio.pause();
-            audio.currentTime = 0;
-            audio.volume = 0;
-          }).catch(() => {});
-        }
-      });
-      
-      audioInitialized = true;
-    }
-
-    document.addEventListener('click', initializeAudio);
-    document.addEventListener('touchstart', initializeAudio);
-
 startBtn.addEventListener('click', () => {
   initializeAudio();
   
-  // Use settings values instead of input values
   viewTime = currentViewTime;
   describeTime = currentDescribeTime;
 
@@ -257,343 +478,169 @@ startBtn.addEventListener('click', () => {
   startGame();
 });
 
-    restartBtn.addEventListener('click', () => {
-      resetGameUI();
-      currentRound = 1;
-      usedImages = [];
-      updateRoundDisplay();
-      phaseIndicator.classList.add('hidden');
-      document.getElementById('start-screen').classList.remove('hidden');
-    });
+restartBtn.addEventListener('click', () => {
+  resetGameUI();
+  currentRound = 1;
+  usedImages = [];
+  updateRoundDisplay();
+  phaseIndicator.classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+});
 
-    nextRoundBtn.addEventListener('click', () => {
-      resetGameUI();
-      currentRound++;
-      updateRoundDisplay();
-      phaseIndicator.classList.add('hidden');
-      document.getElementById('start-screen').classList.remove('hidden');
-    });
+nextRoundBtn.addEventListener('click', () => {
+  resetGameUI();
+  currentRound++;
+  updateRoundDisplay();
+  phaseIndicator.classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+});
 
-    resetRoundsBtn.addEventListener('click', () => {
-      currentRound = 1;
-      usedImages = [];
-      updateRoundDisplay();
-    });
+resetRoundsBtn.addEventListener('click', () => {
+  currentRound = 1;
+  usedImages = [];
+  updateRoundDisplay();
+});
 
-    revealBtn.addEventListener('click', () => {
+revealBtn.addEventListener('click', () => {
+  stopAllMusic();
+
+  revealContainer.classList.add('hidden');
+  thinkingScreen.classList.add('hidden');
+  imageContainer.classList.remove('hidden');
+
+  phaseIndicator.textContent = "The Monster Revealed!";
+  phaseIndicator.style.backgroundColor = "#e74c3c";
+  phaseIndicator.style.color = "white";
+  phaseIndicator.style.display = "block";
+  phaseIndicator.classList.remove('hidden');
+});
+
+function startGame() {
+  const randomImage = getRandomUnusedImage();
+  monsterImage.src = randomImage;
+
+  playMusic('waiting');
+
+  imageContainer.classList.remove('hidden');
+  timerContainer.classList.remove('hidden');
+
+  phaseIndicator.textContent = "Study the Monster!";
+  phaseIndicator.style.backgroundColor = "#ecf0f1";
+  phaseIndicator.style.color = "#34495e";
+  phaseIndicator.style.display = "block";
+  phaseIndicator.classList.remove('hidden');
+
+  startTimer(viewTime, () => {
+    playMusic('drawing');
+
+    imageContainer.classList.add('hidden');
+    thinkingScreen.classList.remove('hidden');
+
+    phaseIndicator.textContent = "Drawing Phase!";
+    phaseIndicator.style.backgroundColor = "#9b59b6";
+    phaseIndicator.style.color = "white";
+    phaseIndicator.classList.remove('hidden');
+
+    startTimer(describeTime * 60, () => {
       stopAllMusic();
-
-      revealContainer.classList.add('hidden');
       thinkingScreen.classList.add('hidden');
-      imageContainer.classList.remove('hidden');
-
-      phaseIndicator.textContent = "The Monster Revealed!";
-      phaseIndicator.style.backgroundColor = "#e74c3c";
-      phaseIndicator.style.color = "white";
-      phaseIndicator.style.display = "block";
-      phaseIndicator.classList.remove('hidden');
-    });
-
-    function startGame() {
-      const randomImage = getRandomUnusedImage();
-      monsterImage.src = randomImage;
-
-      playMusic('waiting');
-
-      imageContainer.classList.remove('hidden');
-      timerContainer.classList.remove('hidden');
-
-      phaseIndicator.textContent = "Study the Monster!";
-      phaseIndicator.style.backgroundColor = "#ecf0f1";
-      phaseIndicator.style.color = "#34495e";
-      phaseIndicator.style.display = "block";
-      phaseIndicator.classList.remove('hidden');
-
-      startTimer(viewTime, () => {
-        playMusic('drawing');
-
-        imageContainer.classList.add('hidden');
-        thinkingScreen.classList.remove('hidden');
-
-        phaseIndicator.textContent = "Drawing Phase!";
-        phaseIndicator.style.backgroundColor = "#9b59b6";
-        phaseIndicator.style.color = "white";
-        phaseIndicator.classList.remove('hidden');
-
-        startTimer(describeTime * 60, () => {
-          stopAllMusic();
-          thinkingScreen.classList.add('hidden');
-          phaseIndicator.classList.add('hidden');
-          phaseIndicator.textContent = "";
-
-          revealContainer.classList.remove('hidden');
-          endScreen.classList.remove('hidden');
-        });
-      });
-    }
-
-    function resetGameUI() {
-      stopAllMusic();
-
-      imageContainer.classList.add('hidden');
-      thinkingScreen.classList.add('hidden');
-      timerContainer.classList.add('hidden');
-      revealContainer.classList.add('hidden');
-      endScreen.classList.add('hidden');
-
       phaseIndicator.classList.add('hidden');
       phaseIndicator.textContent = "";
-      phaseIndicator.style.backgroundColor = "";
-      phaseIndicator.style.color = "";
-      phaseIndicator.style.display = "none";
 
+      revealContainer.classList.remove('hidden');
+      endScreen.classList.remove('hidden');
+    });
+  });
+}
+
+function resetGameUI() {
+  stopAllMusic();
+
+  imageContainer.classList.add('hidden');
+  thinkingScreen.classList.add('hidden');
+  timerContainer.classList.add('hidden');
+  revealContainer.classList.add('hidden');
+  endScreen.classList.add('hidden');
+
+  phaseIndicator.classList.add('hidden');
+  phaseIndicator.textContent = "";
+  phaseIndicator.style.backgroundColor = "";
+  phaseIndicator.style.color = "";
+  phaseIndicator.style.display = "none";
+
+  timerDisplay.classList.remove('timer-warning');
+
+  if (currentTimer) {
+    clearInterval(currentTimer);
+    currentTimer = null;
+  }
+
+  updateProgressBar(0);
+  updateTimerDisplay(0);
+
+  currentMusicPhase = null;
+  wasPlayingBeforePause = false;
+}
+
+function startTimer(duration, callback) {
+  if (currentTimer) {
+    clearInterval(currentTimer);
+  }
+
+  let time = duration;
+  totalDuration = duration;
+  updateTimerDisplay(time);
+  updateProgressBar(time);
+
+  currentTimer = setInterval(() => {
+    time--;
+    updateTimerDisplay(time);
+    updateProgressBar(time);
+
+    if (time <= 10 && time > 0) {
+      timerDisplay.classList.add('timer-warning');
+    } else {
+      timerDisplay.classList.remove('timer-warning');
+    }
+
+    if (time <= 0) {
+      clearInterval(currentTimer);
+      currentTimer = null;
       timerDisplay.classList.remove('timer-warning');
 
-      if (currentTimer) {
-        clearInterval(currentTimer);
-        currentTimer = null;
-      }
+      playBuzzer();
 
-      updateProgressBar(0);
-      updateTimerDisplay(0);
-
-        currentMusicPhase = null;
-        wasPlayingBeforePause = false;
+      callback();
     }
+  }, 1000);
+}
 
-    function startTimer(duration, callback) {
-      if (currentTimer) {
-        clearInterval(currentTimer);
-      }
+function updateTimerDisplay(seconds) {
+  const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const sec = String(seconds % 60).padStart(2, '0');
+  timerDisplay.textContent = `${min}:${sec}`;
+}
 
-      let time = duration;
-      totalDuration = duration;
-      updateTimerDisplay(time);
-      updateProgressBar(time);
+function updateProgressBar(timeLeft) {
+  const percentage = (timeLeft / totalDuration) * 100;
+  progressBar.style.width = percentage + '%';
 
-      currentTimer = setInterval(() => {
-        time--;
-        updateTimerDisplay(time);
-        updateProgressBar(time);
-
-        if (time <= 10 && time > 0) {
-          timerDisplay.classList.add('timer-warning');
-        } else {
-          timerDisplay.classList.remove('timer-warning');
-        }
-
-        if (time <= 0) {
-          clearInterval(currentTimer);
-          currentTimer = null;
-          timerDisplay.classList.remove('timer-warning');
-
-          if (buzzer) {
-            buzzer.currentTime = 0;
-            buzzer.volume = 1;
-            buzzer.play().catch(() => {});
-          }
-
-          callback();
-        }
-      }, 1000);
-    }
-
-    function updateTimerDisplay(seconds) {
-      const min = String(Math.floor(seconds / 60)).padStart(2, '0');
-      const sec = String(seconds % 60).padStart(2, '0');
-      timerDisplay.textContent = `${min}:${sec}`;
-    }
-
-    function updateProgressBar(timeLeft) {
-      const percentage = (timeLeft / totalDuration) * 100;
-      progressBar.style.width = percentage + '%';
-
-      if (percentage > 50) {
-        progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
-      } else if (percentage > 25) {
-        progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFC107)';
-      } else {
-        progressBar.style.background = 'linear-gradient(90deg, #F44336, #FF5722)';
-      }
-    }
-
-function playMusic(phase) {
-  if (!audioInitialized) {
-    return;
-  }
-
-  currentMusicPhase = phase; // Always track what phase we're in
-  
-  if (!soundEnabled) {
-    return; // Don't play if sound is disabled, but still track the phase
-  }
-
-  if (phase === 'drawing' && drawingMusic) {
-    if (waitingMusic && !waitingMusic.paused) {
-      crossfadeAudio(waitingMusic, drawingMusic, 1500);
-    } else {
-      fadeInAudio(drawingMusic, 2000);
-    }
-  } else if (phase === 'waiting' && waitingMusic) {
-    stopAllMusicImmediate();
-    fadeInAudio(waitingMusic, 2000);
+  if (percentage > 50) {
+    progressBar.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+  } else if (percentage > 25) {
+    progressBar.style.background = 'linear-gradient(90deg, #FF9800, #FFC107)';
+  } else {
+    progressBar.style.background = 'linear-gradient(90deg, #F44336, #FF5722)';
   }
 }
 
-function stopAllMusic() {
-  if (currentFadeInterval) {
-    clearInterval(currentFadeInterval);
-    currentFadeInterval = null;
-  }
-
-  if (waitingMusic && !waitingMusic.paused) {
-    fadeOutAudio(waitingMusic, 2000);
-  }
-  if (drawingMusic && !drawingMusic.paused) {
-    fadeOutAudio(drawingMusic, 2000);
-  }
-  
-  currentMusicPhase = null; // Clear the phase when stopping
-}
-
-function stopAllMusicImmediate() {
-  if (currentFadeInterval) {
-    clearInterval(currentFadeInterval);
-    currentFadeInterval = null;
-  }
-
-  if (waitingMusic) {
-    waitingMusic.volume = 0;
-  }
-  if (drawingMusic) {
-    drawingMusic.volume = 0;
-  }
-}
-
-function resumeMusic() {
-  if (currentMusicPhase && soundEnabled && audioInitialized) {
-    playMusic(currentMusicPhase);
-  }
-}
-
-    function fadeInAudio(audio, duration = 2000) {
-      if (!audio) return;
-      
-      if (currentFadeInterval) {
-        clearInterval(currentFadeInterval);
-        currentFadeInterval = null;
-      }
-      
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = 0;
-      
-      audio.play().catch((error) => {
-        console.log('Audio play failed:', error);
-        return;
-      });
-      
-      const steps = 40;
-      const stepSize = targetVolume / steps;
-      const stepInterval = duration / steps;
-      let currentStep = 0;
-      
-      currentFadeInterval = setInterval(() => {
-        if (audio.paused) {
-          clearInterval(currentFadeInterval);
-          currentFadeInterval = null;
-          return;
-        }
-        
-        currentStep++;
-        audio.volume = Math.min(targetVolume, currentStep * stepSize);
-        
-        if (currentStep >= steps) {
-          clearInterval(currentFadeInterval);
-          currentFadeInterval = null;
-          audio.volume = targetVolume;
-        }
-      }, stepInterval);
-    }
-
-    function crossfadeAudio(fadeOutAudio, fadeInAudio, duration = 1500) {
-      if (!fadeOutAudio || !fadeInAudio) return;
-      
-      if (currentFadeInterval) {
-        clearInterval(currentFadeInterval);
-        currentFadeInterval = null;
-      }
-      
-      fadeInAudio.pause();
-      fadeInAudio.currentTime = 0;
-      fadeInAudio.volume = 0;
-      fadeInAudio.play().catch(() => {});
-      
-      const steps = 30;
-      const stepInterval = duration / steps;
-      const fadeOutStart = fadeOutAudio.volume;
-      const fadeOutStep = fadeOutStart / steps;
-      const fadeInStep = targetVolume / steps;
-      let currentStep = 0;
-      
-      currentFadeInterval = setInterval(() => {
-        currentStep++;
-        
-        if (!fadeOutAudio.paused) {
-          fadeOutAudio.volume = Math.max(0, fadeOutStart - (currentStep * fadeOutStep));
-        }
-        
-        if (!fadeInAudio.paused) {
-          fadeInAudio.volume = Math.min(targetVolume, currentStep * fadeInStep);
-        }
-        
-        if (currentStep >= steps) {
-          clearInterval(currentFadeInterval);
-          currentFadeInterval = null;
-          
-          fadeOutAudio.pause();
-          fadeOutAudio.currentTime = 0;
-          fadeOutAudio.volume = 0;
-          fadeInAudio.volume = targetVolume;
-        }
-      }, stepInterval);
-    }
-
-    function fadeOutAudio(audio, duration = 2000) {
-      if (!audio || audio.paused) return;
-      
-      if (currentFadeInterval) {
-        clearInterval(currentFadeInterval);
-      }
-      
-      const startVolume = audio.volume;
-      const steps = 40;
-      const stepSize = startVolume / steps;
-      const stepInterval = duration / steps;
-      let currentStep = 0;
-      
-      currentFadeInterval = setInterval(() => {
-        currentStep++;
-        audio.volume = Math.max(0, startVolume - (currentStep * stepSize));
-        
-        if (currentStep >= steps || audio.volume <= 0) {
-          clearInterval(currentFadeInterval);
-          currentFadeInterval = null;
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = 0;
-        }
-      }, stepInterval);
-    }
-
+// Turn picker variables
 let pickerActive = false;
 let pickerHasWinner = false;
 let pickerTimeout = null;
 let countdownInterval = null;
 let activeTouches = [];
-let pickerReady = false; // ✅ NEW FLAG
-
-
+let pickerReady = false;
 
 document.getElementById('turn-picker-btn').addEventListener('click', () => {
   document.getElementById('mobile-turn-picker').classList.remove('hidden');
@@ -624,7 +671,7 @@ function activatePickerMode() {
   if (pickerTimeout) clearTimeout(pickerTimeout);
   if (countdownInterval) clearInterval(countdownInterval);
 
-  // ✅ Delay event binding until ready
+  // Delay event binding until ready
   setTimeout(() => {
     pickerReady = true;
     document.addEventListener("touchstart", onTouchStart);
@@ -650,50 +697,43 @@ function deactivatePickerMode() {
   document.getElementById("touch-area").innerHTML = "";
   updatePickerStatus("Waiting for touches...");
 
-  // ❗️Remove touch event listeners to prevent leftover triggers
+  // Remove touch event listeners to prevent leftover triggers
   document.removeEventListener("touchstart", onTouchStart);
   document.removeEventListener("touchend", onTouchEnd);
 }
 
-
-
-
-    function updatePickerStatus(message) {
-      document.getElementById("picker-status").textContent = message;
-    }
+function updatePickerStatus(message) {
+  document.getElementById("picker-status").textContent = message;
+}
 
 function startPickerCountdown() {
-  if (pickerTimeout || pickerHasWinner) return; // 👈 prevent multiple timers or running after winner
+  if (pickerTimeout || pickerHasWinner) return;
 
   let countdown = 3;
   updatePickerStatus(`Selecting in ${countdown}...`);
 
-countdownInterval = setInterval(() => {
-  countdown--;
-  if (countdown > 0) {
-    updatePickerStatus(`Selecting in ${countdown}...`);
-  } else {
+  countdownInterval = setInterval(() => {
+    countdown--;
+    if (countdown > 0) {
+      updatePickerStatus(`Selecting in ${countdown}...`);
+    } else {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      selectRandomPlayer();
+    }
+  }, 1000);
+
+  pickerTimeout = setTimeout(() => {
     clearInterval(countdownInterval);
     countdownInterval = null;
     selectRandomPlayer();
-  }
-}, 1000);
-
-
-pickerTimeout = setTimeout(() => {
-  clearInterval(countdownInterval);
-  countdownInterval = null;
-  selectRandomPlayer();
-}, 3000);
-
-
+  }, 3000);
 }
-
 
 function selectRandomPlayer() {
   if (activeTouches.length === 0 || pickerHasWinner) return;
 
-  pickerHasWinner = true; // ✅ LOCK everything
+  pickerHasWinner = true;
 
   const selectedIndex = Math.floor(Math.random() * activeTouches.length);
   updatePickerStatus(`🎯 Player ${selectedIndex + 1} goes first!`);
@@ -724,11 +764,8 @@ function selectRandomPlayer() {
   }, 4000);
 }
 
-
-
-
 function drawTouches(touches) {
-  if (pickerHasWinner) return; // ✅ BLOCK drawing after winner selected
+  if (pickerHasWinner) return;
 
   const container = document.getElementById("touch-area");
   container.innerHTML = "";
@@ -749,10 +786,9 @@ function drawTouches(touches) {
   });
 }
 
-
-    // Touch event listeners for the picker
+// Touch event listeners for the picker
 function onTouchStart(e) {
-if (!pickerActive || pickerHasWinner || !pickerReady) return;
+  if (!pickerActive || pickerHasWinner || !pickerReady) return;
 
   activeTouches = Array.from(e.touches);
   drawTouches(activeTouches);
@@ -761,8 +797,6 @@ if (!pickerActive || pickerHasWinner || !pickerReady) return;
     startPickerCountdown();
   }
 }
-
-
 
 function onTouchEnd(e) {
   if (!pickerActive || pickerHasWinner || !pickerReady) return;
@@ -804,44 +838,31 @@ document.getElementById('close-settings').addEventListener('click', () => {
   document.getElementById('settings-modal').classList.add('hidden');
 });
 
+// How to Play modal logic
+const infoBtn = document.getElementById('info-btn');
+const infoModal = document.getElementById('info-modal');
+const closeInfo = document.getElementById('close-info');
 
+infoBtn.addEventListener('click', () => {
+  infoModal.classList.remove('hidden');
+});
 
-    // How to Play modal logic
-    const infoBtn = document.getElementById('info-btn');
-    const infoModal = document.getElementById('info-modal');
-    const closeInfo = document.getElementById('close-info');
+closeInfo.addEventListener('click', () => {
+  infoModal.classList.add('hidden');
+});
 
-    infoBtn.addEventListener('click', () => {
-      infoModal.classList.remove('hidden');
-    });
+// Init
+updateRoundDisplay();
+phaseIndicator.classList.add('hidden');
+phaseIndicator.textContent = "";
+phaseIndicator.style.backgroundColor = "";
+phaseIndicator.style.color = "";
+phaseIndicator.style.display = "none";
 
-    closeInfo.addEventListener('click', () => {
-      infoModal.classList.add('hidden');
-    });
+window.addEventListener('load', () => {
+  window.scrollTo(0, 0);
+});
 
-    // Init
-    updateRoundDisplay();
-    phaseIndicator.classList.add('hidden');
-    phaseIndicator.textContent = "";
-    phaseIndicator.style.backgroundColor = "";
-    phaseIndicator.style.color = "";
-    phaseIndicator.style.display = "none";
-
-    window.addEventListener('load', () => {
-    window.scrollTo(0, 0);
-    });
-
-    window.addEventListener('beforeunload', () => {
-      window.scrollTo(0, 0);
-    });
-    
-    // Initialize settings when page loads
-document.addEventListener('DOMContentLoaded', () => {
-  initializeSettings();
-  
-  // Show reset button and round info only after first game
-  if (currentRound > 1) {
-    document.getElementById('round-info').classList.remove('hidden');
-    document.getElementById('reset-rounds-btn').classList.remove('hidden');
-  }
+window.addEventListener('beforeunload', () => {
+  window.scrollTo(0, 0);
 });
