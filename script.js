@@ -848,12 +848,17 @@ document.getElementById('close-settings').addEventListener('click', () => {
 const infoBtn = document.getElementById('info-btn');
 const infoModal = document.getElementById('info-modal');
 const closeInfo = document.getElementById('close-info');
+const closeInfoBottom = document.getElementById('close-info-bottom');
 
 infoBtn.addEventListener('click', () => {
   infoModal.classList.remove('hidden');
 });
 
 closeInfo.addEventListener('click', () => {
+  infoModal.classList.add('hidden');
+});
+
+closeInfoBottom.addEventListener('click', () => {
   infoModal.classList.add('hidden');
 });
 
