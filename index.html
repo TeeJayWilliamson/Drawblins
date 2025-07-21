@@ -44,29 +44,30 @@
   <h3>How to Play Drawblins</h3>
   <div style="text-align: left; line-height: 1.6;">
     <h4>Objective</h4>
-    <p>One player describes a monster while others draw it based on their description!</p>
+    <p>One player sees a monster for x amount of seconds without saying anything, then describes it while others draw it based on their description!</p>
     
-    <h4>📋 Setup</h4>
+    <h4>Setup</h4>
     <ul>
-      <li>Use "Player Order" to determine who goes first</li>
+      <li>Use "Who Goes First?" to determine, well, who goes first</li>
       <li>Adjust difficulty and timing in Settings</li>
       <li>Give each player paper and drawing materials</li>
     </ul>
     
     <h4>Gameplay</h4>
     <ol>
-      <li><strong>Study Phase:</strong> Active player memorizes the monster image</li>
-      <li><strong>Drawing Phase:</strong> Active player describes while others draw</li>
-      <li><strong>Reveal:</strong> Compare drawings to the original monster!</li>
-      <li><strong>Rotate:</strong> Next player becomes the describer</li>
+      <li><strong>Study Phase:</strong> Active player memorizes the monster image.</li>
+      <li><strong>Drawing Phase:</strong> Active player describes while others draw.</li>
+      <li><strong>Judging Phase:</strong> The active player picks which one they think looks most like it based on memory.</li>
+      <li><strong>Reveal:</strong> Reveal the monster and compare drawings to the original monster! </li>
+      <li><strong>Rotate:</strong> Next player becomes the describer.</li>
     </ol>
     
     <h4>Tips for Describers</h4>
     <ul>
-      <li>Start with overall shape and size</li>
-      <li>Describe distinctive features clearly</li>
-      <li>Use simple, clear language</li>
-      <li>Guide step-by-step, don't rush</li>
+      <li>Start with an overall shape and size.</li>
+      <li>Describe distinctive features clearly.</li>
+      <li>Use simple, clear language.</li>
+      <li>Guide step-by-step, don't rush.</li>
     </ul>
   </div>
   <button id="close-info" style="background-color: #e74c3c;">Got It!</button>
@@ -104,7 +105,7 @@
 </div>
 
 <div class="setting-group">
-  <label>⏱️ View Time</label>
+  <label>View Time</label>
   <div class="rules-grid">
     <button class="rule-btn" data-view="30">Easy (30s)</button>
     <button class="rule-btn active" data-view="20">Standard (20s)</button>
@@ -113,7 +114,7 @@
 </div>
 
 <div class="setting-group">
-  <label>✏️ Drawing Time</label>
+  <label>Drawing Time</label>
   <div class="rules-grid">
     <button class="rule-btn" data-draw="3">Easy (3min)</button>
     <button class="rule-btn active" data-draw="2">Standard (2min)</button>
@@ -141,7 +142,7 @@
 
   <div id="start-buttons">
     <button id="start-btn">Start Round</button>
-    <button id="turn-picker-btn" style="background-color: #9b59b6;">Player Order</button>
+    <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
     <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
   </div>
 </div>
@@ -149,7 +150,7 @@
     <!-- Turn Picker -->
     <div id="mobile-turn-picker" class="picker-modal hidden">
       <div class="picker-content">
-        <h3>🎲 Touch to Decide Who Goes First</h3>
+        <h3>Touch to Decide Who Goes First</h3>
         <p>Have each player place one finger on the screen, then wait:</p>
         <div id="touch-area"></div>
         <div id="picker-status">Place fingers on the screen...</div>
