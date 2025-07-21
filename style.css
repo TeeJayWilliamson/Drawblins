@@ -339,7 +339,7 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 .modal-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, dimgray 0%, white 100%);
   border-radius: 20px;
   padding: 2rem;
   max-width: 500px;
