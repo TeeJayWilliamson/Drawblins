@@ -1,7 +1,7 @@
 let masterSoundEnabled = true;
 let windowHasFocus = true;
 
-const totalImages = 185;
+const totalImages = 258;
 const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
 
 const startBtn = document.getElementById('start-btn');
@@ -35,7 +35,7 @@ let currentFadeInterval = null;
 let targetVolume = 0.6;
 let soundEnabled = true;
 let gameVolume = 0.6;
-let difficultyRange = { min: 1, max: 185 };
+let difficultyRange = { min: 159, max: 258 }; 
 let currentViewTime = 20;
 let currentDescribeTime = 2;
 let currentMusicPhase = null;
@@ -376,12 +376,13 @@ function initializeSettings() {
         difficultyRange = { min: 1, max: 158 };
         break;
       case 'all':
-        difficultyRange = { min: 1, max: 185 };
+        difficultyRange = { min: 1, max: 258 };
         break;
       case 'standard':
-        difficultyRange = { min: 159, max: 185 };
+        difficultyRange = { min: 159, max: 258 };
         break;
     }
+    usedImages = [];
   });
 
   // Rule buttons
@@ -707,7 +708,7 @@ function updatePickerStatus(message) {
 }
 
 function startPickerCountdown() {
-  if (pickerTimeout || pickerHasWinner) return;
+  if ((pickerTimeout || countdownInterval) || pickerHasWinner) return;
 
   let countdown = 3;
   updatePickerStatus(`Selecting in ${countdown}...`);
@@ -810,6 +811,11 @@ function onTouchEnd(e) {
     if (pickerTimeout) {
       clearTimeout(pickerTimeout);
       pickerTimeout = null;
+    }
+
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
     }
     updatePickerStatus("Place fingers on the screen...");
   }
