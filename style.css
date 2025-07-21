@@ -421,13 +421,14 @@ background-color: rgba(255, 255, 255, 0.9);
 
 /* Enhanced settings group styling */
 .settings-group {
-  border-radius: 20px;
-  padding: 2rem;
-  margin: 2rem 0;
-  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+  border-radius: 15px; /* Reduced from 20px */
+  padding: 1.5rem; /* Reduced from 2rem */
+  margin: 1rem 0; /* Reduced from 2rem */
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2); /* Reduced shadow */
   position: relative;
   overflow: hidden;
 }
+
 
 .settings-group::before {
   content: '';
@@ -458,29 +459,29 @@ background-color: rgba(255, 255, 255, 0.9);
 /* Time setting cards */
 .time-setting-card {
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin: 1.5rem 0;
+  border-radius: 12px; /* Reduced from 16px */
+  padding: 1rem; /* Reduced from 1.5rem */
+  margin: 1rem 0; /* Reduced from 1.5rem */
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* Reduced shadow */
   position: relative;
   z-index: 2;
   transform: translateY(0);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.time-setting-card label {
+  font-weight: 700;
+  margin: 0 0 0.75rem 0; /* Reduced from 1rem */
+  display: block;
+  color: #2c3e50;
+  font-size: 1.1rem; /* Reduced from 1.3rem */
+  position: relative;
+}
+
 .time-setting-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 15px 40px rgba(0,0,0,0.2);
-}
-
-.time-setting-card label {
-  font-weight: 700;
-  margin: 0 0 1rem 0;
-  display: block;
-  color: #2c3e50;
-  font-size: 1.3rem;
-  position: relative;
 }
 
 .time-setting-card label::before {
@@ -492,8 +493,8 @@ background-color: rgba(255, 255, 255, 0.9);
 .rules-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.75rem; /* Reduced from 1rem */
+  margin-top: 0.75rem; /* Reduced from 1rem */
 }
 
 #difficulty-select {
@@ -502,22 +503,21 @@ background-color: rgba(255, 255, 255, 0.9);
 
 /* Enhanced button styling */
 .rule-btn {
-  padding: 1rem 0.5rem;
-  font-size: 1rem;
+  padding: 0.75rem 0.4rem; /* Reduced from 1rem 0.5rem */
+  font-size: 0.9rem; /* Reduced from 1rem */
   font-weight: 600;
   background: linear-gradient(145deg, #f8f9fa, #e9ecef);
   color: #495057;
-  border: 3px solid transparent;
-  border-radius: 12px;
+  border: 2px solid transparent; /* Reduced from 3px */
+  border-radius: 10px; /* Reduced from 12px */
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  letter-spacing: 0.3px; /* Reduced from 0.5px */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Reduced shadow */
 }
-
 .rule-btn::before {
   content: '';
   position: absolute;
