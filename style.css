@@ -1185,8 +1185,8 @@ input:focus, button:focus {
 
   /* Adjust monster image for small screens */
   #monster-image {
-    max-width: 100% !important;
+    max-width: 75% !important;
     width: auto !important;
-    max-height: 60vh;
+    max-height: 50vh;
   }
 }
