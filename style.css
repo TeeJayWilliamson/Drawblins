@@ -339,7 +339,7 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 .modal-content {
-  background: linear-gradient(135deg, darkgray 0%, Blue 100%);
+  background: linear-gradient(135deg, white 0%, #f2f2f2 100%);
   border-radius: 20px;
   padding: 2rem;
   max-width: 500px;
@@ -365,10 +365,10 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 .modal-content h3 {
-  color: white;
+  color: black;
   font-size: 2.2rem;
   margin-bottom: 2rem;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 15px white;
   position: relative;
   z-index: 2;
 }
@@ -498,7 +498,6 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 .time-setting-card label::before {
-  content: '⏱️';
   margin-right: 0.4rem;
   font-size: 1rem;
 }
@@ -659,8 +658,8 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 .setting-group h2 {
-  color: white;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  color: black;
+  text-shadow: 0 2px 4px white;
 }
 
 #volume-slider {
@@ -669,7 +668,7 @@ background-color: rgba(255, 255, 255, 0.9);
 }
 
 #volume-display {
-color: white;
+color: darkgray;
   font-weight: bold;
 }
 
