@@ -862,6 +862,50 @@ closeInfoBottom.addEventListener('click', () => {
   infoModal.classList.add('hidden');
 });
 
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Make sure the logo click handler is added after DOM is ready
+  const logoClick = document.getElementById('logo-click');
+  if (logoClick) {
+    logoClick.addEventListener('click', (e) => {
+      // Don't trigger if clicking on the corner buttons
+      if (e.target.closest('.corner-buttons')) {
+        return;
+      }
+      
+      // Use existing resetGameUI function which handles most cleanup
+      resetGameUI();
+      
+      // Reset round counter and used images
+      currentRound = 1;
+      usedImages = [];
+      updateRoundDisplay();
+      
+      // Make sure start screen is visible
+      document.getElementById('start-screen').classList.remove('hidden');
+      
+      // Close any open modals
+      document.getElementById('mobile-turn-picker').classList.add('hidden');
+      document.getElementById('settings-modal').classList.add('hidden');
+      document.getElementById('info-modal').classList.add('hidden');
+      
+      // Deactivate picker if active
+      if (typeof deactivatePickerMode === 'function' && pickerActive) {
+        deactivatePickerMode();
+      }
+    });
+  }
+  
+  // Prevent corner buttons from triggering logo click
+  const cornerButtons = document.querySelector('.corner-buttons');
+  if (cornerButtons) {
+    cornerButtons.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+});
+
+
 // Init
 updateRoundDisplay();
 phaseIndicator.classList.add('hidden');
