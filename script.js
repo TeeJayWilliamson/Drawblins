@@ -1,7 +1,7 @@
 let masterSoundEnabled = true;
 let windowHasFocus = true;
 
-const totalImages = 258;
+const totalImages = 266;
 const images = Array.from({ length: totalImages }, (_, i) => `images/monster${i + 1}.png`);
 
 const startBtn = document.getElementById('start-btn');
@@ -35,7 +35,7 @@ let currentFadeInterval = null;
 let targetVolume = 0.6;
 let soundEnabled = true;
 let gameVolume = 0.6;
-let difficultyRange = { min: 159, max: 258 }; 
+let difficultyRange = { min: 159, max: 266 }; 
 let currentViewTime = 20;
 let currentDescribeTime = 2;
 let currentMusicPhase = null;
@@ -376,10 +376,10 @@ function initializeSettings() {
         difficultyRange = { min: 1, max: 158 };
         break;
       case 'all':
-        difficultyRange = { min: 1, max: 258 };
+        difficultyRange = { min: 1, max: 266 };
         break;
       case 'standard':
-        difficultyRange = { min: 159, max: 258 };
+        difficultyRange = { min: 159, max: 266 };
         break;
     }
     usedImages = [];
