@@ -1,0 +1,806 @@
+/* Clean Fullscreen Overlays - No logos, minimal UI */
+
+/* Base overlay styles */
+.drawing-overlay,
+.monster-overlay,
+.waiting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Drawing Interface - Clean fullscreen */
+.drawing-interface-clean {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.drawing-header-minimal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  flex-shrink: 0;
+}
+
+.drawing-timer-minimal {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  min-width: 120px;
+  text-align: center;
+}
+
+.drawing-timer-minimal.timer-urgent {
+  background: #e74c3c;
+  animation: none; /* No pulsing */
+}
+
+.drawing-header-minimal h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Canvas container - perfectly centered */
+.canvas-container-centered {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#party-canvas {
+  border: 4px solid white;
+  border-radius: 20px;
+  background: white;
+  cursor: crosshair;
+  touch-action: none;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  max-width: 90vw;
+  max-height: 60vh;
+}
+
+/* Drawing controls - bottom bar */
+.drawing-controls-minimal {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1.5rem 2rem;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.color-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.control-btn {
+  background: white;
+  color: #333;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  min-width: 140px;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.control-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.control-btn.submit-btn {
+  background: #27ae60;
+  color: white;
+}
+
+.control-btn.submit-btn:hover:not(:disabled) {
+  background: #229954;
+}
+
+.control-btn.submit-btn.submitted {
+  background: #1e8449;
+}
+
+.control-btn.submit-btn.auto-submitted {
+  background: #85929e;
+}
+
+.control-btn.clear-btn {
+  background: #e74c3c;
+  color: white;
+}
+
+.control-btn.clear-btn:hover {
+  background: #c0392b;
+}
+
+/* Enhanced color picker and brush size */
+#brush-color {
+  width: 60px;
+  height: 60px;
+  border: 3px solid white;
+  border-radius: 15px;
+  cursor: pointer;
+  background: none;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+#brush-size {
+  width: 150px;
+  height: 8px;
+  -webkit-appearance: none;
+  background: rgba(255,255,255,0.3);
+  border-radius: 5px;
+  outline: none;
+}
+
+#brush-size::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+#brush-size::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+#brush-preview {
+  background: #000;
+  border: 2px solid white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+/* Monster Study Interface - Clean fullscreen */
+.monster-overlay {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+}
+
+.monster-study-clean {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.study-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.study-timer-clean {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 30px;
+  font-size: 2rem;
+  font-weight: bold;
+  min-width: 150px;
+  text-align: center;
+}
+
+.study-timer-clean.timer-urgent {
+  background: #c0392b;
+  animation: none; /* No pulsing */
+}
+
+.study-header h2 {
+  margin: 0;
+  font-size: 2.5rem;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.monster-image-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#monster-image-clean {
+  max-width: 80vw;
+  max-height: 60vh;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+  border: 5px solid white;
+}
+
+.study-instructions {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.study-instructions p {
+  margin: 0;
+  font-size: 1.5rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Waiting Interface - Clean fullscreen */
+.waiting-overlay {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+}
+
+.waiting-clean {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.waiting-content-centered {
+  max-width: 600px;
+}
+
+.waiting-clean h2 {
+  font-size: 3rem;
+  margin: 0 0 1rem 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.waiting-clean p {
+  font-size: 1.5rem;
+  margin: 0 0 2rem 0;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.waiting-timer-clean {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 30px;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 1rem 0;
+  display: inline-block;
+}
+
+.waiting-timer-clean.timer-urgent {
+  background: #e74c3c;
+  animation: none; /* No pulsing */
+}
+
+.waiting-host-controls {
+  margin-top: 2rem;
+}
+
+.waiting-host-controls .control-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  margin: 0.5rem;
+}
+
+.waiting-host-controls .control-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide overlays by default */
+.drawing-overlay.hidden,
+.monster-overlay.hidden,
+.waiting-overlay.hidden {
+  display: none;
+}
+
+/* Body classes for overlay modes */
+body.drawing-mode,
+body.monster-study-mode,
+body.waiting-mode {
+  overflow: hidden;
+}
+
+body.drawing-mode .sticky-header,
+body.monster-study-mode .sticky-header,
+body.waiting-mode .sticky-header {
+  display: none !important;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .drawing-header-minimal,
+  .study-header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .drawing-timer-minimal,
+  .study-timer-clean {
+    font-size: 1.3rem;
+    padding: 0.75rem 1.5rem;
+    min-width: 100px;
+  }
+  
+  .drawing-header-minimal h3,
+  .study-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .canvas-container-centered,
+  .monster-image-container {
+    padding: 1rem;
+  }
+  
+  #party-canvas,
+  #monster-image-clean {
+    max-width: 95vw;
+    max-height: 50vh;
+  }
+  
+  .drawing-controls-minimal {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .color-size-controls,
+  .action-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .control-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    min-width: 120px;
+  }
+  
+  #brush-color {
+    width: 50px;
+    height: 50px;
+  }
+  
+  #brush-size {
+    width: 120px;
+  }
+  
+  .waiting-clean h2 {
+    font-size: 2rem;
+  }
+  
+  .waiting-clean p {
+    font-size: 1.2rem;
+  }
+  
+  .study-instructions p {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .drawing-controls-minimal {
+    padding: 0.75rem;
+  }
+  
+  .control-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    min-width: 100px;
+  }
+  
+  .color-size-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .waiting-clean {
+    padding: 1rem;
+  }
+  
+  .waiting-clean h2 {
+    font-size: 1.8rem;
+  }
+  
+  .waiting-timer-clean {
+    font-size: 1.5rem;
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+/* Cast Window Styles - Separate dedicated TV interface */
+.cast-window-body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.cast-display {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.cast-header-tv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 4rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.cast-logo-tv {
+  height: 80px;
+  filter: brightness(0) invert(1);
+}
+
+.cast-timer-tv {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 1.5rem 3rem;
+  border-radius: 40px;
+  font-size: 3rem;
+  font-weight: bold;
+  min-width: 200px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.cast-timer-tv.timer-urgent {
+  background: #e74c3c;
+  /* No pulsing animation */
+}
+
+.cast-room-info {
+  text-align: right;
+}
+
+.cast-room-code {
+  font-size: 1.2rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.cast-room-code-value {
+  font-family: 'Courier New', monospace;
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0.5rem 0 0 0;
+  letter-spacing: 3px;
+}
+
+.cast-content-tv {
+  flex: 1;
+  padding: 3rem 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.cast-phase-info {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.cast-phase-title {
+  font-size: 4rem;
+  margin: 0 0 1rem 0;
+  text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+  font-weight: bold;
+}
+
+.cast-phase-subtitle {
+  font-size: 1.8rem;
+  margin: 0;
+  opacity: 0.9;
+  font-weight: 300;
+}
+
+.cast-current-player {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 2rem 3rem;
+  margin: 2rem 0;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cast-player-name {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+  color: #FFD700;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.cast-player-action {
+  font-size: 1.4rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.cast-progress-info {
+  background: rgba(255, 152, 0, 0.2);
+  border-radius: 15px;
+  padding: 1.5rem 2rem;
+  margin: 1rem 0;
+  text-align: center;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.cast-progress-text {
+  font-size: 1.6rem;
+  margin: 0;
+  font-weight: bold;
+}
+
+/* Cast Drawings Gallery - TV optimized */
+.cast-drawings-section {
+  margin-top: 2rem;
+}
+
+.cast-drawings-title {
+  font-size: 2.5rem;
+  text-align: center;
+  margin: 0 0 2rem 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.cast-drawings-grid-tv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.cast-original-monster-tv {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border: 4px solid #FF8C00;
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  transform: scale(1.05);
+  grid-column: span 1;
+}
+
+.cast-original-monster-tv h3 {
+  color: #8B4513;
+  margin: 0 0 1rem 0;
+  font-weight: bold;
+  font-size: 1.6rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+.cast-player-drawing-tv {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+
+.cast-player-drawing-tv:hover {
+  transform: translateY(-5px);
+}
+
+.cast-player-drawing-tv h3 {
+  color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.cast-drawing-image-tv {
+  width: 100%;
+  height: 220px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 2px solid rgba(0,0,0,0.1);
+  background: white;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.cast-auto-submitted-badge {
+  display: inline-block;
+  background: #95a5a6;
+  color: white;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
+/* Cast Instructions */
+.cast-instructions {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cast-instructions h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.8rem;
+  color: #FFD700;
+}
+
+.cast-instructions p {
+  margin: 0.5rem 0;
+  font-size: 1.2rem;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+/* Cast window specific loading/connecting states */
+.cast-connecting {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+}
+
+.cast-connecting h2 {
+  font-size: 3rem;
+  margin: 0 0 1rem 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.cast-connecting p {
+  font-size: 1.5rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.cast-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid rgba(255,255,255,0.3);
+  border-top: 6px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 2rem 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments for different TV sizes */
+@media (max-width: 1600px) {
+  .cast-header-tv {
+    padding: 1.5rem 3rem;
+  }
+  
+  .cast-logo-tv {
+    height: 60px;
+  }
+  
+  .cast-timer-tv {
+    font-size: 2.5rem;
+    padding: 1.2rem 2.5rem;
+    min-width: 160px;
+  }
+  
+  .cast-phase-title {
+    font-size: 3rem;
+  }
+  
+  .cast-player-name {
+    font-size: 2rem;
+  }
+  
+  .cast-drawings-grid-tv {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .cast-content-tv {
+    padding: 2rem 3rem;
+  }
+  
+  .cast-phase-title {
+    font-size: 2.5rem;
+  }
+  
+  .cast-player-name {
+    font-size: 1.8rem;
+  }
+  
+  .cast-drawings-grid-tv {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  
+  .cast-drawing-image-tv {
+    height: 180px;
+  }
+}
+
+/* Print styles for cast display */
+@media print {
+  .cast-header-tv {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .cast-timer-tv,
+  .cast-loading-spinner {
+    display: none !important;
+  }
+  
+  .cast-drawings-grid-tv {
+    page-break-inside: avoid;
+  }
+}
