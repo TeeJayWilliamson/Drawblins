@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Drawblins</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Party Mode CSS -->
+  <link rel="stylesheet" href="party-mode.css" />
 </head>
 <body>
   <div class="container">
@@ -238,16 +240,16 @@
     </div>
   </div>
 
-  <!-- Party Mode Dependencies -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<link rel="stylesheet" href="party-mode.css" />
-
   <!-- Audio -->
   <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
   <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
   <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
 
+  <!-- Party Mode Dependencies -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <!-- Scripts -->
   <script src="script.js"></script>
+  <script src="party-client.js"></script>
 </body>
 </html>
