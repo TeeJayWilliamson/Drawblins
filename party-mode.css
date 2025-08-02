@@ -1,4 +1,4 @@
-/* Enhanced Party Mode Styles - Updated for Fullscreen Drawing & Cast Mode */
+/* Enhanced Party Mode Styles - Updated for Simple Cast & Clean Drawing */
 
 /* Party Mode Section */
 .party-mode-section {
@@ -119,6 +119,10 @@
   transition: all 0.3s ease;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .party-btn:hover {
@@ -173,14 +177,20 @@
   background: #5a6268;
 }
 
+/* Cast icon in button */
+.cast-icon {
+  font-size: 1.2rem;
+  margin-right: 0.25rem;
+}
+
 /* Lobby */
 .party-lobby {
   margin: 1.5rem 0;
 }
 
-/* FIXED: Room code visibility */
+/* Room code visibility */
 .room-info h4 {
-  color: #333; /* Changed from white to dark color */
+  color: #333;
   text-align: center;
   margin-bottom: 1rem;
   font-size: 1.2rem;
@@ -287,207 +297,6 @@
   z-index: 2;
 }
 
-/* Cast View - Full Screen TV Display */
-.cast-view {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  z-index: 5000;
-  display: flex;
-  flex-direction: column;
-}
-
-.cast-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem 3rem;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-}
-
-.cast-logo {
-  height: 60px;
-  filter: brightness(0) invert(1); /* Make logo white */
-}
-
-.cast-timer {
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 30px;
-  font-size: 2rem;
-  font-weight: bold;
-  min-width: 150px;
-  text-align: center;
-}
-
-/* FIXED: Remove pulsing animation from timer warning */
-.cast-timer.timer-warning {
-  background: #e74c3c;
-  /* Removed animation: pulse 1s infinite; */
-}
-
-.exit-cast-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid white;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.exit-cast-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.cast-content {
-  flex: 1;
-  padding: 2rem 3rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.cast-phase-content {
-  text-align: center;
-  color: white;
-}
-
-.cast-phase-content h2 {
-  font-size: 3rem;
-  margin: 0 0 1rem 0;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.current-drawer-info {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  padding: 2rem;
-  margin: 2rem 0;
-  backdrop-filter: blur(10px);
-}
-
-.current-drawer-info h3 {
-  font-size: 2rem;
-  margin: 0 0 1rem 0;
-  color: #FFD700;
-}
-
-.current-drawer-info p {
-  font-size: 1.2rem;
-  margin: 0;
-  opacity: 0.9;
-}
-
-.drawing-progress {
-  background: rgba(255, 152, 0, 0.2);
-  border-radius: 15px;
-  padding: 1.5rem;
-  margin: 1rem 0;
-}
-
-.drawing-progress p {
-  font-size: 1.3rem;
-  margin: 0;
-  font-weight: bold;
-}
-
-/* Cast Drawings Gallery */
-.cast-drawings-gallery {
-  margin-top: 2rem;
-}
-
-.cast-drawings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin: 2rem 0;
-}
-
-.cast-original-monster, .cast-player-drawing {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  padding: 1.5rem;
-  text-align: center;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-}
-
-.cast-original-monster {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  border: 3px solid #FF8C00;
-}
-
-.cast-original-monster h4 {
-  color: #8B4513;
-  margin: 0 0 1rem 0;
-  font-weight: bold;
-  font-size: 1.3rem;
-}
-
-.cast-player-drawing h4 {
-  color: #333;
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-}
-
-.cast-drawing-image {
-  max-width: 100%;
-  height: 200px;
-  object-fit: contain;
-  border-radius: 8px;
-  border: 2px solid rgba(0,0,0,0.1);
-  background: white;
-}
-
-.cast-host-controls {
-  text-align: center;
-  margin-top: 2rem;
-}
-
-.cast-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid white;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-.cast-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.cast-btn.next-btn {
-  background: rgba(76, 175, 80, 0.8);
-  border-color: #4CAF50;
-}
-
-.cast-btn.create-btn {
-  background: rgba(76, 175, 80, 0.8);
-  border-color: #4CAF50;
-}
-
-.cast-btn.back-btn {
-  background: rgba(108, 117, 125, 0.8);
-  border-color: #6c757d;
-}
-
-/* Player Game View */
-.player-game-view {
-  position: relative;
-}
-
 .party-status {
   margin-bottom: 1rem;
   text-align: center;
@@ -532,10 +341,8 @@
   font-weight: bold;
 }
 
-/* FIXED: Remove pulsing animation */
-.study-timer.timer-warning {
+.study-timer.timer-urgent {
   background: #e74c3c;
-  /* Removed animation: pulse 1s infinite; */
 }
 
 .monster-view h3 {
@@ -550,175 +357,6 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   margin: 1rem 0;
-}
-
-/* Fullscreen Drawing Area - ENHANCED */
-.fullscreen-drawing {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: #f8f9fa;
-  z-index: 4000;
-  display: flex;
-  flex-direction: column;
-}
-
-.fullscreen-drawing .drawing-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: #9b59b6;
-  color: white;
-  flex-shrink: 0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.fullscreen-drawing .drawing-timer {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  min-width: 120px;
-  text-align: center;
-}
-
-/* FIXED: Remove pulsing animation */
-.fullscreen-drawing .drawing-timer.timer-warning {
-  background: #e74c3c;
-  /* Removed animation: pulse 1s infinite; */
-}
-
-.fullscreen-drawing h3 {
-  margin: 0;
-  font-size: 1.8rem;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-}
-
-.drawing-canvas-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  background: #f8f9fa;
-}
-
-#party-canvas {
-  border: 3px solid #9b59b6;
-  border-radius: 15px;
-  background: white;
-  cursor: crosshair;
-  touch-action: none;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-  max-width: 90vw;
-  max-height: 60vh;
-}
-
-.drawing-controls {
-  background: white;
-  padding: 1.5rem 2rem;
-  border-top: 1px solid #dee2e6;
-  flex-shrink: 0;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-}
-
-.control-row {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.control-btn {
-  background: #9b59b6;
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  min-width: 120px;
-}
-
-.control-btn:hover:not(:disabled) {
-  background: #8e44ad;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.control-btn:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.control-btn.submit-btn {
-  background: #e67e22;
-}
-
-.control-btn.submit-btn:hover:not(:disabled) {
-  background: #d35400;
-}
-
-.control-btn.submit-btn.submitted {
-  background: #27ae60;
-}
-
-.control-btn.submit-btn.auto-submitted {
-  background: #95a5a6;
-}
-
-.control-btn.clear-btn {
-  background: #e74c3c;
-}
-
-.control-btn.clear-btn:hover {
-  background: #c0392b;
-}
-
-#brush-color {
-  width: 60px;
-  height: 60px;
-  border: 3px solid #9b59b6;
-  border-radius: 10px;
-  cursor: pointer;
-  background: none;
-}
-
-#brush-size {
-  width: 150px;
-  height: 8px;
-  -webkit-appearance: none;
-  background: #ddd;
-  border-radius: 5px;
-  outline: none;
-}
-
-#brush-size::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #9b59b6;
-  cursor: pointer;
-}
-
-#brush-size::-moz-range-thumb {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background: #9b59b6;
-  cursor: pointer;
-  border: none;
 }
 
 /* Waiting Area */
@@ -758,10 +396,8 @@
   margin: 1rem 0;
 }
 
-/* FIXED: Remove pulsing animation */
-.waiting-timer.timer-warning {
+.waiting-timer.timer-urgent {
   background: #e74c3c;
-  /* Removed animation: pulse 1s infinite; */
 }
 
 .waiting-host-controls {
@@ -826,94 +462,38 @@
   }
 }
 
-/* REMOVED: Pulse animation that was causing red pulsing */
-/* @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-} */
+/* Drawing Overlay Styles - For the iframe container */
+#drawing-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 5000 !important;
+  background: white !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+#drawing-overlay iframe {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: white !important;
+}
+
+/* Hide scrollbars and prevent scrolling when drawing overlay is active */
+body:has(#drawing-overlay) {
+  overflow: hidden !important;
+}
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .party-mode-card {
     padding: 1.5rem;
-  }
-  
-  .cast-header {
-    padding: 1rem 1.5rem;
-  }
-  
-  .cast-logo {
-    height: 40px;
-  }
-  
-  .cast-timer {
-    font-size: 1.5rem;
-    padding: 0.75rem 1.5rem;
-    min-width: 120px;
-  }
-  
-  .cast-content {
-    padding: 1rem 1.5rem;
-  }
-  
-  .cast-phase-content h2 {
-    font-size: 2rem;
-  }
-  
-  .current-drawer-info {
-    padding: 1.5rem;
-    margin: 1rem 0;
-  }
-  
-  .current-drawer-info h3 {
-    font-size: 1.5rem;
-  }
-  
-  .cast-drawings-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-  
-  .fullscreen-drawing .drawing-header {
-    padding: 1rem;
-  }
-  
-  .fullscreen-drawing h3 {
-    font-size: 1.4rem;
-  }
-  
-  .fullscreen-drawing .drawing-timer {
-    font-size: 1.2rem;
-    padding: 0.5rem 1rem;
-    min-width: 100px;
-  }
-  
-  .drawing-canvas-container {
-    padding: 1rem;
-  }
-  
-  .drawing-controls {
-    padding: 1rem;
-  }
-  
-  .control-row {
-    gap: 0.5rem;
-    justify-content: space-around;
-  }
-  
-  .control-btn {
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
-    min-width: 80px;
-  }
-  
-  #brush-color {
-    width: 50px;
-    height: 50px;
-  }
-  
-  #brush-size {
-    width: 100px;
   }
   
   .party-toast {
@@ -928,6 +508,10 @@
   
   .host-action-buttons .party-btn {
     min-width: auto;
+  }
+  
+  .cast-icon {
+    font-size: 1.1rem;
   }
 }
 
@@ -945,96 +529,53 @@
     margin-bottom: 0;
   }
   
-  .cast-drawings-grid {
-    grid-template-columns: 1fr;
+  .party-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
   }
   
-  .control-row {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .control-btn {
-    width: 100%;
-    max-width: 200px;
-  }
-  
-  .fullscreen-drawing .drawing-header {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
+  .cast-icon {
+    font-size: 1rem;
+    margin-right: 0.2rem;
   }
 }
 
-/* Large screen optimization for cast view */
-@media (min-width: 1200px) {
-  .cast-header {
-    padding: 3rem 4rem;
-  }
-  
-  .cast-logo {
-    height: 80px;
-  }
-  
-  .cast-timer {
-    font-size: 2.5rem;
-    padding: 1.5rem 3rem;
-    min-width: 200px;
-  }
-  
-  .cast-content {
-    padding: 3rem 4rem;
-  }
-  
-  .cast-phase-content h2 {
-    font-size: 4rem;
-  }
-  
-  .current-drawer-info {
-    padding: 3rem;
-    margin: 3rem 0;
-  }
-  
-  .current-drawer-info h3 {
-    font-size: 2.5rem;
-  }
-  
-  .current-drawer-info p {
-    font-size: 1.5rem;
-  }
-  
-  .cast-drawings-grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 3rem;
-  }
-  
-  .cast-drawing-image {
-    height: 250px;
-  }
-  
-  .fullscreen-drawing h3 {
-    font-size: 2.5rem;
-  }
-  
-  .fullscreen-drawing .drawing-timer {
-    font-size: 2rem;
-    padding: 1rem 2rem;
-    min-width: 150px;
-  }
+/* Mode toggle buttons styling */
+.mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  justify-content: center;
 }
 
-/* Print styles for cast view */
+.mode-btn {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.mode-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.mode-btn.active {
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* Print styles */
 @media print {
-  .cast-header,
-  .cast-host-controls,
   .party-toast,
-  .exit-cast-btn {
+  .mode-toggle {
     display: none !important;
   }
-  
-  .cast-drawings-grid {
-    page-break-inside: avoid;
-  }
 }
-
-

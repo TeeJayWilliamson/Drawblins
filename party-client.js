@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Fixed Drawing & Host Issues
+// Enhanced Party Mode Client - Fixed Drawing & Simple Cast
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -7,14 +7,11 @@ class PartyGameClient {
     this.roomCode = '';
     this.isHost = false;
     this.currentRoom = null;
-    this.canvas = null;
-    this.ctx = null;
-    this.isDrawing = false;
     this.gameTimer = null;
     this.serverUrl = 'https://drawblins-production.up.railway.app';
     this.audioInitialized = false;
     this.currentMusicPhase = null;
-    this.isCastMode = false; // New: Track if in cast mode
+    this.castWindow = null; // For the cast window
   }
 
   // Initialize party mode
@@ -24,9 +21,8 @@ class PartyGameClient {
     this.setupAudio();
   }
 
-  // Setup audio system (similar to local mode)
+  // Setup audio system
   setupAudio() {
-    // Initialize audio elements for party mode
     const waitingMusic = document.getElementById('waiting-music');
     const drawingMusic = document.getElementById('drawing-music');
     const buzzer = document.getElementById('buzzer');
@@ -154,7 +150,7 @@ class PartyGameClient {
     });
   }
 
-  // Audio functions (adapted from local mode)
+  // Audio functions
   initializeAudio() {
     if (this.audioInitialized) return;
     
@@ -367,67 +363,33 @@ class PartyGameClient {
             </div>
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
-              <button id="cast-mode-btn" class="party-btn cast-btn">Cast to TV</button>
+              <button id="cast-to-tv-btn" class="party-btn cast-btn">
+                <span class="cast-icon">📺</span> Cast to TV
+              </button>
             </div>
           </div>
         </div>
         
         <!-- Game Area -->
         <div id="party-game-area" class="party-game-area hidden">
-          <!-- Cast Mode View (for TV display) -->
-          <div id="cast-view" class="cast-view hidden">
-            <div class="cast-header">
-              <img src="images/logo.png" alt="Drawblins" class="cast-logo" />
-              <div id="cast-timer" class="cast-timer">00:00</div>
-              <button id="exit-cast-btn" class="exit-cast-btn">Exit Cast</button>
-            </div>
-            <div id="cast-content" class="cast-content">
-              <div id="cast-phase-display" class="cast-phase-display"></div>
-              <div id="cast-drawings-gallery" class="cast-drawings-gallery hidden"></div>
+          <!-- Simple game status -->
+          <div id="party-status" class="party-status"></div>
+          
+          <!-- Monster viewing (for current drawer only) -->
+          <div id="monster-view" class="monster-view hidden">
+            <div class="monster-study-interface">
+              <div class="study-timer">00:00</div>
+              <h3>Study This Monster!</h3>
+              <img id="party-monster-image" src="" alt="Monster to draw">
+              <p>Memorize it - you'll need to describe it to others!</p>
             </div>
           </div>
           
-          <!-- Player Game View -->
-          <div id="player-game-view" class="player-game-view">
-            <div id="party-status" class="party-status"></div>
-            
-            <!-- Monster viewing (for current drawer only) -->
-            <div id="monster-view" class="monster-view hidden">
-              <div class="monster-study-interface">
-                <div class="study-timer">00:00</div>
-                <h3>Study This Monster!</h3>
-                <img id="party-monster-image" src="" alt="Monster to draw">
-                <p>Memorize it - you'll need to describe it to others!</p>
-              </div>
-            </div>
-            
-            <!-- Fullscreen Drawing Area -->
-            <div id="fullscreen-drawing" class="fullscreen-drawing hidden">
-              <div class="drawing-header">
-                <div class="drawing-timer">00:00</div>
-                <h3>Draw What You Hear!</h3>
-              </div>
-              
-              <div class="drawing-canvas-container">
-                <canvas id="party-canvas" width="400" height="400"></canvas>
-              </div>
-              
-              <div class="drawing-controls">
-                <div class="control-row">
-                  <input type="color" id="brush-color" value="#000000">
-                  <input type="range" id="brush-size" min="1" max="20" value="3">
-                  <button id="clear-canvas" class="control-btn clear-btn">Clear</button>
-                  <button id="submit-drawing" class="control-btn submit-btn">Submit</button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Waiting area -->
-            <div id="waiting-area" class="waiting-area hidden">
-              <h3 id="waiting-title">Waiting...</h3>
-              <p id="waiting-message">Please wait for the game to continue.</p>
-              <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
-            </div>
+          <!-- Waiting area -->
+          <div id="waiting-area" class="waiting-area hidden">
+            <h3 id="waiting-title">Waiting...</h3>
+            <p id="waiting-message">Please wait for the game to continue.</p>
+            <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
           </div>
         </div>
         
@@ -503,19 +465,12 @@ class PartyGameClient {
       });
     }
 
-    const castModeBtn = document.getElementById('cast-mode-btn');
-    if (castModeBtn) {
-      castModeBtn.addEventListener('click', () => {
-        console.log('Cast mode button clicked');
-        this.toggleCastMode();
-      });
-    }
-
-    const exitCastBtn = document.getElementById('exit-cast-btn');
-    if (exitCastBtn) {
-      exitCastBtn.addEventListener('click', () => {
-        console.log('Exit cast button clicked');
-        this.exitCastMode();
+    // Simple cast button
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (castBtn) {
+      castBtn.addEventListener('click', () => {
+        console.log('Cast to TV button clicked');
+        this.openCastWindow();
       });
     }
 
@@ -525,21 +480,6 @@ class PartyGameClient {
         console.log('Back to local button clicked');
         this.showLocalMode();
         this.cleanup();
-      });
-    }
-
-    // Drawing tools
-    const clearBtn = document.getElementById('clear-canvas');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        this.clearCanvas();
-      });
-    }
-
-    const submitBtn = document.getElementById('submit-drawing');
-    if (submitBtn) {
-      submitBtn.addEventListener('click', () => {
-        this.submitDrawing();
       });
     }
 
@@ -563,6 +503,55 @@ class PartyGameClient {
     }
 
     console.log('Event listeners set up');
+  }
+
+  // Simple cast window functionality
+  openCastWindow() {
+    if (this.castWindow && !this.castWindow.closed) {
+      this.castWindow.focus();
+      return;
+    }
+
+    // Open the cast window
+    const castUrl = `cast.html?room=${this.roomCode}&player=${this.playerName}`;
+    this.castWindow = window.open(
+      castUrl,
+      'drawblins-cast',
+      'width=1200,height=800,scrollbars=no,resizable=yes,status=no,toolbar=no,menubar=no'
+    );
+
+    if (!this.castWindow) {
+      this.showError('Please allow popups to cast to TV');
+      return;
+    }
+
+    // Listen for cast window messages
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      
+      if (event.data.type === 'cast-ready') {
+        // Send initial game state to cast window
+        this.sendToCastWindow('game-update', {
+          gameState: this.currentRoom?.gameState,
+          room: this.currentRoom
+        });
+      }
+      
+      if (event.data.type === 'cast-window-closed') {
+        this.castWindow = null;
+      }
+    });
+
+    this.showMessage('Cast window opened! Make it fullscreen on your TV.');
+  }
+
+  sendToCastWindow(type, data) {
+    if (this.castWindow && !this.castWindow.closed) {
+      this.castWindow.postMessage({
+        type,
+        ...data
+      }, window.location.origin);
+    }
   }
 
   showLocalMode() {
@@ -735,117 +724,6 @@ class PartyGameClient {
     this.socket.emit('start-game', { viewTime, drawTime, difficulty });
   }
 
-  toggleCastMode() {
-    if (this.isCastMode) {
-      this.exitCastMode();
-    } else {
-      this.enterCastMode();
-    }
-  }
-
-  enterCastMode() {
-    console.log('Entering cast mode...');
-    this.isCastMode = true;
-    
-    const castView = document.getElementById('cast-view');
-    const playerGameView = document.getElementById('player-game-view');
-    const castModeBtn = document.getElementById('cast-mode-btn');
-    
-    if (castView) castView.classList.remove('hidden');
-    if (playerGameView) playerGameView.classList.add('hidden');
-    if (castModeBtn) castModeBtn.textContent = 'Exit Cast';
-    
-    // Make cast view fullscreen
-    if (castView && castView.requestFullscreen) {
-      castView.requestFullscreen().catch(console.error);
-    }
-    
-    // Update cast view with current game state
-    this.updateCastView();
-  }
-
-  exitCastMode() {
-    console.log('Exiting cast mode...');
-    this.isCastMode = false;
-    
-    const castView = document.getElementById('cast-view');
-    const playerGameView = document.getElementById('player-game-view');
-    const castModeBtn = document.getElementById('cast-mode-btn');
-    
-    if (castView) castView.classList.add('hidden');
-    if (playerGameView) playerGameView.classList.remove('hidden');
-    if (castModeBtn) castModeBtn.textContent = 'Cast to TV';
-    
-    // Exit fullscreen
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(console.error);
-    }
-  }
-
-  updateCastView() {
-    if (!this.isCastMode || !this.currentRoom) return;
-    
-    const castPhaseDisplay = document.getElementById('cast-phase-display');
-    const gameState = this.currentRoom.gameState;
-    
-    if (!castPhaseDisplay) return;
-    
-    const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
-    
-    switch (gameState.phase) {
-      case 'studying':
-        castPhaseDisplay.innerHTML = `
-          <div class="cast-phase-content">
-            <h2>Round ${gameState.currentRound} - Study Phase</h2>
-            <div class="current-drawer-info">
-              <h3>${currentPlayer ? currentPlayer.name : 'Player'} is studying the monster</h3>
-              <p>Everyone else, get ready to draw!</p>
-            </div>
-          </div>
-        `;
-        break;
-        
-      case 'drawing':
-        castPhaseDisplay.innerHTML = `
-          <div class="cast-phase-content">
-            <h2>Round ${gameState.currentRound} - Drawing Phase</h2>
-            <div class="current-drawer-info">
-              <h3>${currentPlayer ? currentPlayer.name : 'Player'} is describing the monster</h3>
-              <p>Listen carefully and draw what you hear!</p>
-            </div>
-            <div class="drawing-progress">
-              <p>Drawings submitted: <span id="cast-progress-count">0</span> / <span id="cast-progress-total">0</span></p>
-            </div>
-          </div>
-        `;
-        break;
-        
-      case 'reveal':
-        this.showCastReveal();
-        break;
-    }
-  }
-
-  showCastReveal() {
-    const castPhaseDisplay = document.getElementById('cast-phase-display');
-    const castDrawingsGallery = document.getElementById('cast-drawings-gallery');
-    
-    if (castPhaseDisplay) {
-      castPhaseDisplay.innerHTML = `
-        <div class="cast-phase-content">
-          <h2>Round ${this.currentRoom.gameState.currentRound} - Results!</h2>
-          <div class="reveal-header">
-            <h3>How did everyone do?</h3>
-          </div>
-        </div>
-      `;
-    }
-    
-    if (castDrawingsGallery) {
-      castDrawingsGallery.classList.remove('hidden');
-    }
-  }
-
   handleGamePhase(gameState, extraData = {}) {
     console.log('Handling game phase:', gameState.phase, 'Current drawer:', gameState.currentDrawer, 'My socket ID:', this.socket.id);
     this.initializeAudio(); // Initialize audio on first game interaction
@@ -857,10 +735,11 @@ class PartyGameClient {
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.remove('hidden');
     
-    // Update cast view if in cast mode
-    if (this.isCastMode) {
-      this.updateCastView();
-    }
+    // Send update to cast window
+    this.sendToCastWindow('game-update', {
+      gameState: gameState,
+      room: this.currentRoom
+    });
     
     // Handle different phases
     switch (gameState.phase) {
@@ -901,7 +780,7 @@ class PartyGameClient {
     if (isMyTurn) {
       this.showWaitingArea('Your Turn to Describe!', 'Describe the monster you saw to help others draw it!');
     } else {
-      this.showFullscreenDrawing();
+      this.showMinimalDrawing();
     }
   }
 
@@ -909,15 +788,16 @@ class PartyGameClient {
     console.log('Handling reveal phase', extraData);
     this.stopAllMusicImmediate();
     
-    if (this.isCastMode) {
-      this.showCastReveal();
-      this.displayCastDrawings(extraData.allDrawings || [], extraData.originalMonster);
-    } else {
-      this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
-    }
+    // Send drawings to cast window
+    this.sendToCastWindow('show-drawings', {
+      drawings: extraData.allDrawings || [],
+      originalMonster: extraData.originalMonster
+    });
     
-    // Show next round button for host (only if not in cast mode)
-    if (this.isHost && !this.isCastMode) {
+    this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
+    
+    // Show next round button for host
+    if (this.isHost) {
       this.showNextRoundButton(gameState);
     }
   }
@@ -925,16 +805,9 @@ class PartyGameClient {
   showMonsterToDrawer(monster, viewTime) {
     console.log('Showing monster to drawer:', monster);
     
-    if (this.isCastMode) {
-      // Don't show monster in cast mode, it should only show on player device
-      return;
-    }
-    
     const monsterView = document.getElementById('monster-view');
     const monsterImage = document.getElementById('party-monster-image');
-    const playerGameView = document.getElementById('player-game-view');
     
-    if (playerGameView) playerGameView.classList.remove('hidden');
     if (monsterView) monsterView.classList.remove('hidden');
     if (monsterImage) {
       monsterImage.src = `images/${monster}`;
@@ -946,50 +819,529 @@ class PartyGameClient {
     if (monsterView) monsterView.classList.remove('hidden');
   }
 
-  showFullscreenDrawing() {
-    console.log('Showing fullscreen drawing');
+  showMinimalDrawing() {
+    console.log('Showing minimal drawing interface');
     
-    if (this.isCastMode) {
-      // Don't show drawing interface in cast mode
-      return;
+    // Hide all other views
+    this.hideAllPlayerViews();
+    
+    // Create or show the drawing overlay
+    this.createDrawingOverlay();
+  }
+
+  createDrawingOverlay() {
+    // Remove existing drawing overlay if any
+    const existingOverlay = document.getElementById('drawing-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
     }
     
-    const fullscreenDrawing = document.getElementById('fullscreen-drawing');
-    const playerGameView = document.getElementById('player-game-view');
+    // Create new drawing overlay iframe
+    const overlay = document.createElement('div');
+    overlay.id = 'drawing-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 5000;
+      background: white;
+    `;
     
-    if (playerGameView) playerGameView.classList.remove('hidden');
-    if (fullscreenDrawing) fullscreenDrawing.classList.remove('hidden');
+    const iframe = document.createElement('iframe');
+    iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>Drawing Interface</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+          }
+          
+          .drawing-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+          }
+          
+          .drawing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            flex-shrink: 0;
+            min-height: 80px;
+          }
+          
+          .drawing-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+          }
+          
+          .drawing-timer {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+          }
+          
+          .drawing-timer.timer-urgent {
+            background: #e74c3c;
+          }
+          
+          .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+          }
+          
+          #drawing-canvas {
+            border: 4px solid white;
+            border-radius: 20px;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: block;
+          }
+          
+          .drawing-controls {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            min-height: 100px;
+          }
+          
+          .color-size-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+          }
+          
+          .action-controls {
+            display: flex;
+            gap: 1rem;
+          }
+          
+          #brush-color {
+            width: 60px;
+            height: 60px;
+            border: 3px solid white;
+            border-radius: 15px;
+            cursor: pointer;
+            background: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+          }
+          
+          #brush-size {
+            width: 150px;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+            outline: none;
+          }
+          
+          #brush-size::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+          }
+          
+          #brush-preview {
+            background: #000;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+          }
+          
+          .control-btn {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          }
+          
+          .control-btn:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+          }
+          
+          .control-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          }
+          
+          .control-btn.submit-btn {
+            background: #27ae60;
+            color: white;
+          }
+          
+          .control-btn.submit-btn:hover:not(:disabled) {
+            background: #229954;
+          }
+          
+          .control-btn.submit-btn.submitted {
+            background: #1e8449;
+          }
+          
+          .control-btn.clear-btn {
+            background: #e74c3c;
+            color: white;
+          }
+          
+          .control-btn.clear-btn:hover {
+            background: #c0392b;
+          }
+          
+          @media (max-width: 768px) {
+            .drawing-header {
+              padding: 1rem;
+              min-height: 70px;
+            }
+            
+            .drawing-controls {
+              padding: 1rem;
+              flex-direction: column;
+              gap: 1rem;
+              min-height: 140px;
+            }
+            
+            .control-btn {
+              padding: 0.75rem 1.5rem;
+              min-width: 100px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="drawing-interface">
+          <div class="drawing-header">
+            <div class="drawing-title">Draw What You Hear!</div>
+            <div class="drawing-timer" id="drawing-timer">02:00</div>
+          </div>
+          
+          <div class="canvas-container">
+            <canvas id="drawing-canvas" width="600" height="600"></canvas>
+          </div>
+          
+          <div class="drawing-controls">
+            <div class="color-size-controls">
+              <input type="color" id="brush-color" value="#000000">
+              <input type="range" id="brush-size" min="1" max="30" value="5">
+              <div id="brush-preview"></div>
+            </div>
+            
+            <div class="action-controls">
+              <button id="clear-btn" class="control-btn clear-btn">Clear</button>
+              <button id="submit-btn" class="control-btn submit-btn">Submit</button>
+            </div>
+          </div>
+        </div>
+        
+        <script>
+          class DrawingInterface {
+            constructor() {
+              this.canvas = document.getElementById('drawing-canvas');
+              this.ctx = this.canvas.getContext('2d');
+              this.isDrawing = false;
+              this.lastX = 0;
+              this.lastY = 0;
+              
+              this.init();
+            }
+            
+            init() {
+              this.setupCanvas();
+              this.setupEventListeners();
+              this.updateBrushPreview();
+            }
+            
+            setupCanvas() {
+              this.resizeCanvas();
+              
+              this.ctx.lineCap = 'round';
+              this.ctx.lineJoin = 'round';
+              this.ctx.lineWidth = 5;
+              this.ctx.strokeStyle = '#000000';
+              
+              // Prevent scrolling
+              document.body.addEventListener('touchstart', (e) => {
+                if (e.target === this.canvas) e.preventDefault();
+              }, { passive: false });
+              
+              document.body.addEventListener('touchmove', (e) => {
+                if (e.target === this.canvas) e.preventDefault();
+              }, { passive: false });
+            }
+            
+            resizeCanvas() {
+              const container = this.canvas.parentElement;
+              const containerRect = container.getBoundingClientRect();
+              
+              const maxSize = Math.min(containerRect.width - 40, containerRect.height - 40, 600);
+              
+              this.canvas.style.width = maxSize + 'px';
+              this.canvas.style.height = maxSize + 'px';
+              
+              const dpr = window.devicePixelRatio || 1;
+              this.canvas.width = maxSize * dpr;
+              this.canvas.height = maxSize * dpr;
+              
+              this.ctx.scale(dpr, dpr);
+              
+              this.ctx.lineCap = 'round';
+              this.ctx.lineJoin = 'round';
+              this.ctx.lineWidth = document.getElementById('brush-size').value;
+              this.ctx.strokeStyle = document.getElementById('brush-color').value;
+            }
+            
+            setupEventListeners() {
+              this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+              this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+              this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+              this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+              
+              this.canvas.addEventListener('touchstart', (e) => this.startDrawing(e));
+              this.canvas.addEventListener('touchmove', (e) => this.draw(e));
+              this.canvas.addEventListener('touchend', () => this.stopDrawing());
+              
+              document.getElementById('brush-color').addEventListener('change', (e) => {
+                this.ctx.strokeStyle = e.target.value;
+                this.updateBrushPreview();
+              });
+              
+              document.getElementById('brush-size').addEventListener('input', (e) => {
+                this.ctx.lineWidth = e.target.value;
+                this.updateBrushPreview();
+              });
+              
+              document.getElementById('clear-btn').addEventListener('click', () => {
+                this.clearCanvas();
+              });
+              
+              document.getElementById('submit-btn').addEventListener('click', () => {
+                this.submitDrawing();
+              });
+              
+              window.addEventListener('resize', () => {
+                this.resizeCanvas();
+              });
+            }
+            
+            getCoordinates(e) {
+              const rect = this.canvas.getBoundingClientRect();
+              const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+              const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+              
+              const scaleX = this.canvas.width / rect.width;
+              const scaleY = this.canvas.height / rect.height;
+              
+              const x = (clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
+              const y = (clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+              
+              return { x, y };
+            }
+            
+            startDrawing(e) {
+              e.preventDefault();
+              this.isDrawing = true;
+              const coords = this.getCoordinates(e);
+              this.lastX = coords.x;
+              this.lastY = coords.y;
+            }
+            
+            draw(e) {
+              if (!this.isDrawing) return;
+              
+              e.preventDefault();
+              const coords = this.getCoordinates(e);
+              
+              this.ctx.beginPath();
+              this.ctx.moveTo(this.lastX, this.lastY);
+              this.ctx.lineTo(coords.x, coords.y);
+              this.ctx.stroke();
+              
+              this.lastX = coords.x;
+              this.lastY = coords.y;
+            }
+            
+            stopDrawing() {
+              this.isDrawing = false;
+            }
+            
+            clearCanvas() {
+              this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            submitDrawing() {
+              const imageData = this.canvas.toDataURL('image/png');
+              
+              const submitBtn = document.getElementById('submit-btn');
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'Submitted!';
+              submitBtn.classList.add('submitted');
+              
+              window.parent.postMessage({
+                type: 'drawing-submitted',
+                imageData: imageData
+              }, '*');
+            }
+            
+            updateBrushPreview() {
+              const preview = document.getElementById('brush-preview');
+              const color = document.getElementById('brush-color').value;
+              const size = document.getElementById('brush-size').value;
+              
+              preview.style.backgroundColor = color;
+              preview.style.width = Math.max(10, Math.min(40, size)) + 'px';
+              preview.style.height = Math.max(10, Math.min(40, size)) + 'px';
+            }
+            
+            updateTimer(timeString, timeLeft) {
+              const timer = document.getElementById('drawing-timer');
+              timer.textContent = timeString;
+              
+              if (timeLeft <= 10) {
+                timer.classList.add('timer-urgent');
+              } else {
+                timer.classList.remove('timer-urgent');
+              }
+            }
+            
+            handleAutoSubmit() {
+              const submitBtn = document.getElementById('submit-btn');
+              const imageData = this.canvas.toDataURL('image/png');
+              
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'Auto-Submitted';
+              submitBtn.classList.add('auto-submitted');
+              
+              window.parent.postMessage({
+                type: 'drawing-auto-submitted',
+                imageData: imageData
+              }, '*');
+            }
+          }
+          
+          let drawingInterface;
+          
+          document.addEventListener('DOMContentLoaded', () => {
+            drawingInterface = new DrawingInterface();
+          });
+          
+          window.addEventListener('message', (event) => {
+            if (event.data.type === 'timer-update' && drawingInterface) {
+              drawingInterface.updateTimer(event.data.timeString, event.data.timeLeft);
+            }
+            
+            if (event.data.type === 'auto-submit' && drawingInterface) {
+              drawingInterface.handleAutoSubmit();
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `);
     
-    // Hide other areas
-    this.hideAllPlayerViews();
-    if (fullscreenDrawing) fullscreenDrawing.classList.remove('hidden');
+    iframe.style.cssText = `
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    `;
     
-    // Setup canvas if not already done
-    this.setupDrawingCanvas();
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
     
-    // Reset submit button
-    const submitBtn = document.getElementById('submit-drawing');
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit';
-      submitBtn.classList.remove('submitted', 'auto-submitted');
+    // Listen for messages from the drawing interface
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'drawing-submitted') {
+        this.submitDrawing(event.data.imageData);
+        this.hideDrawingOverlay();
+      }
+      
+      if (event.data.type === 'drawing-auto-submitted') {
+        this.handleAutoSubmitResponse(event.data.imageData);
+        this.hideDrawingOverlay();
+      }
+    });
+  }
+
+  hideDrawingOverlay() {
+    const overlay = document.getElementById('drawing-overlay');
+    if (overlay) {
+      overlay.remove();
     }
   }
 
   showWaitingArea(title, message) {
     console.log('Showing waiting area:', title);
     
-    if (this.isCastMode) {
-      // Don't show waiting area in cast mode
-      return;
-    }
-    
-    const playerGameView = document.getElementById('player-game-view');
     const waitingArea = document.getElementById('waiting-area');
     const waitingTitle = document.getElementById('waiting-title');
     const waitingMessage = document.getElementById('waiting-message');
     
-    if (playerGameView) playerGameView.classList.remove('hidden');
     if (waitingArea) waitingArea.classList.remove('hidden');
     
     // Hide other areas
@@ -1001,44 +1353,14 @@ class PartyGameClient {
   }
 
   hideAllPlayerViews() {
-    const views = ['monster-view', 'fullscreen-drawing', 'waiting-area'];
+    const views = ['monster-view', 'waiting-area'];
     views.forEach(viewId => {
       const view = document.getElementById(viewId);
       if (view) view.classList.add('hidden');
     });
-  }
-
-  displayCastDrawings(drawings, originalMonster) {
-    const castDrawingsGallery = document.getElementById('cast-drawings-gallery');
-    if (!castDrawingsGallery) return;
     
-    castDrawingsGallery.innerHTML = `
-      <div class="cast-drawings-grid">
-        <div class="cast-original-monster">
-          <h4>Original Monster</h4>
-          <img src="images/${originalMonster}" alt="Original Monster" class="cast-drawing-image">
-        </div>
-        ${drawings.map(drawing => `
-          <div class="cast-player-drawing">
-            <h4>${drawing.playerName}${drawing.autoSubmitted ? ' (Auto)' : ''}</h4>
-            <img src="${drawing.imageData}" alt="${drawing.playerName}'s drawing" class="cast-drawing-image">
-          </div>
-        `).join('')}
-      </div>
-      ${this.isHost ? `
-        <div class="cast-host-controls">
-          <button id="cast-next-round-btn" class="cast-btn next-btn">Next Round</button>
-        </div>
-      ` : ''}
-    `;
-    
-    // Add event listener for next round button
-    const nextRoundBtn = document.getElementById('cast-next-round-btn');
-    if (nextRoundBtn) {
-      nextRoundBtn.addEventListener('click', () => {
-        this.socket.emit('next-round');
-      });
-    }
+    // Also hide drawing overlay
+    this.hideDrawingOverlay();
   }
 
   showNextRoundButton(gameState) {
@@ -1066,206 +1388,81 @@ class PartyGameClient {
   }
 
   updateGameTimer(timeLeft, phase) {
-    const timers = {
-      'cast-timer': document.getElementById('cast-timer'),
-      'drawing-timer': document.querySelector('.drawing-timer'),
-      'study-timer': document.querySelector('.study-timer'),
-      'waiting-timer': document.getElementById('waiting-timer')
-    };
-    
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     
-    // Update all visible timers
-    Object.values(timers).forEach(timer => {
+    // Update local timers
+    const timers = document.querySelectorAll('.drawing-timer, .study-timer, .waiting-timer');
+    timers.forEach(timer => {
       if (timer && !timer.classList.contains('hidden')) {
         timer.textContent = timeString;
         
-        // Add warning class for last 10 seconds (but no pulsing animation)
         if (timeLeft <= 10) {
-          timer.classList.add('timer-warning');
+          timer.classList.add('timer-urgent');
         } else {
-          timer.classList.remove('timer-warning');
+          timer.classList.remove('timer-urgent');
         }
       }
     });
     
-    // Update cast progress if in drawing phase
-    if (phase === 'drawing' && this.isCastMode) {
-      const progressCount = document.getElementById('cast-progress-count');
-      const progressTotal = document.getElementById('cast-progress-total');
-      
-      if (progressCount && this.currentRoom) {
-        const expectedSubmissions = this.currentRoom.players.filter(p => p.id !== this.currentRoom.gameState.currentDrawer).length;
-        progressCount.textContent = this.currentRoom.gameState.drawings.length;
-        if (progressTotal) progressTotal.textContent = expectedSubmissions;
+    // Send to cast window
+    this.sendToCastWindow('timer-update', {
+      timeString,
+      timeLeft,
+      phase
+    });
+    
+    // Send to drawing overlay
+    const drawingOverlay = document.getElementById('drawing-overlay');
+    if (drawingOverlay) {
+      const iframe = drawingOverlay.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'timer-update',
+          timeString,
+          timeLeft
+        }, '*');
       }
     }
     
-    // Play buzzer sound at end
+    // Play buzzer at end
     if (timeLeft === 0) {
       this.playBuzzer();
     }
   }
 
   updateDrawingProgress(data) {
-    if (this.isCastMode) {
-      const progressCount = document.getElementById('cast-progress-count');
-      const progressTotal = document.getElementById('cast-progress-total');
-      
-      if (progressCount) progressCount.textContent = data.totalSubmitted;
-      if (progressTotal) progressTotal.textContent = data.totalExpected;
-    }
+    // Send to cast window
+    this.sendToCastWindow('drawing-progress', data);
     
     this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
   }
 
-  setupDrawingCanvas() {
-    const canvas = document.getElementById('party-canvas');
-    if (!canvas || this.canvas) return; // Already setup
+  submitDrawing(imageData) {
+    if (!this.socket) return;
     
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    
-    // Set canvas style
-    this.ctx.lineCap = 'round';
-    this.ctx.lineJoin = 'round';
-    this.ctx.lineWidth = 3;
-    this.ctx.strokeStyle = '#000000';
-    
-    // Resize canvas to be large and responsive
-    this.resizeCanvas();
-    
-    // Touch/mouse events for drawing
-    let isDrawing = false;
-    let lastX = 0;
-    let lastY = 0;
-    
-    const startDrawing = (e) => {
-      isDrawing = true;
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
-      lastX = (clientX - rect.left) * (canvas.width / rect.width);
-      lastY = (clientY - rect.top) * (canvas.height / rect.height);
-    };
-    
-    const draw = (e) => {
-      if (!isDrawing) return;
-      
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
-      const currentX = (clientX - rect.left) * (canvas.width / rect.width);
-      const currentY = (clientY - rect.top) * (canvas.height / rect.height);
-      
-      this.ctx.beginPath();
-      this.ctx.moveTo(lastX, lastY);
-      this.ctx.lineTo(currentX, currentY);
-      this.ctx.stroke();
-      
-      lastX = currentX;
-      lastY = currentY;
-    };
-    
-    const stopDrawing = () => {
-      isDrawing = false;
-    };
-    
-    // Mouse events
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-    
-    // Touch events
-    canvas.addEventListener('touchstart', startDrawing);
-    canvas.addEventListener('touchmove', draw);
-    canvas.addEventListener('touchend', stopDrawing);
-    
-    // Color and brush size controls
-    const colorPicker = document.getElementById('brush-color');
-    const brushSize = document.getElementById('brush-size');
-    
-    if (colorPicker) {
-      colorPicker.addEventListener('change', (e) => {
-        this.ctx.strokeStyle = e.target.value;
-      });
-    }
-    
-    if (brushSize) {
-      brushSize.addEventListener('input', (e) => {
-        this.ctx.lineWidth = e.target.value;
-      });
-    }
-  }
-
-  resizeCanvas() {
-    if (!this.canvas) return;
-    
-    // For fullscreen drawing, make canvas as large as possible
-    const container = this.canvas.parentElement;
-    if (container) {
-      const containerRect = container.getBoundingClientRect();
-      const size = Math.min(containerRect.width - 20, containerRect.height - 20, 600);
-      
-      this.canvas.style.width = size + 'px';
-      this.canvas.style.height = size + 'px';
-      
-      // Maintain high resolution
-      const scale = window.devicePixelRatio || 1;
-      this.canvas.width = size * scale;
-      this.canvas.height = size * scale;
-      this.ctx.scale(scale, scale);
-      
-      // Restore drawing properties
-      this.ctx.lineCap = 'round';
-      this.ctx.lineJoin = 'round';
-      this.ctx.lineWidth = 3;
-      this.ctx.strokeStyle = '#000000';
-    }
-  }
-
-  clearCanvas() {
-    if (!this.canvas || !this.ctx) return;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  submitDrawing() {
-    if (!this.canvas || !this.socket) return;
-    
-    const imageData = this.canvas.toDataURL('image/png');
     this.socket.emit('submit-drawing', { imageData });
-    
-    // Disable submit button
-    const submitBtn = document.getElementById('submit-drawing');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitted!';
-      submitBtn.classList.add('submitted');
-    }
-    
     this.showMessage('Drawing submitted successfully!');
   }
 
   handleAutoSubmit() {
-    if (!this.canvas) return;
-    
-    const imageData = this.canvas.toDataURL('image/png');
-    this.socket.emit('auto-submit-response', { imageData });
-    
-    // Update UI to show auto-submission
-    const submitBtn = document.getElementById('submit-drawing');
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Auto-Submitted';
-      submitBtn.classList.add('auto-submitted');
+    // Send message to drawing overlay
+    const drawingOverlay = document.getElementById('drawing-overlay');
+    if (drawingOverlay) {
+      const iframe = drawingOverlay.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'auto-submit'
+        }, '*');
+      }
     }
+  }
+
+  handleAutoSubmitResponse(imageData) {
+    if (!this.socket) return;
     
+    this.socket.emit('auto-submit-response', { imageData });
     this.showMessage('Time up! Drawing auto-submitted.');
   }
 
@@ -1273,42 +1470,10 @@ class PartyGameClient {
     console.log('Game finished:', data);
     this.stopAllMusicImmediate();
     
-    if (this.isCastMode) {
-      const castPhaseDisplay = document.getElementById('cast-phase-display');
-      if (castPhaseDisplay) {
-        castPhaseDisplay.innerHTML = `
-          <div class="cast-phase-content">
-            <h2>Game Complete!</h2>
-            <p>Thanks for playing Drawblins!</p>
-            ${this.isHost ? `
-              <div class="cast-host-controls">
-                <button id="new-game-btn" class="cast-btn create-btn">Start New Game</button>
-                <button id="back-to-lobby-btn" class="cast-btn back-btn">Back to Lobby</button>
-              </div>
-            ` : ''}
-          </div>
-        `;
-        
-        const newGameBtn = document.getElementById('new-game-btn');
-        const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
-        
-        if (newGameBtn) {
-          newGameBtn.addEventListener('click', () => {
-            this.exitCastMode();
-            this.showLobby();
-          });
-        }
-        
-        if (backToLobbyBtn) {
-          backToLobbyBtn.addEventListener('click', () => {
-            this.exitCastMode();
-            this.showLobby();
-          });
-        }
-      }
-    } else {
-      this.showWaitingArea('Game Complete!', 'Thanks for playing! The host can start a new game.');
-    }
+    // Send to cast window
+    this.sendToCastWindow('game-finished', data);
+    
+    this.showWaitingArea('Game Complete!', 'Thanks for playing! The host can start a new game.');
   }
 
   updateConnectionStatus(status) {
@@ -1333,14 +1498,12 @@ class PartyGameClient {
   showError(message) {
     console.error('Error:', message);
     
-    // Create toast notification
     const toast = document.createElement('div');
     toast.className = 'party-toast error-toast';
     toast.textContent = message;
     
     document.body.appendChild(toast);
     
-    // Remove after 4 seconds
     setTimeout(() => {
       if (toast.parentNode) {
         toast.parentNode.removeChild(toast);
@@ -1351,14 +1514,12 @@ class PartyGameClient {
   showMessage(message) {
     console.log('Message:', message);
     
-    // Create toast notification
     const toast = document.createElement('div');
     toast.className = 'party-toast success-toast';
     toast.textContent = message;
     
     document.body.appendChild(toast);
     
-    // Remove after 3 seconds
     setTimeout(() => {
       if (toast.parentNode) {
         toast.parentNode.removeChild(toast);
@@ -1379,10 +1540,14 @@ class PartyGameClient {
       this.gameTimer = null;
     }
     
-    // Exit cast mode
-    if (this.isCastMode) {
-      this.exitCastMode();
+    // Close cast window
+    if (this.castWindow && !this.castWindow.closed) {
+      this.castWindow.close();
+      this.castWindow = null;
     }
+    
+    // Hide drawing overlay
+    this.hideDrawingOverlay();
     
     // Disconnect socket
     if (this.socket && this.isConnected) {
@@ -1396,20 +1561,9 @@ class PartyGameClient {
     this.roomCode = '';
     this.isHost = false;
     this.currentRoom = null;
-    this.canvas = null;
-    this.ctx = null;
-    this.isCastMode = false;
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
-    
-    // Re-enable submit button if it was disabled
-    const submitBtn = document.getElementById('submit-drawing');
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit';
-      submitBtn.classList.remove('submitted', 'auto-submitted');
-    }
   }
 }
 
@@ -1425,11 +1579,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Handle window resize for canvas
+// Handle window resize
 window.addEventListener('resize', () => {
-  if (partyClient && partyClient.canvas) {
-    partyClient.resizeCanvas();
-  }
+  // Canvas resizing is handled within the iframe
 });
 
 // Cleanup on page unload
