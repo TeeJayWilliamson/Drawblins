@@ -37,8 +37,12 @@ const difficultyRanges = {
 
 // Utility functions
 function generateRoomCode() {
-  const words = ['DRAW', 'GOBZ', 'ARTS', 'PLAY', 'GAME', 'DOOD', 'PICS', 'MARK', 'SKETCH', 'CRAFT'];
-  return words[Math.floor(Math.random() * words.length)];
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 function getRandomMonsterByDifficulty(difficulty = 'standard') {
@@ -47,7 +51,7 @@ function getRandomMonsterByDifficulty(difficulty = 'standard') {
   return `monster${monsterNum}.png`;
 }
 
-function createRoom(hostId, hostName, isMainScreen = false) {
+function createRoom(hostId, hostName) {
   let roomCode;
   do {
     roomCode = generateRoomCode();
@@ -56,12 +60,10 @@ function createRoom(hostId, hostName, isMainScreen = false) {
   const room = {
     code: roomCode,
     hostId: hostId,
-    mainScreenId: isMainScreen ? hostId : null,
     players: [{
       id: hostId,
       name: hostName,
       isHost: true,
-      isMainScreen: isMainScreen,
       isReady: false
     }],
     gameState: {
@@ -76,7 +78,8 @@ function createRoom(hostId, hostName, isMainScreen = false) {
       drawings: [], // {playerId, playerName, imageData, submittedAt}
       timer: 0,
       usedMonsters: [],
-      difficulty: 'standard'
+      difficulty: 'standard',
+      timerInterval: null
     },
     createdAt: Date.now()
   };
@@ -103,14 +106,8 @@ function removePlayerFromRoom(playerId) {
   if (!playerRoom) return null;
 
   const { roomCode, room } = playerRoom;
-  const wasMainScreen = room.mainScreenId === playerId;
   
   room.players = room.players.filter(p => p.id !== playerId);
-
-  // If main screen left, clear it
-  if (wasMainScreen) {
-    room.mainScreenId = null;
-  }
 
   // If host left, make someone else host or delete room
   if (room.hostId === playerId) {
@@ -118,62 +115,94 @@ function removePlayerFromRoom(playerId) {
       room.hostId = room.players[0].id;
       room.players[0].isHost = true;
     } else {
+      // Clean up timer if room is being deleted
+      if (room.gameState.timerInterval) {
+        clearInterval(room.gameState.timerInterval);
+      }
       rooms.delete(roomCode);
       return { roomCode, deleted: true };
     }
   }
 
-  return { roomCode, room, wasMainScreen };
+  return { roomCode, room };
 }
 
 function selectNextDrawer(room) {
-  const nonMainScreenPlayers = room.players.filter(p => !p.isMainScreen);
-  if (nonMainScreenPlayers.length === 0) return null;
+  if (room.players.length === 0) return null;
   
-  room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex) % nonMainScreenPlayers.length;
-  return nonMainScreenPlayers[room.gameState.currentDrawerIndex].id;
+  room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex) % room.players.length;
+  return room.players[room.gameState.currentDrawerIndex].id;
 }
 
 function startGameTimer(room, roomCode, duration, phase, onComplete) {
+  // Clear any existing timer
+  if (room.gameState.timerInterval) {
+    clearInterval(room.gameState.timerInterval);
+  }
+
   room.gameState.timer = duration;
   
-  const timerInterval = setInterval(() => {
+  // Send initial timer
+  io.to(roomCode).emit('timer-update', {
+    timeLeft: room.gameState.timer,
+    phase: phase
+  });
+  
+  room.gameState.timerInterval = setInterval(() => {
     room.gameState.timer--;
     
-    // Send timer updates
-    if (room.gameState.timer % 5 === 0 || room.gameState.timer <= 10) {
-      io.to(roomCode).emit('timer-update', {
-        timeLeft: room.gameState.timer,
-        phase: phase
-      });
-    }
+    // Send timer updates more frequently for better UX
+    io.to(roomCode).emit('timer-update', {
+      timeLeft: room.gameState.timer,
+      phase: phase
+    });
     
     // Phase complete
     if (room.gameState.timer <= 0) {
-      clearInterval(timerInterval);
+      clearInterval(room.gameState.timerInterval);
+      room.gameState.timerInterval = null;
       onComplete();
     }
   }, 1000);
   
-  return timerInterval;
+  return room.gameState.timerInterval;
+}
+
+function checkAllPlayersSubmitted(room) {
+  const expectedSubmissions = room.players.filter(p => p.id !== room.gameState.currentDrawer).length;
+  return room.gameState.drawings.length >= expectedSubmissions;
+}
+
+function autoSubmitMissingDrawings(room, roomCode) {
+  const submittedPlayerIds = room.gameState.drawings.map(d => d.playerId);
+  const missingPlayers = room.players.filter(p => 
+    p.id !== room.gameState.currentDrawer && 
+    !submittedPlayerIds.includes(p.id)
+  );
+
+  missingPlayers.forEach(player => {
+    // Request auto-submit from each missing player
+    io.to(player.id).emit('auto-submit-drawing', {
+      timeUp: true
+    });
+  });
 }
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  // Create a new room (can be main screen or player)
+  // Create a new room
   socket.on('create-room', (data) => {
-    const { playerName, isMainScreen = false } = data;
+    const { playerName } = data;
     
     try {
-      const room = createRoom(socket.id, playerName, isMainScreen);
+      const room = createRoom(socket.id, playerName);
       
       players.set(socket.id, {
         id: socket.id,
         name: playerName,
-        roomCode: room.code,
-        isMainScreen: isMainScreen
+        roomCode: room.code
       });
 
       socket.join(room.code);
@@ -181,11 +210,10 @@ io.on('connection', (socket) => {
       socket.emit('room-created', {
         success: true,
         roomCode: room.code,
-        room: room,
-        isMainScreen: isMainScreen
+        room: room
       });
 
-      console.log(`Room ${room.code} created by ${playerName} (main screen: ${isMainScreen})`);
+      console.log(`Room ${room.code} created by ${playerName}`);
     } catch (error) {
       socket.emit('room-created', {
         success: false,
@@ -196,7 +224,7 @@ io.on('connection', (socket) => {
 
   // Join existing room
   socket.on('join-room', (data) => {
-    const { roomCode, playerName, isMainScreen = false } = data;
+    const { roomCode, playerName } = data;
     
     try {
       const room = getRoom(roomCode);
@@ -209,17 +237,8 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Check if trying to join as main screen when one already exists
-      if (isMainScreen && room.mainScreenId) {
-        socket.emit('room-joined', {
-          success: false,
-          error: 'Main screen already connected'
-        });
-        return;
-      }
-
-      // Check if player name already exists (only for non-main screen)
-      if (!isMainScreen && room.players.find(p => p.name === playerName && !p.isMainScreen)) {
+      // Check if player name already exists
+      if (room.players.find(p => p.name === playerName)) {
         socket.emit('room-joined', {
           success: false,
           error: 'Player name already taken'
@@ -227,9 +246,8 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Check room capacity (max 8 players + 1 main screen)
-      const nonMainScreenPlayers = room.players.filter(p => !p.isMainScreen);
-      if (!isMainScreen && nonMainScreenPlayers.length >= 8) {
+      // Check room capacity (max 8 players)
+      if (room.players.length >= 8) {
         socket.emit('room-joined', {
           success: false,
           error: 'Room is full'
@@ -242,22 +260,15 @@ io.on('connection', (socket) => {
         id: socket.id,
         name: playerName,
         isHost: false,
-        isMainScreen: isMainScreen,
         isReady: false
       };
 
       room.players.push(newPlayer);
       
-      // Set as main screen if applicable
-      if (isMainScreen) {
-        room.mainScreenId = socket.id;
-      }
-      
       players.set(socket.id, {
         id: socket.id,
         name: playerName,
-        roomCode: roomCode,
-        isMainScreen: isMainScreen
+        roomCode: roomCode
       });
 
       socket.join(roomCode);
@@ -265,8 +276,7 @@ io.on('connection', (socket) => {
       // Notify everyone in the room
       socket.emit('room-joined', {
         success: true,
-        room: room,
-        isMainScreen: isMainScreen
+        room: room
       });
 
       socket.to(roomCode).emit('player-joined', {
@@ -274,7 +284,7 @@ io.on('connection', (socket) => {
         room: room
       });
 
-      console.log(`${playerName} joined room ${roomCode} (main screen: ${isMainScreen})`);
+      console.log(`${playerName} joined room ${roomCode}`);
     } catch (error) {
       socket.emit('room-joined', {
         success: false,
@@ -296,15 +306,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Need main screen
-    if (!room.mainScreenId) {
-      socket.emit('game-error', { error: 'Main screen must be connected to start game' });
-      return;
-    }
-
-    // Need at least 2 players (excluding main screen)
-    const nonMainScreenPlayers = room.players.filter(p => !p.isMainScreen);
-    if (nonMainScreenPlayers.length < 2) {
+    // Need at least 2 players
+    if (room.players.length < 2) {
       socket.emit('game-error', { error: 'Need at least 2 players to start' });
       return;
     }
@@ -313,7 +316,7 @@ io.on('connection', (socket) => {
     room.gameState.viewTime = data.viewTime || 20;
     room.gameState.drawTime = data.drawTime || 120;
     room.gameState.difficulty = data.difficulty || 'standard';
-    room.gameState.maxRounds = data.maxRounds || nonMainScreenPlayers.length;
+    room.gameState.maxRounds = data.maxRounds || room.players.length;
 
     // Start first round
     startNextRound(room, roomCode);
@@ -366,16 +369,22 @@ io.on('connection', (socket) => {
 
       // Start drawing timer
       startGameTimer(room, roomCode, room.gameState.drawTime, 'drawing', () => {
-        // Move to reveal phase
-        room.gameState.phase = 'reveal';
+        // Auto-submit any missing drawings
+        autoSubmitMissingDrawings(room, roomCode);
         
-        io.to(roomCode).emit('phase-changed', {
-          gameState: room.gameState,
-          room: room,
-          phase: 'reveal',
-          allDrawings: room.gameState.drawings,
-          originalMonster: room.gameState.currentMonster
-        });
+        // Small delay to allow auto-submissions to process
+        setTimeout(() => {
+          // Move to reveal phase
+          room.gameState.phase = 'reveal';
+          
+          io.to(roomCode).emit('phase-changed', {
+            gameState: room.gameState,
+            room: room,
+            phase: 'reveal',
+            allDrawings: room.gameState.drawings,
+            originalMonster: room.gameState.currentMonster
+          });
+        }, 2000);
       });
     });
   }
@@ -388,7 +397,7 @@ io.on('connection', (socket) => {
     const { room, roomCode } = playerRoom;
     const player = room.players.find(p => p.id === socket.id);
     
-    if (!player || room.gameState.phase !== 'drawing' || player.isMainScreen) return;
+    if (!player || room.gameState.phase !== 'drawing') return;
     
     // Don't allow current drawer to submit
     if (socket.id === room.gameState.currentDrawer) return;
@@ -410,13 +419,63 @@ io.on('connection', (socket) => {
     room.gameState.drawings.push(drawing);
 
     // Notify room that a drawing was submitted
+    const expectedSubmissions = room.players.filter(p => p.id !== room.gameState.currentDrawer).length;
+    
     io.to(roomCode).emit('drawing-submitted', {
       playerName: player.name,
       totalSubmitted: room.gameState.drawings.length,
-      totalExpected: room.players.filter(p => !p.isMainScreen && p.id !== room.gameState.currentDrawer).length
+      totalExpected: expectedSubmissions
     });
 
+    // Check if all players have submitted (early end)
+    if (checkAllPlayersSubmitted(room) && room.gameState.timerInterval) {
+      clearInterval(room.gameState.timerInterval);
+      room.gameState.timerInterval = null;
+      
+      // Move to reveal phase early
+      room.gameState.phase = 'reveal';
+      
+      io.to(roomCode).emit('phase-changed', {
+        gameState: room.gameState,
+        room: room,
+        phase: 'reveal',
+        allDrawings: room.gameState.drawings,
+        originalMonster: room.gameState.currentMonster,
+        earlyEnd: true
+      });
+    }
+
     console.log(`Drawing submitted by ${player.name} in room ${roomCode}`);
+  });
+
+  // Auto-submit response (when time runs out)
+  socket.on('auto-submit-response', (data) => {
+    const playerRoom = getPlayerRoom(socket.id);
+    if (!playerRoom) return;
+
+    const { room, roomCode } = playerRoom;
+    const player = room.players.find(p => p.id === socket.id);
+    
+    if (!player || room.gameState.phase !== 'drawing') return;
+    
+    // Don't allow current drawer to submit
+    if (socket.id === room.gameState.currentDrawer) return;
+
+    // Check if already submitted
+    if (room.gameState.drawings.find(d => d.playerId === socket.id)) return;
+
+    // Store the auto-submitted drawing (might be blank)
+    const drawing = {
+      playerId: socket.id,
+      playerName: player.name,
+      imageData: data.imageData || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // 1x1 transparent pixel
+      submittedAt: Date.now(),
+      autoSubmitted: true
+    };
+
+    room.gameState.drawings.push(drawing);
+
+    console.log(`Auto-submitted drawing for ${player.name} in room ${roomCode}`);
   });
 
   // Advance to next round (host only)
@@ -467,7 +526,7 @@ io.on('connection', (socket) => {
     
     const result = removePlayerFromRoom(socket.id);
     if (result) {
-      const { roomCode, room, deleted, wasMainScreen } = result;
+      const { roomCode, room, deleted } = result;
       
       if (deleted) {
         console.log(`Room ${roomCode} deleted - no players left`);
@@ -475,16 +534,10 @@ io.on('connection', (socket) => {
         // Notify remaining players
         socket.to(roomCode).emit('player-left', {
           room: room,
-          leftPlayerId: socket.id,
-          wasMainScreen: wasMainScreen
+          leftPlayerId: socket.id
         });
         
-        // If main screen disconnected during game, pause/end game
-        if (wasMainScreen && room.gameState.phase !== 'lobby') {
-          io.to(roomCode).emit('main-screen-disconnected');
-        }
-        
-        console.log(`Player left room ${roomCode} (was main screen: ${wasMainScreen})`);
+        console.log(`Player left room ${roomCode}`);
       }
     }
 
@@ -507,7 +560,6 @@ app.get('/api/rooms', (req, res) => {
     code,
     playerCount: room.players.length,
     phase: room.gameState.phase,
-    hasMainScreen: !!room.mainScreenId,
     currentRound: room.gameState.currentRound,
     createdAt: room.createdAt
   }));

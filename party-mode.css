@@ -1,75 +1,179 @@
-/* Enhanced Party Mode Styles */
+/* Enhanced Party Mode Styles - Updated */
 
-/* Mode Selection */
-.party-mode-selection {
+/* Party Mode Section */
+.party-mode-section {
   position: relative;
   z-index: 2;
   margin-bottom: 1.5rem;
 }
 
-.party-mode-selection h4 {
-  margin: 0 0 1rem 0;
-  color: white;
-  text-align: center;
-  font-size: 1.2rem;
+.party-mode-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-.mode-buttons {
+.party-mode-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: white;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.party-mode-card p {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0.5rem 0;
+}
+
+.party-mode-card small {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+/* Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f44336;
+}
+
+.status-indicator.connected {
+  background: #4CAF50;
+}
+
+.status-text {
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Setup Form */
+.party-setup {
+  margin: 1.5rem 0;
+}
+
+.party-setup input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+}
+
+.party-setup input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.party-buttons {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.mode-btn {
-  padding: 1rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
+.join-room-section {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 0.5rem;
 }
 
-.mode-btn small {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  font-weight: 400;
+.join-room-section input {
+  flex: 1;
+  margin-bottom: 0;
 }
 
-.mode-btn:hover {
-  background: white;
-  border-color: #4CAF50;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
-}
-
-/* Connection Info */
-.connection-info {
-  background: rgba(255, 255, 255, 0.1);
+/* Party Buttons */
+.party-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
   border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  backdrop-filter: blur(10px);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
 }
 
-.status-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
+.party-btn:hover {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.status-value {
+.party-btn.create-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.party-btn.create-btn:hover {
+  background: #45a049;
+}
+
+.party-btn.join-btn {
+  background: #2196F3;
+  color: white;
+}
+
+.party-btn.join-btn:hover {
+  background: #1976D2;
+}
+
+.party-btn.start-btn {
+  background: #FF9800;
+  color: white;
+}
+
+.party-btn.start-btn:hover {
+  background: #F57C00;
+}
+
+.party-btn.back-btn {
+  background: #6c757d;
+  color: white;
+  margin-top: 1rem;
+}
+
+.party-btn.back-btn:hover {
+  background: #5a6268;
+}
+
+/* Lobby */
+.party-lobby {
+  margin: 1.5rem 0;
+}
+
+.room-info h4 {
+  color: white;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+#room-code-display {
+  font-family: 'Courier New', monospace;
   font-weight: bold;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
 }
 
-/* Enhanced Player List */
+/* Player List */
 .player-item {
   display: flex;
   justify-content: space-between;
@@ -81,28 +185,87 @@
   backdrop-filter: blur(5px);
 }
 
-.player-item.main-screen-player {
-  background: rgba(255, 215, 0, 0.2);
-  border: 1px solid rgba(255, 215, 0, 0.5);
-}
-
 .player-name {
   font-weight: 500;
+  color: white;
   flex: 1;
 }
 
 .player-role {
   font-size: 0.8rem;
   opacity: 0.8;
+  color: rgba(255, 255, 255, 0.7);
   margin: 0 0.5rem;
 }
 
-/* Game Area Styles */
+.host-badge {
+  background: #FF9800;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+/* Host Controls */
+.host-controls {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.host-controls h4 {
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.party-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.party-settings label {
+  color: white;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.party-settings select {
+  padding: 0.25rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Game Area */
 .party-game-area {
   position: relative;
   z-index: 2;
 }
 
+.party-status {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.party-status h3 {
+  color: white;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.party-status p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* Timer */
 .party-timer {
   position: fixed;
   top: 20px;
@@ -118,13 +281,14 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-.party-timer.timer-warning {
+.party-timer.timer-warning,
+.drawing-timer.timer-warning {
   background: #e74c3c;
   animation: pulse 1s infinite;
 }
 
-/* Main Screen View */
-.main-screen-view {
+/* Host View */
+.host-view {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 2rem;
@@ -132,7 +296,7 @@
   min-height: 400px;
 }
 
-.main-screen-phase h2 {
+.host-game-phase h2 {
   color: #2c3e50;
   margin: 0 0 1rem 0;
   text-align: center;
@@ -184,7 +348,7 @@
   z-index: 2;
 }
 
-/* Monster View (for current drawer) */
+/* Monster View */
 .monster-view {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
@@ -207,24 +371,63 @@
   margin: 1rem 0;
 }
 
-/* Drawing Area */
+/* Drawing Area - Enhanced for Full Screen */
 .drawing-area {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1rem;
   color: #333;
+  transition: all 0.3s ease;
 }
 
-.drawing-area h3 {
+.drawing-area.fullscreen-drawing {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3000;
+  border-radius: 0;
+  padding: 0;
+  background: #f8f9fa;
+}
+
+.drawing-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100vh;
+}
+
+.drawing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.drawing-header h3 {
   color: #9b59b6;
-  margin: 0 0 0.5rem 0;
-  text-align: center;
+  margin: 0;
+  font-size: 1.2rem;
 }
 
-.drawing-area > p {
-  text-align: center;
-  margin-bottom: 1rem;
-  color: #666;
+.drawing-timer {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.fullscreen-drawing .drawing-header {
+  position: sticky;
+  top: 0;
+  z-index: 3001;
 }
 
 #party-canvas {
@@ -232,10 +435,21 @@
   border-radius: 8px;
   background: white;
   display: block;
-  margin: 0 auto 1rem auto;
+  margin: 0 auto;
   cursor: crosshair;
   touch-action: none;
   max-width: 100%;
+  flex: 1;
+}
+
+.fullscreen-drawing #party-canvas {
+  flex: 1;
+  width: 100% !important;
+  height: auto !important;
+  max-width: none;
+  border-radius: 0;
+  border: none;
+  margin: 0;
 }
 
 .drawing-tools {
@@ -244,10 +458,19 @@
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border-top: 1px solid #dee2e6;
+  flex-shrink: 0;
 }
 
-.drawing-tools button {
+.fullscreen-drawing .drawing-tools {
+  position: sticky;
+  bottom: 0;
+  z-index: 3001;
+}
+
+.tool-btn {
   background: #4CAF50;
   color: white;
   border: none;
@@ -259,29 +482,37 @@
   margin: 0;
 }
 
-.drawing-tools button:hover {
+.tool-btn:hover {
   background: #45a049;
 }
 
-.drawing-tools button:disabled {
+.tool-btn:disabled {
   background: #cccccc;
   cursor: not-allowed;
 }
 
-#submit-drawing {
+.tool-btn.submit-btn {
   background: #FF9800;
   font-weight: bold;
 }
 
-#submit-drawing:hover:not(:disabled) {
+.tool-btn.submit-btn:hover:not(:disabled) {
   background: #F57C00;
 }
 
-#clear-canvas {
+.tool-btn.submit-btn.submitted {
+  background: #4CAF50;
+}
+
+.tool-btn.submit-btn.auto-submitted {
+  background: #9E9E9E;
+}
+
+.tool-btn.clear-btn {
   background: #f44336;
 }
 
-#clear-canvas:hover {
+.tool-btn.clear-btn:hover {
   background: #d32f2f;
 }
 
@@ -323,7 +554,7 @@
 }
 
 /* Drawings Gallery */
-.main-drawings-display {
+.drawings-display {
   margin-top: 2rem;
 }
 
@@ -367,7 +598,7 @@
   border: 1px solid #ddd;
 }
 
-/* Host Controls */
+/* Host Controls Active */
 .host-controls-active {
   margin-top: 2rem;
   text-align: center;
@@ -435,17 +666,21 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.1); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .main-screen-view {
+  .party-mode-card {
+    padding: 1.5rem;
+  }
+  
+  .host-view {
     padding: 1rem;
   }
   
-  .main-screen-phase h2 {
+  .host-game-phase h2 {
     font-size: 1.4rem;
   }
   
@@ -454,7 +689,7 @@
     gap: 0.75rem;
   }
   
-  #party-canvas {
+  .drawing-area:not(.fullscreen-drawing) #party-canvas {
     width: 100%;
     max-width: 280px;
     height: auto;
@@ -465,7 +700,7 @@
     justify-content: space-around;
   }
   
-  .drawing-tools button {
+  .tool-btn {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
   }
@@ -481,24 +716,34 @@
     font-size: 1rem;
     padding: 0.4rem 0.8rem;
   }
+  
+  .party-settings {
+    gap: 0.5rem;
+  }
+  
+  .party-settings label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .mode-buttons {
+  .party-buttons {
     gap: 0.75rem;
   }
   
-  .mode-btn {
-    padding: 0.75rem;
-    font-size: 0.9rem;
+  .join-room-section {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .join-room-section input {
+    margin-bottom: 0;
   }
   
   .drawings-gallery {
     grid-template-columns: 1fr 1fr;
-  }
-  
-  #party-canvas {
-    max-width: 240px;
   }
   
   .drawing-tools {
@@ -512,7 +757,7 @@
     justify-content: center;
   }
   
-  .main-screen-view {
+  .host-view {
     padding: 0.75rem;
   }
   
@@ -522,13 +767,13 @@
   }
 }
 
-/* Special styles for main screen displays */
+/* Large screen optimization for host view */
 @media (min-width: 1200px) {
-  .main-screen-view {
+  .host-view {
     padding: 3rem;
   }
   
-  .main-screen-phase h2 {
+  .host-game-phase h2 {
     font-size: 2.5rem;
   }
   
@@ -551,7 +796,22 @@
   }
 }
 
-/* Print styles for main screen */
+/* Fullscreen drawing specific styles */
+.fullscreen-drawing {
+  overflow: hidden;
+}
+
+.fullscreen-drawing .drawing-interface {
+  height: 100vh;
+}
+
+.fullscreen-drawing #party-canvas {
+  width: 100vw !important;
+  height: calc(100vh - 120px) !important; /* Account for header and tools */
+  max-height: none !important;
+}
+
+/* Print styles for host view */
 @media print {
   .party-timer,
   .host-controls-active,

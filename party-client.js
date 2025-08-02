@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Supports both Main Screen and Player modes
+// Enhanced Party Mode Client - Simplified without main screen designation
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -6,20 +6,33 @@ class PartyGameClient {
     this.playerName = '';
     this.roomCode = '';
     this.isHost = false;
-    this.isMainScreen = false;
     this.currentRoom = null;
     this.canvas = null;
     this.ctx = null;
     this.isDrawing = false;
     this.gameTimer = null;
     this.serverUrl = 'https://drawblins-production.up.railway.app';
+    this.audioInitialized = false;
+    this.currentMusicPhase = null;
   }
 
   // Initialize party mode
   init() {
     console.log('Initializing Enhanced Party Mode...');
     this.createPartyModeUI();
-    this.setupDrawingCanvas();
+    this.setupAudio();
+  }
+
+  // Setup audio system (similar to local mode)
+  setupAudio() {
+    // Initialize audio elements for party mode
+    const waitingMusic = document.getElementById('waiting-music');
+    const drawingMusic = document.getElementById('drawing-music');
+    const buzzer = document.getElementById('buzzer');
+    
+    this.waitingMusic = waitingMusic;
+    this.drawingMusic = drawingMusic;
+    this.buzzer = buzzer;
   }
 
   // Connect to the backend server
@@ -34,13 +47,13 @@ class PartyGameClient {
     });
 
     this.socket.on('connect', () => {
-      console.log('✅ Connected to party server');
+      console.log('Connected to party server');
       this.isConnected = true;
       this.updateConnectionStatus('Connected');
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ Disconnected from party server');
+      console.log('Disconnected from party server');
       this.isConnected = false;
       this.updateConnectionStatus('Disconnected');
       this.cleanup();
@@ -59,11 +72,10 @@ class PartyGameClient {
         this.roomCode = data.roomCode;
         this.currentRoom = data.room;
         this.isHost = true;
-        this.isMainScreen = data.isMainScreen;
         this.showLobby();
-        console.log('✅ Room created successfully:', data.roomCode);
+        console.log('Room created successfully:', data.roomCode);
       } else {
-        console.error('❌ Room creation failed:', data.error);
+        console.error('Room creation failed:', data.error);
         this.showError(data.error);
       }
     });
@@ -72,11 +84,10 @@ class PartyGameClient {
       console.log('Room joined response:', data);
       if (data.success) {
         this.currentRoom = data.room;
-        this.isMainScreen = data.isMainScreen;
         this.showLobby();
-        console.log('✅ Joined room successfully');
+        console.log('Joined room successfully');
       } else {
-        console.error('❌ Failed to join room:', data.error);
+        console.error('Failed to join room:', data.error);
         this.showError(data.error);
       }
     });
@@ -85,19 +96,13 @@ class PartyGameClient {
       console.log('Player joined:', data);
       this.currentRoom = data.room;
       this.updatePlayerList();
-      if (!this.isMainScreen) {
-        this.showMessage(`${data.player.name} joined the game!`);
-      }
+      this.showMessage(`${data.player.name} joined the game!`);
     });
 
     this.socket.on('player-left', (data) => {
       console.log('Player left:', data);
       this.currentRoom = data.room;
       this.updatePlayerList();
-      
-      if (data.wasMainScreen) {
-        this.showError('Main screen disconnected!');
-      }
     });
 
     // Game events
@@ -127,13 +132,14 @@ class PartyGameClient {
       this.updateDrawingProgress(data);
     });
 
+    this.socket.on('auto-submit-drawing', (data) => {
+      console.log('Auto-submit requested');
+      this.handleAutoSubmit();
+    });
+
     this.socket.on('game-finished', (data) => {
       console.log('Game finished:', data);
       this.handleGameFinished(data);
-    });
-
-    this.socket.on('main-screen-disconnected', () => {
-      this.showError('Main screen disconnected! Game paused.');
     });
 
     this.socket.on('game-error', (data) => {
@@ -147,7 +153,143 @@ class PartyGameClient {
     });
   }
 
-  // Create enhanced party mode UI
+  // Audio functions (adapted from local mode)
+  initializeAudio() {
+    if (this.audioInitialized) return;
+    
+    const audioElements = [this.buzzer, this.waitingMusic, this.drawingMusic].filter(el => el);
+    
+    audioElements.forEach(audio => {
+      if (audio) {
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 0;
+        }).catch(() => {});
+      }
+    });
+    
+    this.audioInitialized = true;
+  }
+
+  playMusic(phase) {
+    if (!this.audioInitialized) return;
+    if (!window.gameAudio?.shouldPlaySound?.()) return;
+
+    this.currentMusicPhase = phase;
+    
+    if (phase === 'drawing' && this.drawingMusic) {
+      if (this.waitingMusic && !this.waitingMusic.paused) {
+        this.crossfadeAudio(this.waitingMusic, this.drawingMusic, 1500);
+      } else {
+        this.fadeInAudio(this.drawingMusic, 2000);
+      }
+    } else if (phase === 'waiting' && this.waitingMusic) {
+      this.stopAllMusicImmediate();
+      this.fadeInAudio(this.waitingMusic, 2000);
+    }
+  }
+
+  fadeInAudio(audio, duration = 2000) {
+    if (!audio || !window.gameAudio?.shouldPlaySound?.()) return;
+    
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 0;
+    
+    audio.play().catch(() => {});
+    
+    const targetVolume = window.gameVolume || 0.6;
+    const steps = 40;
+    const stepSize = targetVolume / steps;
+    const stepInterval = duration / steps;
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      if (audio.paused) {
+        clearInterval(interval);
+        return;
+      }
+      
+      currentStep++;
+      audio.volume = Math.min(targetVolume, currentStep * stepSize);
+      
+      if (currentStep >= steps) {
+        clearInterval(interval);
+        audio.volume = targetVolume;
+      }
+    }, stepInterval);
+  }
+
+  crossfadeAudio(fadeOutAudio, fadeInAudio, duration = 1500) {
+    if (!fadeOutAudio || !fadeInAudio) return;
+    
+    fadeInAudio.pause();
+    fadeInAudio.currentTime = 0;
+    fadeInAudio.volume = 0;
+    
+    if (window.gameAudio?.shouldPlaySound?.()) {
+      fadeInAudio.play().catch(() => {});
+    }
+    
+    const targetVolume = window.gameVolume || 0.6;
+    const steps = 30;
+    const stepInterval = duration / steps;
+    const fadeOutStart = fadeOutAudio.volume;
+    const fadeOutStep = fadeOutStart / steps;
+    const fadeInStep = targetVolume / steps;
+    let currentStep = 0;
+    
+    const interval = setInterval(() => {
+      currentStep++;
+      
+      if (!fadeOutAudio.paused) {
+        fadeOutAudio.volume = Math.max(0, fadeOutStart - (currentStep * fadeOutStep));
+      }
+      
+      if (!fadeInAudio.paused && window.gameAudio?.shouldPlaySound?.()) {
+        fadeInAudio.volume = Math.min(targetVolume, currentStep * fadeInStep);
+      }
+      
+      if (currentStep >= steps) {
+        clearInterval(interval);
+        
+        fadeOutAudio.pause();
+        fadeOutAudio.currentTime = 0;
+        fadeOutAudio.volume = 0;
+        
+        if (window.gameAudio?.shouldPlaySound?.()) {
+          fadeInAudio.volume = targetVolume;
+        } else {
+          fadeInAudio.pause();
+          fadeInAudio.volume = 0;
+        }
+      }
+    }, stepInterval);
+  }
+
+  stopAllMusicImmediate() {
+    if (this.waitingMusic) {
+      this.waitingMusic.pause();
+      this.waitingMusic.currentTime = 0;
+      this.waitingMusic.volume = 0;  
+    }
+    if (this.drawingMusic) {
+      this.drawingMusic.pause();
+      this.drawingMusic.currentTime = 0;
+      this.drawingMusic.volume = 0;
+    }
+  }
+
+  playBuzzer() {
+    if (!window.gameAudio?.shouldPlaySound?.() || !this.buzzer) return;
+    
+    this.buzzer.currentTime = 0;
+    this.buzzer.volume = window.gameVolume || 0.6;
+    this.buzzer.play().catch(() => {});
+  }
+
+  // Create enhanced party mode UI (simplified)
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -167,31 +309,17 @@ class PartyGameClient {
     
     partyModeSection.innerHTML = `
       <div class="party-mode-card">
-        <h3>🎉 Party Mode</h3>
-        <p>Play like Jackbox Games - one main screen, everyone else uses their phones!</p>
+        <h3>Party Mode</h3>
+        <p>Play together - everyone uses their own device!</p>
+        <p><small>Host can cast their screen to TV for shared viewing</small></p>
         
         <div id="party-connection-status" class="connection-status">
           <span class="status-indicator"></span>
           <span class="status-text">Not Connected</span>
         </div>
         
-        <!-- Mode Selection -->
-        <div id="party-mode-selection" class="party-mode-selection">
-          <h4>Choose Your Role:</h4>
-          <div class="mode-buttons">
-            <button id="main-screen-btn" class="party-btn mode-btn">
-              📺 Main Screen
-              <small>Connect to TV/shared display</small>
-            </button>
-            <button id="player-phone-btn" class="party-btn mode-btn">
-              📱 Player
-              <small>Use phone as controller</small>
-            </button>
-          </div>
-        </div>
-        
         <!-- Setup Form -->
-        <div id="party-setup" class="party-setup hidden">
+        <div id="party-setup" class="party-setup">
           <input type="text" id="player-name-input" placeholder="Your Name" maxlength="15">
           
           <div class="party-buttons">
@@ -207,14 +335,6 @@ class PartyGameClient {
         <div id="party-lobby" class="party-lobby hidden">
           <div class="room-info">
             <h4>Room: <span id="room-code-display"></span></h4>
-            <div id="connection-info" class="connection-info">
-              <div id="main-screen-status" class="status-item">
-                📺 Main Screen: <span class="status-value">Not Connected</span>
-              </div>
-              <div id="player-count-status" class="status-item">
-                👥 Players: <span class="status-value">0</span>
-              </div>
-            </div>
             <div id="player-list"></div>
           </div>
           
@@ -254,10 +374,10 @@ class PartyGameClient {
           <div id="party-status" class="party-status"></div>
           <div id="party-timer" class="party-timer hidden">00:00</div>
           
-          <!-- Main Screen View -->
-          <div id="main-screen-view" class="main-screen-view hidden">
-            <div id="main-game-info" class="main-game-info"></div>
-            <div id="main-drawings-display" class="main-drawings-display hidden"></div>
+          <!-- Host View (can be cast to TV) -->
+          <div id="host-view" class="host-view hidden">
+            <div id="game-info" class="game-info"></div>
+            <div id="drawings-display" class="drawings-display hidden"></div>
           </div>
           
           <!-- Player View -->
@@ -269,16 +389,20 @@ class PartyGameClient {
               <p>Memorize it - you'll need to describe it to others!</p>
             </div>
             
-            <!-- Drawing area (for non-drawers) -->
+            <!-- Drawing area (for non-drawers) - FULL SCREEN -->
             <div id="drawing-area" class="drawing-area hidden">
-              <h3>Draw What You Hear!</h3>
-              <p>Listen to the drawer's description and draw what they describe.</p>
-              <canvas id="party-canvas" width="300" height="300"></canvas>
-              <div class="drawing-tools">
-                <button id="clear-canvas">Clear</button>
-                <input type="color" id="brush-color" value="#000000">
-                <input type="range" id="brush-size" min="1" max="20" value="3">
-                <button id="submit-drawing">Submit Drawing</button>
+              <div id="drawing-interface" class="drawing-interface">
+                <div class="drawing-header">
+                  <h3>Draw What You Hear!</h3>
+                  <div class="drawing-timer">00:00</div>
+                </div>
+                <canvas id="party-canvas" width="300" height="300"></canvas>
+                <div class="drawing-tools">
+                  <button id="clear-canvas" class="tool-btn clear-btn">Clear</button>
+                  <input type="color" id="brush-color" value="#000000">
+                  <input type="range" id="brush-size" min="1" max="20" value="3">
+                  <button id="submit-drawing" class="tool-btn submit-btn">Submit Drawing</button>
+                </div>
               </div>
             </div>
             
@@ -310,7 +434,7 @@ class PartyGameClient {
     }
     
     this.setupPartyModeEventListeners();
-    console.log('✅ Enhanced Party Mode UI created');
+    console.log('Enhanced Party Mode UI created');
   }
 
   setupPartyModeEventListeners() {
@@ -334,26 +458,6 @@ class PartyGameClient {
         if (!this.isConnected) {
           this.connect();
         }
-      });
-    }
-
-    // Mode selection buttons
-    const mainScreenBtn = document.getElementById('main-screen-btn');
-    const playerPhoneBtn = document.getElementById('player-phone-btn');
-    
-    if (mainScreenBtn) {
-      mainScreenBtn.addEventListener('click', () => {
-        console.log('Selected Main Screen mode');
-        this.isMainScreen = true;
-        this.showSetupForm();
-      });
-    }
-    
-    if (playerPhoneBtn) {
-      playerPhoneBtn.addEventListener('click', () => {
-        console.log('Selected Player mode');
-        this.isMainScreen = false;
-        this.showSetupForm();
       });
     }
 
@@ -406,7 +510,26 @@ class PartyGameClient {
       });
     }
 
-    console.log('✅ Event listeners set up');
+    // Allow Enter key for joining rooms
+    const joinRoomCodeInput = document.getElementById('join-room-code');
+    if (joinRoomCodeInput) {
+      joinRoomCodeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.joinRoom();
+        }
+      });
+    }
+
+    const playerNameInput = document.getElementById('player-name-input');
+    if (playerNameInput) {
+      playerNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this.createRoom();
+        }
+      });
+    }
+
+    console.log('Event listeners set up');
   }
 
   showLocalMode() {
@@ -440,40 +563,18 @@ class PartyGameClient {
     if (settingsGroup) settingsGroup.classList.add('hidden');
     if (startButtons) startButtons.classList.add('hidden');
     
-    // Show mode selection
-    this.showModeSelection();
+    // Show setup form
+    this.showSetupForm();
   }
 
-  showModeSelection() {
-    const modeSelection = document.getElementById('party-mode-selection');
+  showSetupForm() {
     const partySetup = document.getElementById('party-setup');
     const partyLobby = document.getElementById('party-lobby');
     const partyGameArea = document.getElementById('party-game-area');
     
-    if (modeSelection) modeSelection.classList.remove('hidden');
-    if (partySetup) partySetup.classList.add('hidden');
+    if (partySetup) partySetup.classList.remove('hidden');
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.add('hidden');
-  }
-
-  showSetupForm() {
-    const modeSelection = document.getElementById('party-mode-selection');
-    const partySetup = document.getElementById('party-setup');
-    const playerNameInput = document.getElementById('player-name-input');
-    
-    if (modeSelection) modeSelection.classList.add('hidden');
-    if (partySetup) partySetup.classList.remove('hidden');
-    
-    // Update placeholder based on mode
-    if (playerNameInput) {
-      if (this.isMainScreen) {
-        playerNameInput.placeholder = "Game Name (optional)";
-        playerNameInput.value = "Main Screen";
-      } else {
-        playerNameInput.placeholder = "Your Name";
-        playerNameInput.value = "";
-      }
-    }
   }
 
   createRoom() {
@@ -481,27 +582,24 @@ class PartyGameClient {
     const playerNameInput = document.getElementById('player-name-input');
     const playerName = playerNameInput ? playerNameInput.value.trim() : '';
     
-    const finalName = playerName || (this.isMainScreen ? 'Main Screen' : '');
+    console.log('Player name:', playerName);
     
-    console.log('Player name:', finalName, 'Is main screen:', this.isMainScreen);
-    
-    if (!finalName && !this.isMainScreen) {
-      console.error('❌ No player name entered');
+    if (!playerName) {
+      console.error('No player name entered');
       this.showError('Please enter your name');
       return;
     }
 
     if (!this.socket || !this.isConnected) {
-      console.error('❌ Not connected to server');
+      console.error('Not connected to server');
       this.showError('Not connected to server. Please try again.');
       return;
     }
 
-    this.playerName = finalName;
+    this.playerName = playerName;
     console.log('Emitting create-room event...');
     this.socket.emit('create-room', { 
-      playerName: finalName,
-      isMainScreen: this.isMainScreen
+      playerName: playerName
     });
   }
 
@@ -513,11 +611,9 @@ class PartyGameClient {
     const playerName = playerNameInput ? playerNameInput.value.trim() : '';
     const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
     
-    const finalName = playerName || (this.isMainScreen ? 'Main Screen' : '');
+    console.log('Player name:', playerName, 'Room code:', roomCode);
     
-    console.log('Player name:', finalName, 'Room code:', roomCode, 'Is main screen:', this.isMainScreen);
-    
-    if (!finalName && !this.isMainScreen) {
+    if (!playerName) {
       this.showError('Please enter your name');
       return;
     }
@@ -532,12 +628,11 @@ class PartyGameClient {
       return;
     }
 
-    this.playerName = finalName;
+    this.playerName = playerName;
     console.log('Emitting join-room event...');
     this.socket.emit('join-room', { 
       roomCode, 
-      playerName: finalName,
-      isMainScreen: this.isMainScreen
+      playerName: playerName
     });
   }
 
@@ -557,35 +652,8 @@ class PartyGameClient {
       hostControls.classList.remove('hidden');
     }
     
-    this.updateConnectionInfo();
     this.updatePlayerList();
-    console.log('✅ Lobby shown');
-  }
-
-  updateConnectionInfo() {
-    const mainScreenStatus = document.getElementById('main-screen-status');
-    const playerCountStatus = document.getElementById('player-count-status');
-    
-    if (!this.currentRoom) return;
-    
-    const hasMainScreen = !!this.currentRoom.mainScreenId;
-    const playerCount = this.currentRoom.players.filter(p => !p.isMainScreen).length;
-    
-    if (mainScreenStatus) {
-      const statusValue = mainScreenStatus.querySelector('.status-value');
-      if (statusValue) {
-        statusValue.textContent = hasMainScreen ? 'Connected ✅' : 'Not Connected ❌';
-        statusValue.style.color = hasMainScreen ? '#4CAF50' : '#f44336';
-      }
-    }
-    
-    if (playerCountStatus) {
-      const statusValue = playerCountStatus.querySelector('.status-value');
-      if (statusValue) {
-        statusValue.textContent = `${playerCount}`;
-        statusValue.style.color = playerCount >= 2 ? '#4CAF50' : '#f44336';
-      }
-    }
+    console.log('Lobby shown');
   }
 
   updatePlayerList() {
@@ -594,35 +662,16 @@ class PartyGameClient {
     
     playerList.innerHTML = '';
     
-    // Separate main screen and players
-    const mainScreenPlayer = this.currentRoom.players.find(p => p.isMainScreen);
-    const regularPlayers = this.currentRoom.players.filter(p => !p.isMainScreen);
-    
-    // Show main screen if exists
-    if (mainScreenPlayer) {
-      const playerDiv = document.createElement('div');
-      playerDiv.className = 'player-item main-screen-player';
-      playerDiv.innerHTML = `
-        <span class="player-name">📺 ${mainScreenPlayer.name}</span>
-        <span class="player-role">Main Screen</span>
-        ${mainScreenPlayer.isHost ? '<span class="host-badge">Host</span>' : ''}
-      `;
-      playerList.appendChild(playerDiv);
-    }
-    
-    // Show regular players
-    regularPlayers.forEach((player, index) => {
+    this.currentRoom.players.forEach((player, index) => {
       const playerDiv = document.createElement('div');
       playerDiv.className = 'player-item';
       playerDiv.innerHTML = `
-        <span class="player-name">📱 ${player.name}</span>
+        <span class="player-name">${player.name}</span>
         <span class="player-role">Player ${index + 1}</span>
         ${player.isHost ? '<span class="host-badge">Host</span>' : ''}
       `;
       playerList.appendChild(playerDiv);
     });
-    
-    this.updateConnectionInfo();
   }
 
   startPartyGame() {
@@ -647,6 +696,7 @@ class PartyGameClient {
 
   handleGamePhase(gameState, extraData = {}) {
     console.log('Handling game phase:', gameState.phase);
+    this.initializeAudio(); // Initialize audio on first game interaction
     
     // Hide lobby, show game area
     const partyLobby = document.getElementById('party-lobby');
@@ -674,12 +724,13 @@ class PartyGameClient {
 
   handleStudyingPhase(gameState) {
     console.log('Handling studying phase');
+    this.playMusic('waiting');
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
     
-    if (this.isMainScreen) {
-      this.showMainScreenStudying(currentPlayer, gameState);
+    if (this.isHost) {
+      this.showHostStudying(currentPlayer, gameState);
     } else if (isMyTurn) {
       // Monster will be sent separately via 'monster-revealed' event
       this.showWaitingArea('Get Ready!', 'You will see the monster in a moment...');
@@ -690,12 +741,13 @@ class PartyGameClient {
 
   handleDrawingPhase(gameState) {
     console.log('Handling drawing phase');
+    this.playMusic('drawing');
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
     
-    if (this.isMainScreen) {
-      this.showMainScreenDrawing(currentPlayer, gameState);
+    if (this.isHost) {
+      this.showHostDrawing(currentPlayer, gameState);
     } else if (isMyTurn) {
       this.showWaitingArea('Your Turn!', 'Describe the monster to the other players so they can draw it!');
     } else {
@@ -705,11 +757,12 @@ class PartyGameClient {
 
   handleRevealPhase(gameState, extraData) {
     console.log('Handling reveal phase', extraData);
+    this.stopAllMusicImmediate();
     
-    if (this.isMainScreen) {
-      this.showMainScreenReveal(gameState, extraData);
+    if (this.isHost) {
+      this.showHostReveal(gameState, extraData);
     } else {
-      this.showWaitingArea('Round Complete!', 'Check the main screen to see all the drawings!');
+      this.showWaitingArea('Round Complete!', 'Check the host screen to see all the drawings!');
     }
   }
 
@@ -719,10 +772,10 @@ class PartyGameClient {
     const monsterView = document.getElementById('monster-view');
     const monsterImage = document.getElementById('party-monster-image');
     const playerView = document.getElementById('player-view');
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     
     if (playerView) playerView.classList.remove('hidden');
-    if (mainScreenView) mainScreenView.classList.add('hidden');
+    if (hostView) hostView.classList.add('hidden');
     if (monsterView) monsterView.classList.remove('hidden');
     if (monsterImage) {
       monsterImage.src = `images/${monster}`;
@@ -743,16 +796,21 @@ class PartyGameClient {
     const drawingArea = document.getElementById('drawing-area');
     const monsterView = document.getElementById('monster-view');
     const waitingArea = document.getElementById('waiting-area');
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     
     if (playerView) playerView.classList.remove('hidden');
-    if (mainScreenView) mainScreenView.classList.add('hidden');
+    if (hostView) hostView.classList.add('hidden');
     if (drawingArea) drawingArea.classList.remove('hidden');
     if (monsterView) monsterView.classList.add('hidden');
     if (waitingArea) waitingArea.classList.add('hidden');
     
     // Setup canvas if not already done
     this.setupDrawingCanvas();
+    
+    // Make drawing area full screen on mobile
+    if (window.innerWidth <= 768) {
+      drawingArea.classList.add('fullscreen-drawing');
+    }
   }
 
   showWaitingArea(title, message) {
@@ -764,70 +822,73 @@ class PartyGameClient {
     const waitingMessage = document.getElementById('waiting-message');
     const drawingArea = document.getElementById('drawing-area');
     const monsterView = document.getElementById('monster-view');
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     
     if (playerView) playerView.classList.remove('hidden');
-    if (mainScreenView) mainScreenView.classList.add('hidden');
+    if (hostView) hostView.classList.add('hidden');
     if (waitingArea) waitingArea.classList.remove('hidden');
     if (drawingArea) drawingArea.classList.add('hidden');
     if (monsterView) monsterView.classList.add('hidden');
+    
+    // Remove fullscreen class
+    if (drawingArea) drawingArea.classList.remove('fullscreen-drawing');
     
     if (waitingTitle) waitingTitle.textContent = title;
     if (waitingMessage) waitingMessage.textContent = message;
   }
 
-  showMainScreenStudying(currentPlayer, gameState) {
-    console.log('Showing main screen studying phase');
+  showHostStudying(currentPlayer, gameState) {
+    console.log('Showing host studying phase');
     
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     const playerView = document.getElementById('player-view');
-    const mainGameInfo = document.getElementById('main-game-info');
-    const mainDrawingsDisplay = document.getElementById('main-drawings-display');
+    const gameInfo = document.getElementById('game-info');
+    const drawingsDisplay = document.getElementById('drawings-display');
     
-    if (mainScreenView) mainScreenView.classList.remove('hidden');
+    if (hostView) hostView.classList.remove('hidden');
     if (playerView) playerView.classList.add('hidden');
-    if (mainDrawingsDisplay) mainDrawingsDisplay.classList.add('hidden');
+    if (drawingsDisplay) drawingsDisplay.classList.add('hidden');
     
-    if (mainGameInfo) {
-      mainGameInfo.innerHTML = `
-        <div class="main-screen-phase">
+    if (gameInfo) {
+      gameInfo.innerHTML = `
+        <div class="host-game-phase">
           <h2>Round ${gameState.currentRound} - Studying Phase</h2>
           <div class="current-drawer">
             <h3>Current Drawer: ${currentPlayer ? currentPlayer.name : 'Unknown'}</h3>
             <p>They are memorizing the monster...</p>
           </div>
           <div class="phase-instructions">
-            <p>📱 Players, get ready to draw!</p>
-            <p>🎨 The drawer will describe what they saw</p>
+            <p>Players, get ready to draw!</p>
+            <p>The drawer will describe what they saw</p>
           </div>
         </div>
       `;
     }
   }
 
-  showMainScreenDrawing(currentPlayer, gameState) {
-    console.log('Showing main screen drawing phase');
+  showHostDrawing(currentPlayer, gameState) {
+    console.log('Showing host drawing phase');
     
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     const playerView = document.getElementById('player-view');
-    const mainGameInfo = document.getElementById('main-game-info');
-    const mainDrawingsDisplay = document.getElementById('main-drawings-display');
+    const gameInfo = document.getElementById('game-info');
+    const drawingsDisplay = document.getElementById('drawings-display');
     
-    if (mainScreenView) mainScreenView.classList.remove('hidden');
+    if (hostView) hostView.classList.remove('hidden');
     if (playerView) playerView.classList.add('hidden');
-    if (mainDrawingsDisplay) mainDrawingsDisplay.classList.add('hidden');
+    if (drawingsDisplay) drawingsDisplay.classList.add('hidden');
     
-    if (mainGameInfo) {
-      mainGameInfo.innerHTML = `
-        <div class="main-screen-phase">
+    if (gameInfo) {
+      gameInfo.innerHTML = `
+        <div class="host-game-phase">
           <h2>Round ${gameState.currentRound} - Drawing Phase</h2>
           <div class="current-drawer">
             <h3>Drawer: ${currentPlayer ? currentPlayer.name : 'Unknown'}</h3>
-            <p>🗣️ Now describing the monster</p>
+            <p>Now describing the monster</p>
           </div>
           <div class="phase-instructions">
-            <p>📱 Other players are drawing on their phones</p>
-            <p>🎨 Listen carefully and draw what you hear!</p>
+            <p>Other players are drawing on their phones</p>
+            <p>Listen carefully and draw what you hear!</p>
           </div>
           <div id="drawing-progress" class="drawing-progress">
             <p>Drawings submitted: <span id="progress-count">0</span> / <span id="progress-total">0</span></p>
@@ -837,21 +898,21 @@ class PartyGameClient {
     }
   }
 
-  showMainScreenReveal(gameState, extraData) {
-    console.log('Showing main screen reveal phase');
+  showHostReveal(gameState, extraData) {
+    console.log('Showing host reveal phase');
     
-    const mainScreenView = document.getElementById('main-screen-view');
+    const hostView = document.getElementById('host-view');
     const playerView = document.getElementById('player-view');
-    const mainGameInfo = document.getElementById('main-game-info');
-    const mainDrawingsDisplay = document.getElementById('main-drawings-display');
+    const gameInfo = document.getElementById('game-info');
+    const drawingsDisplay = document.getElementById('drawings-display');
     
-    if (mainScreenView) mainScreenView.classList.remove('hidden');
+    if (hostView) hostView.classList.remove('hidden');
     if (playerView) playerView.classList.add('hidden');
-    if (mainDrawingsDisplay) mainDrawingsDisplay.classList.remove('hidden');
+    if (drawingsDisplay) drawingsDisplay.classList.remove('hidden');
     
-    if (mainGameInfo) {
-      mainGameInfo.innerHTML = `
-        <div class="main-screen-phase">
+    if (gameInfo) {
+      gameInfo.innerHTML = `
+        <div class="host-game-phase">
           <h2>Round ${gameState.currentRound} - Results!</h2>
           <div class="reveal-header">
             <h3>How did everyone do?</h3>
@@ -865,16 +926,16 @@ class PartyGameClient {
     this.displayAllDrawings(extraData.allDrawings || [], extraData.originalMonster);
     
     // Show next round button for host
-    if (this.isHost && this.isMainScreen) {
+    if (this.isHost) {
       this.showNextRoundButton(gameState);
     }
   }
 
   displayAllDrawings(drawings, originalMonster) {
-    const mainDrawingsDisplay = document.getElementById('main-drawings-display');
-    if (!mainDrawingsDisplay) return;
+    const drawingsDisplay = document.getElementById('drawings-display');
+    if (!drawingsDisplay) return;
     
-    mainDrawingsDisplay.innerHTML = `
+    drawingsDisplay.innerHTML = `
       <div class="drawings-gallery">
         <div class="original-monster">
           <h4>Original Monster</h4>
@@ -882,7 +943,7 @@ class PartyGameClient {
         </div>
         ${drawings.map(drawing => `
           <div class="player-drawing">
-            <h4>${drawing.playerName}</h4>
+            <h4>${drawing.playerName}${drawing.autoSubmitted ? ' (Auto)' : ''}</h4>
             <img src="${drawing.imageData}" alt="${drawing.playerName}'s drawing" class="drawing-image">
           </div>
         `).join('')}
@@ -891,8 +952,8 @@ class PartyGameClient {
   }
 
   showNextRoundButton(gameState) {
-    const mainGameInfo = document.getElementById('main-game-info');
-    if (!mainGameInfo) return;
+    const gameInfo = document.getElementById('game-info');
+    if (!gameInfo) return;
     
     const isLastRound = gameState.currentRound >= gameState.maxRounds;
     
@@ -904,7 +965,7 @@ class PartyGameClient {
       </div>
     `;
     
-    mainGameInfo.innerHTML += buttonHtml;
+    gameInfo.innerHTML += buttonHtml;
     
     const nextRoundBtn = document.getElementById('next-round-host-btn');
     if (nextRoundBtn) {
@@ -936,26 +997,45 @@ class PartyGameClient {
     
     partyStatus.innerHTML = `
       <h3>${statusText}</h3>
-      ${gameState.phase === 'drawing' && !this.isMainScreen && !isMyTurn ? '<p>Listen to the drawer and create your masterpiece!</p>' : ''}
+      ${gameState.phase === 'drawing' && !isMyTurn ? '<p>Listen to the drawer and create your masterpiece!</p>' : ''}
     `;
   }
 
   updateGameTimer(timeLeft, phase) {
     const partyTimer = document.getElementById('party-timer');
-    if (!partyTimer) return;
+    const drawingTimer = document.querySelector('.drawing-timer');
     
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     
-    partyTimer.textContent = timeString;
-    partyTimer.classList.remove('hidden');
+    // Update main timer
+    if (partyTimer) {
+      partyTimer.textContent = timeString;
+      partyTimer.classList.remove('hidden');
+      
+      // Add warning class for last 10 seconds
+      if (timeLeft <= 10) {
+        partyTimer.classList.add('timer-warning');
+      } else {
+        partyTimer.classList.remove('timer-warning');
+      }
+    }
     
-    // Add warning class for last 10 seconds
-    if (timeLeft <= 10) {
-      partyTimer.classList.add('timer-warning');
-    } else {
-      partyTimer.classList.remove('timer-warning');
+    // Update drawing interface timer
+    if (drawingTimer && phase === 'drawing') {
+      drawingTimer.textContent = timeString;
+      
+      if (timeLeft <= 10) {
+        drawingTimer.classList.add('timer-warning');
+      } else {
+        drawingTimer.classList.remove('timer-warning');
+      }
+    }
+    
+    // Play buzzer sound at end
+    if (timeLeft === 0) {
+      this.playBuzzer();
     }
   }
 
@@ -966,9 +1046,7 @@ class PartyGameClient {
     if (progressCount) progressCount.textContent = data.totalSubmitted;
     if (progressTotal) progressTotal.textContent = data.totalExpected;
     
-    if (!this.isMainScreen) {
-      this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
-    }
+    this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
   }
 
   setupDrawingCanvas() {
@@ -983,6 +1061,9 @@ class PartyGameClient {
     this.ctx.lineJoin = 'round';
     this.ctx.lineWidth = 3;
     this.ctx.strokeStyle = '#000000';
+    
+    // Resize canvas for mobile
+    this.resizeCanvas();
     
     // Touch/mouse events for drawing
     let isDrawing = false;
@@ -1051,6 +1132,32 @@ class PartyGameClient {
     }
   }
 
+  resizeCanvas() {
+    if (!this.canvas) return;
+    
+    // Make canvas responsive
+    const container = this.canvas.parentElement;
+    if (container) {
+      const containerWidth = container.clientWidth - 40; // Account for padding
+      const maxSize = Math.min(containerWidth, window.innerHeight * 0.6);
+      
+      this.canvas.style.width = maxSize + 'px';
+      this.canvas.style.height = maxSize + 'px';
+      
+      // Maintain drawing resolution
+      const scale = window.devicePixelRatio || 1;
+      this.canvas.width = maxSize * scale;
+      this.canvas.height = maxSize * scale;
+      this.ctx.scale(scale, scale);
+      
+      // Restore drawing properties
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      this.ctx.lineWidth = 3;
+      this.ctx.strokeStyle = '#000000';
+    }
+  }
+
   clearCanvas() {
     if (!this.canvas || !this.ctx) return;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1067,21 +1174,39 @@ class PartyGameClient {
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitted!';
-      submitBtn.style.background = '#4CAF50';
+      submitBtn.classList.add('submitted');
     }
     
     this.showMessage('Drawing submitted successfully!');
   }
 
+  handleAutoSubmit() {
+    if (!this.canvas) return;
+    
+    const imageData = this.canvas.toDataURL('image/png');
+    this.socket.emit('auto-submit-response', { imageData });
+    
+    // Update UI to show auto-submission
+    const submitBtn = document.getElementById('submit-drawing');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Auto-Submitted';
+      submitBtn.classList.add('auto-submitted');
+    }
+    
+    this.showMessage('Time up! Drawing auto-submitted.');
+  }
+
   handleGameFinished(data) {
     console.log('Game finished:', data);
+    this.stopAllMusicImmediate();
     
-    if (this.isMainScreen) {
-      const mainGameInfo = document.getElementById('main-game-info');
-      if (mainGameInfo) {
-        mainGameInfo.innerHTML = `
-          <div class="main-screen-phase">
-            <h2>🎉 Game Complete!</h2>
+    if (this.isHost) {
+      const gameInfo = document.getElementById('game-info');
+      if (gameInfo) {
+        gameInfo.innerHTML = `
+          <div class="host-game-phase">
+            <h2>Game Complete!</h2>
             <p>Thanks for playing Drawblins!</p>
             <div class="host-controls-active">
               <button id="new-game-btn" class="party-btn create-btn">Start New Game</button>
@@ -1106,7 +1231,7 @@ class PartyGameClient {
         }
       }
     } else {
-      this.showWaitingArea('Game Complete!', '🎉 Thanks for playing! Check the main screen for final results.');
+      this.showWaitingArea('Game Complete!', 'Thanks for playing! Check the host screen for final results.');
     }
   }
 
@@ -1168,6 +1293,10 @@ class PartyGameClient {
   cleanup() {
     console.log('Cleaning up party mode...');
     
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    this.currentMusicPhase = null;
+    
     // Clear timers
     if (this.gameTimer) {
       clearInterval(this.gameTimer);
@@ -1185,7 +1314,6 @@ class PartyGameClient {
     this.playerName = '';
     this.roomCode = '';
     this.isHost = false;
-    this.isMainScreen = false;
     this.currentRoom = null;
     this.canvas = null;
     this.ctx = null;
@@ -1198,7 +1326,13 @@ class PartyGameClient {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Submit Drawing';
-      submitBtn.style.background = '';
+      submitBtn.classList.remove('submitted', 'auto-submitted');
+    }
+    
+    // Remove fullscreen class
+    const drawingArea = document.getElementById('drawing-area');
+    if (drawingArea) {
+      drawingArea.classList.remove('fullscreen-drawing');
     }
   }
 }
@@ -1211,7 +1345,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.self === window.top) {
     partyClient = new PartyGameClient();
     partyClient.init();
-    console.log('✅ Enhanced party client initialized');
+    console.log('Enhanced party client initialized');
+  }
+});
+
+// Handle window resize for canvas
+window.addEventListener('resize', () => {
+  if (partyClient && partyClient.canvas) {
+    partyClient.resizeCanvas();
   }
 });
 
