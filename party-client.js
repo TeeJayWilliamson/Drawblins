@@ -559,7 +559,11 @@ class PartyGameClient {
     
     if (partyBtn) partyBtn.classList.add('active');
     if (localBtn) localBtn.classList.remove('active');
-    if (partySection) partySection.classList.remove('hidden');
+    if (partySection) {
+      partySection.classList.remove('hidden');
+      partySection.style.display = 'block';
+      partySection.style.visibility = 'visible';
+    }
     if (settingsGroup) settingsGroup.classList.add('hidden');
     if (startButtons) startButtons.classList.add('hidden');
     
@@ -572,7 +576,11 @@ class PartyGameClient {
     const partyLobby = document.getElementById('party-lobby');
     const partyGameArea = document.getElementById('party-game-area');
     
-    if (partySetup) partySetup.classList.remove('hidden');
+    if (partySetup) {
+      partySetup.classList.remove('hidden');
+      partySetup.style.display = 'block';
+      partySetup.style.visibility = 'visible';
+    }
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.add('hidden');
   }
