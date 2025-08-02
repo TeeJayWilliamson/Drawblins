@@ -270,24 +270,69 @@ io.on('connection', (socket) => {
     console.log(`Drawing submitted by ${player.name} in room ${roomCode}`);
   });
 
-  // Phase transitions (timer-based)
-  socket.on('phase-complete', (data) => {
+  // Timer management - start phase timer
+  socket.on('start-phase-timer', (data) => {
     const playerRoom = getPlayerRoom(socket.id);
     if (!playerRoom) return;
 
     const { room, roomCode } = playerRoom;
     
-    // Only host can trigger phase changes
+    // Only host can start timers
     if (room.hostId !== socket.id) return;
 
-    const { phase } = data;
+    const { phase, duration } = data;
+    
+    // Start countdown
+    room.gameState.timer = duration;
+    
+    const interval = setInterval(() => {
+      room.gameState.timer--;
+      
+      // Send timer update every 5 seconds or last 10 seconds
+      if (room.gameState.timer % 5 === 0 || room.gameState.timer <= 10) {
+        io.to(roomCode).emit('timer-update', {
+          timeLeft: room.gameState.timer,
+          phase: room.gameState.phase
+        });
+      }
+      
+      // Phase complete
+      if (room.gameState.timer <= 0) {
+        clearInterval(interval);
+        
+        // Auto-advance phase
+        if (phase === 'studying') {
+          room.gameState.phase = 'drawing';
+          room.gameState.drawings = []; // Reset drawings
+          room.gameState.timer = room.gameState.drawTime;
+        } else if (phase === 'drawing') {
+          room.gameState.phase = 'reveal';
+          room.gameState.timer = 0;
+        }
+        
+        io.to(roomCode).emit('phase-changed', {
+          gameState: room.gameState,
+          room: room
+        });
+        
+        console.log(`Auto-advanced to ${room.gameState.phase} in room ${roomCode}`);
+      }
+    }, 1000);
 
-    if (phase === 'studying') {
-      room.gameState.phase = 'drawing';
-      room.gameState.drawings = []; // Reset drawings for new round
-    } else if (phase === 'drawing') {
-      room.gameState.phase = 'reveal';
-    } else if (phase === 'reveal') {
+    console.log(`Started ${phase} timer (${duration}s) in room ${roomCode}`);
+  });
+
+  // Manual phase transitions (for host control)
+  socket.on('advance-phase', (data) => {
+    const playerRoom = getPlayerRoom(socket.id);
+    if (!playerRoom) return;
+
+    const { room, roomCode } = playerRoom;
+    
+    // Only host can manually advance phases
+    if (room.hostId !== socket.id) return;
+
+    if (room.gameState.phase === 'reveal') {
       // Move to next round or end game
       room.gameState.currentRound++;
       
@@ -303,14 +348,14 @@ io.on('connection', (socket) => {
         // Select new monster
         room.gameState.currentMonster = `monster${Math.floor(Math.random() * 266) + 1}.png`;
       }
+      
+      io.to(roomCode).emit('phase-changed', {
+        gameState: room.gameState,
+        room: room
+      });
     }
 
-    io.to(roomCode).emit('phase-changed', {
-      gameState: room.gameState,
-      room: room
-    });
-
-    console.log(`Phase changed to ${room.gameState.phase} in room ${roomCode}`);
+    console.log(`Host advanced phase to ${room.gameState.phase} in room ${roomCode}`);
   });
 
   // Get room state

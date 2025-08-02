@@ -10,7 +10,7 @@ class PartyGameClient {
     this.canvas = null;
     this.ctx = null;
     this.isDrawing = false;
-    this.serverUrl = 'https://drawblins-production.up.railway.app'; // Replace with your Railway URL
+    this.serverUrl = 'wss://your-railway-app.railway.app'; // Replace with your Railway URL
   }
 
   // Initialize party mode
@@ -81,6 +81,10 @@ class PartyGameClient {
     this.socket.on('phase-changed', (data) => {
       this.currentRoom = data.room;
       this.startPartyGamePhase(data.gameState);
+    });
+
+    this.socket.on('timer-update', (data) => {
+      this.handleTimerUpdate(data);
     });
 
     this.socket.on('drawing-submitted', (data) => {
@@ -308,43 +312,190 @@ class PartyGameClient {
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
+    const isHost = this.isHost;
     
     switch (gameState.phase) {
       case 'studying':
         if (isMyTurn) {
-          status.innerHTML = `<h3>🎨 Study the monster on the main screen!</h3>
-                             <p>Round ${gameState.currentRound} - You're describing this round</p>`;
+          // Show monster image to current player
+          status.innerHTML = `
+            <h3>🎨 Study this monster carefully!</h3>
+            <p>Round ${gameState.currentRound} - You'll describe it to others</p>
+            <div class="monster-display">
+              <img src="images/${gameState.currentMonster}" style="max-width: 300px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
+            </div>
+          `;
+          
+          // Start timer if host
+          if (isHost) {
+            setTimeout(() => {
+              this.socket.emit('start-phase-timer', {
+                phase: 'studying',
+                duration: gameState.viewTime
+              });
+            }, 1000);
+          }
+        } else if (isHost) {
+          // Host screen - show controls and status
+          status.innerHTML = `
+            <h3>⏳ ${currentPlayer.name} is studying the monster...</h3>
+            <p>Round ${gameState.currentRound} - Preparing for drawing phase</p>
+            <div class="host-controls-active">
+              <button id="skip-to-drawing" class="party-btn">Skip to Drawing</button>
+            </div>
+          `;
+          
+          // Add skip functionality
+          setTimeout(() => {
+            const skipBtn = document.getElementById('skip-to-drawing');
+            if (skipBtn) {
+              skipBtn.addEventListener('click', () => {
+                this.socket.emit('advance-phase');
+              });
+            }
+          }, 100);
         } else {
-          status.innerHTML = `<h3>⏳ ${currentPlayer.name} is studying the monster...</h3>
-                             <p>Round ${gameState.currentRound} - Get ready to draw!</p>`;
+          // Other players
+          status.innerHTML = `
+            <h3>⏳ ${currentPlayer.name} is studying the monster...</h3>
+            <p>Round ${gameState.currentRound} - Get ready to draw!</p>
+          `;
         }
         drawingArea.classList.add('hidden');
         break;
         
       case 'drawing':
         if (isMyTurn) {
-          status.innerHTML = `<h3>🎤 Describe the monster while others draw!</h3>
-                             <p>Use the main screen to guide your team</p>`;
+          if (isHost) {
+            // Host/Drawer sees description interface
+            status.innerHTML = `
+              <h3>🎤 Describe the monster while others draw!</h3>
+              <p>Guide your team with clear descriptions</p>
+              <div class="host-controls-active">
+                <button id="end-drawing-phase" class="party-btn">End Drawing Phase</button>
+              </div>
+            `;
+            
+            // Add end drawing functionality
+            setTimeout(() => {
+              const endBtn = document.getElementById('end-drawing-phase');
+              if (endBtn) {
+                endBtn.addEventListener('click', () => {
+                  this.socket.emit('advance-phase');
+                });
+              }
+            }, 100);
+          } else {
+            status.innerHTML = `
+              <h3>🎤 Describe the monster while others draw!</h3>
+              <p>Use the main screen if you're the host</p>
+            `;
+          }
           drawingArea.classList.add('hidden');
+          
+          // Start drawing timer if host
+          if (isHost) {
+            setTimeout(() => {
+              this.socket.emit('start-phase-timer', {
+                phase: 'drawing',
+                duration: gameState.drawTime
+              });
+            }, 1000);
+          }
         } else {
-          status.innerHTML = `<h3>✏️ Draw what ${currentPlayer.name} describes!</h3>
-                             <p>Listen carefully and draw on the canvas below</p>`;
+          // Other players draw
+          status.innerHTML = `
+            <h3>✏️ Draw what ${currentPlayer.name} describes!</h3>
+            <p>Listen carefully and draw on the canvas below</p>
+          `;
           drawingArea.classList.remove('hidden');
           this.clearCanvas();
         }
         break;
         
       case 'reveal':
-        status.innerHTML = `<h3>🎉 Round ${gameState.currentRound} Complete!</h3>
-                           <p>Check the main screen to see all drawings and the original monster!</p>`;
+        if (isHost) {
+          // Host screen shows all drawings in a gallery
+          status.innerHTML = `
+            <h3>🎉 Round ${gameState.currentRound} Complete!</h3>
+            <p>Here are all the drawings compared to the original:</p>
+            <div class="drawings-gallery" id="drawings-gallery">
+              <div class="original-monster">
+                <h4>Original Monster</h4>
+                <img src="images/${gameState.currentMonster}" style="max-width: 200px; border-radius: 8px;" />
+              </div>
+              ${gameState.drawings.map(drawing => `
+                <div class="player-drawing">
+                  <h4>${drawing.playerName}</h4>
+                  <img src="${drawing.imageData}" style="max-width: 200px; border-radius: 8px;" />
+                </div>
+              `).join('')}
+            </div>
+            <div class="host-controls-active">
+              <button id="next-round-btn" class="party-btn">Next Round</button>
+              <button id="end-game-btn" class="party-btn" style="background: #e74c3c;">End Game</button>
+            </div>
+          `;
+          
+          // Add next round functionality
+          setTimeout(() => {
+            const nextBtn = document.getElementById('next-round-btn');
+            const endBtn = document.getElementById('end-game-btn');
+            if (nextBtn) {
+              nextBtn.addEventListener('click', () => {
+                this.socket.emit('advance-phase');
+              });
+            }
+            if (endBtn) {
+              endBtn.addEventListener('click', () => {
+                // End game logic
+                this.showLobby();
+              });
+            }
+          }, 100);
+        } else {
+          status.innerHTML = `
+            <h3>🎉 Round ${gameState.currentRound} Complete!</h3>
+            <p>Check the main screen to see all drawings and the original monster!</p>
+          `;
+        }
         drawingArea.classList.add('hidden');
         break;
         
       case 'finished':
-        status.innerHTML = `<h3>🏆 Game Complete!</h3>
-                           <p>Thanks for playing! Start a new game when ready.</p>`;
+        status.innerHTML = `
+          <h3>🏆 Game Complete!</h3>
+          <p>Thanks for playing! The host can start a new game.</p>
+        `;
         drawingArea.classList.add('hidden');
         break;
+    }
+  }
+
+  // Handle timer updates
+  handleTimerUpdate(data) {
+    const { timeLeft, phase } = data;
+    
+    // Show timer countdown in status area
+    const timerDisplay = document.getElementById('party-timer-display');
+    if (!timerDisplay) {
+      const status = document.getElementById('party-status');
+      const timer = document.createElement('div');
+      timer.id = 'party-timer-display';
+      timer.className = 'party-timer';
+      status.appendChild(timer);
+    }
+    
+    const timer = document.getElementById('party-timer-display');
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Add warning class for last 10 seconds
+    if (timeLeft <= 10) {
+      timer.classList.add('timer-warning');
+    } else {
+      timer.classList.remove('timer-warning');
     }
   }
 
