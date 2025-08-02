@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Simplified without main screen designation
+// Enhanced Party Mode Client - Fixed Drawing & Host Issues
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -14,6 +14,7 @@ class PartyGameClient {
     this.serverUrl = 'https://drawblins-production.up.railway.app';
     this.audioInitialized = false;
     this.currentMusicPhase = null;
+    this.isCastMode = false; // New: Track if in cast mode
   }
 
   // Initialize party mode
@@ -289,7 +290,7 @@ class PartyGameClient {
     this.buzzer.play().catch(() => {});
   }
 
-  // Create enhanced party mode UI (simplified)
+  // Create enhanced party mode UI
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -311,7 +312,6 @@ class PartyGameClient {
       <div class="party-mode-card">
         <h3>Party Mode</h3>
         <p>Play together - everyone uses their own device!</p>
-        <p><small>Host can cast their screen to TV for shared viewing</small></p>
         
         <div id="party-connection-status" class="connection-status">
           <span class="status-indicator"></span>
@@ -365,43 +365,59 @@ class PartyGameClient {
                 </select>
               </label>
             </div>
-            <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
+            <div class="host-action-buttons">
+              <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
+              <button id="cast-mode-btn" class="party-btn cast-btn">Cast to TV</button>
+            </div>
           </div>
         </div>
         
         <!-- Game Area -->
         <div id="party-game-area" class="party-game-area hidden">
-          <div id="party-status" class="party-status"></div>
-          <div id="party-timer" class="party-timer hidden">00:00</div>
-          
-          <!-- Host View (can be cast to TV) -->
-          <div id="host-view" class="host-view hidden">
-            <div id="game-info" class="game-info"></div>
-            <div id="drawings-display" class="drawings-display hidden"></div>
+          <!-- Cast Mode View (for TV display) -->
+          <div id="cast-view" class="cast-view hidden">
+            <div class="cast-header">
+              <img src="images/logo.png" alt="Drawblins" class="cast-logo" />
+              <div id="cast-timer" class="cast-timer">00:00</div>
+              <button id="exit-cast-btn" class="exit-cast-btn">Exit Cast</button>
+            </div>
+            <div id="cast-content" class="cast-content">
+              <div id="cast-phase-display" class="cast-phase-display"></div>
+              <div id="cast-drawings-gallery" class="cast-drawings-gallery hidden"></div>
+            </div>
           </div>
           
-          <!-- Player View -->
-          <div id="player-view" class="player-view hidden">
+          <!-- Player Game View -->
+          <div id="player-game-view" class="player-game-view">
+            <div id="party-status" class="party-status"></div>
+            
             <!-- Monster viewing (for current drawer only) -->
             <div id="monster-view" class="monster-view hidden">
-              <h3>Study This Monster!</h3>
-              <img id="party-monster-image" src="" alt="Monster to draw">
-              <p>Memorize it - you'll need to describe it to others!</p>
+              <div class="monster-study-interface">
+                <div class="study-timer">00:00</div>
+                <h3>Study This Monster!</h3>
+                <img id="party-monster-image" src="" alt="Monster to draw">
+                <p>Memorize it - you'll need to describe it to others!</p>
+              </div>
             </div>
             
-            <!-- Drawing area (for non-drawers) - FULL SCREEN -->
-            <div id="drawing-area" class="drawing-area hidden">
-              <div id="drawing-interface" class="drawing-interface">
-                <div class="drawing-header">
-                  <h3>Draw What You Hear!</h3>
-                  <div class="drawing-timer">00:00</div>
-                </div>
-                <canvas id="party-canvas" width="300" height="300"></canvas>
-                <div class="drawing-tools">
-                  <button id="clear-canvas" class="tool-btn clear-btn">Clear</button>
+            <!-- Fullscreen Drawing Area -->
+            <div id="fullscreen-drawing" class="fullscreen-drawing hidden">
+              <div class="drawing-header">
+                <div class="drawing-timer">00:00</div>
+                <h3>Draw What You Hear!</h3>
+              </div>
+              
+              <div class="drawing-canvas-container">
+                <canvas id="party-canvas" width="400" height="400"></canvas>
+              </div>
+              
+              <div class="drawing-controls">
+                <div class="control-row">
                   <input type="color" id="brush-color" value="#000000">
                   <input type="range" id="brush-size" min="1" max="20" value="3">
-                  <button id="submit-drawing" class="tool-btn submit-btn">Submit Drawing</button>
+                  <button id="clear-canvas" class="control-btn clear-btn">Clear</button>
+                  <button id="submit-drawing" class="control-btn submit-btn">Submit</button>
                 </div>
               </div>
             </div>
@@ -410,6 +426,7 @@ class PartyGameClient {
             <div id="waiting-area" class="waiting-area hidden">
               <h3 id="waiting-title">Waiting...</h3>
               <p id="waiting-message">Please wait for the game to continue.</p>
+              <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
             </div>
           </div>
         </div>
@@ -483,6 +500,22 @@ class PartyGameClient {
       startGameBtn.addEventListener('click', () => {
         console.log('Start party game button clicked');
         this.startPartyGame();
+      });
+    }
+
+    const castModeBtn = document.getElementById('cast-mode-btn');
+    if (castModeBtn) {
+      castModeBtn.addEventListener('click', () => {
+        console.log('Cast mode button clicked');
+        this.toggleCastMode();
+      });
+    }
+
+    const exitCastBtn = document.getElementById('exit-cast-btn');
+    if (exitCastBtn) {
+      exitCastBtn.addEventListener('click', () => {
+        console.log('Exit cast button clicked');
+        this.exitCastMode();
       });
     }
 
@@ -702,8 +735,119 @@ class PartyGameClient {
     this.socket.emit('start-game', { viewTime, drawTime, difficulty });
   }
 
+  toggleCastMode() {
+    if (this.isCastMode) {
+      this.exitCastMode();
+    } else {
+      this.enterCastMode();
+    }
+  }
+
+  enterCastMode() {
+    console.log('Entering cast mode...');
+    this.isCastMode = true;
+    
+    const castView = document.getElementById('cast-view');
+    const playerGameView = document.getElementById('player-game-view');
+    const castModeBtn = document.getElementById('cast-mode-btn');
+    
+    if (castView) castView.classList.remove('hidden');
+    if (playerGameView) playerGameView.classList.add('hidden');
+    if (castModeBtn) castModeBtn.textContent = 'Exit Cast';
+    
+    // Make cast view fullscreen
+    if (castView && castView.requestFullscreen) {
+      castView.requestFullscreen().catch(console.error);
+    }
+    
+    // Update cast view with current game state
+    this.updateCastView();
+  }
+
+  exitCastMode() {
+    console.log('Exiting cast mode...');
+    this.isCastMode = false;
+    
+    const castView = document.getElementById('cast-view');
+    const playerGameView = document.getElementById('player-game-view');
+    const castModeBtn = document.getElementById('cast-mode-btn');
+    
+    if (castView) castView.classList.add('hidden');
+    if (playerGameView) playerGameView.classList.remove('hidden');
+    if (castModeBtn) castModeBtn.textContent = 'Cast to TV';
+    
+    // Exit fullscreen
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(console.error);
+    }
+  }
+
+  updateCastView() {
+    if (!this.isCastMode || !this.currentRoom) return;
+    
+    const castPhaseDisplay = document.getElementById('cast-phase-display');
+    const gameState = this.currentRoom.gameState;
+    
+    if (!castPhaseDisplay) return;
+    
+    const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
+    
+    switch (gameState.phase) {
+      case 'studying':
+        castPhaseDisplay.innerHTML = `
+          <div class="cast-phase-content">
+            <h2>Round ${gameState.currentRound} - Study Phase</h2>
+            <div class="current-drawer-info">
+              <h3>${currentPlayer ? currentPlayer.name : 'Player'} is studying the monster</h3>
+              <p>Everyone else, get ready to draw!</p>
+            </div>
+          </div>
+        `;
+        break;
+        
+      case 'drawing':
+        castPhaseDisplay.innerHTML = `
+          <div class="cast-phase-content">
+            <h2>Round ${gameState.currentRound} - Drawing Phase</h2>
+            <div class="current-drawer-info">
+              <h3>${currentPlayer ? currentPlayer.name : 'Player'} is describing the monster</h3>
+              <p>Listen carefully and draw what you hear!</p>
+            </div>
+            <div class="drawing-progress">
+              <p>Drawings submitted: <span id="cast-progress-count">0</span> / <span id="cast-progress-total">0</span></p>
+            </div>
+          </div>
+        `;
+        break;
+        
+      case 'reveal':
+        this.showCastReveal();
+        break;
+    }
+  }
+
+  showCastReveal() {
+    const castPhaseDisplay = document.getElementById('cast-phase-display');
+    const castDrawingsGallery = document.getElementById('cast-drawings-gallery');
+    
+    if (castPhaseDisplay) {
+      castPhaseDisplay.innerHTML = `
+        <div class="cast-phase-content">
+          <h2>Round ${this.currentRoom.gameState.currentRound} - Results!</h2>
+          <div class="reveal-header">
+            <h3>How did everyone do?</h3>
+          </div>
+        </div>
+      `;
+    }
+    
+    if (castDrawingsGallery) {
+      castDrawingsGallery.classList.remove('hidden');
+    }
+  }
+
   handleGamePhase(gameState, extraData = {}) {
-    console.log('Handling game phase:', gameState.phase);
+    console.log('Handling game phase:', gameState.phase, 'Current drawer:', gameState.currentDrawer, 'My socket ID:', this.socket.id);
     this.initializeAudio(); // Initialize audio on first game interaction
     
     // Hide lobby, show game area
@@ -713,8 +857,10 @@ class PartyGameClient {
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.remove('hidden');
     
-    // Update status
-    this.updateGameStatus(gameState);
+    // Update cast view if in cast mode
+    if (this.isCastMode) {
+      this.updateCastView();
+    }
     
     // Handle different phases
     switch (gameState.phase) {
@@ -731,35 +877,31 @@ class PartyGameClient {
   }
 
   handleStudyingPhase(gameState) {
-    console.log('Handling studying phase');
+    console.log('Handling studying phase - Am I the drawer?', this.socket.id === gameState.currentDrawer);
     this.playMusic('waiting');
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
     
-    if (this.isHost) {
-      this.showHostStudying(currentPlayer, gameState);
-    } else if (isMyTurn) {
+    if (isMyTurn) {
       // Monster will be sent separately via 'monster-revealed' event
       this.showWaitingArea('Get Ready!', 'You will see the monster in a moment...');
     } else {
-      this.showWaitingArea('Studying Phase', `${currentPlayer ? currentPlayer.name : 'Someone'} is studying the monster...`);
+      this.showWaitingArea('Study Phase', `${currentPlayer ? currentPlayer.name : 'Someone'} is studying the monster. Get ready to draw!`);
     }
   }
 
   handleDrawingPhase(gameState) {
-    console.log('Handling drawing phase');
+    console.log('Handling drawing phase - Am I the drawer?', this.socket.id === gameState.currentDrawer);
     this.playMusic('drawing');
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
     
-    if (this.isHost) {
-      this.showHostDrawing(currentPlayer, gameState);
-    } else if (isMyTurn) {
-      this.showWaitingArea('Your Turn!', 'Describe the monster to the other players so they can draw it!');
+    if (isMyTurn) {
+      this.showWaitingArea('Your Turn to Describe!', 'Describe the monster you saw to help others draw it!');
     } else {
-      this.showDrawingArea();
+      this.showFullscreenDrawing();
     }
   }
 
@@ -767,23 +909,32 @@ class PartyGameClient {
     console.log('Handling reveal phase', extraData);
     this.stopAllMusicImmediate();
     
-    if (this.isHost) {
-      this.showHostReveal(gameState, extraData);
+    if (this.isCastMode) {
+      this.showCastReveal();
+      this.displayCastDrawings(extraData.allDrawings || [], extraData.originalMonster);
     } else {
-      this.showWaitingArea('Round Complete!', 'Check the host screen to see all the drawings!');
+      this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
+    }
+    
+    // Show next round button for host (only if not in cast mode)
+    if (this.isHost && !this.isCastMode) {
+      this.showNextRoundButton(gameState);
     }
   }
 
   showMonsterToDrawer(monster, viewTime) {
     console.log('Showing monster to drawer:', monster);
     
+    if (this.isCastMode) {
+      // Don't show monster in cast mode, it should only show on player device
+      return;
+    }
+    
     const monsterView = document.getElementById('monster-view');
     const monsterImage = document.getElementById('party-monster-image');
-    const playerView = document.getElementById('player-view');
-    const hostView = document.getElementById('host-view');
+    const playerGameView = document.getElementById('player-game-view');
     
-    if (playerView) playerView.classList.remove('hidden');
-    if (hostView) hostView.classList.add('hidden');
+    if (playerGameView) playerGameView.classList.remove('hidden');
     if (monsterView) monsterView.classList.remove('hidden');
     if (monsterImage) {
       monsterImage.src = `images/${monster}`;
@@ -791,191 +942,98 @@ class PartyGameClient {
     }
     
     // Hide other areas
-    const drawingArea = document.getElementById('drawing-area');
-    const waitingArea = document.getElementById('waiting-area');
-    if (drawingArea) drawingArea.classList.add('hidden');
-    if (waitingArea) waitingArea.classList.add('hidden');
+    this.hideAllPlayerViews();
+    if (monsterView) monsterView.classList.remove('hidden');
   }
 
-  showDrawingArea() {
-    console.log('Showing drawing area');
+  showFullscreenDrawing() {
+    console.log('Showing fullscreen drawing');
     
-    const playerView = document.getElementById('player-view');
-    const drawingArea = document.getElementById('drawing-area');
-    const monsterView = document.getElementById('monster-view');
-    const waitingArea = document.getElementById('waiting-area');
-    const hostView = document.getElementById('host-view');
+    if (this.isCastMode) {
+      // Don't show drawing interface in cast mode
+      return;
+    }
     
-    if (playerView) playerView.classList.remove('hidden');
-    if (hostView) hostView.classList.add('hidden');
-    if (drawingArea) drawingArea.classList.remove('hidden');
-    if (monsterView) monsterView.classList.add('hidden');
-    if (waitingArea) waitingArea.classList.add('hidden');
+    const fullscreenDrawing = document.getElementById('fullscreen-drawing');
+    const playerGameView = document.getElementById('player-game-view');
+    
+    if (playerGameView) playerGameView.classList.remove('hidden');
+    if (fullscreenDrawing) fullscreenDrawing.classList.remove('hidden');
+    
+    // Hide other areas
+    this.hideAllPlayerViews();
+    if (fullscreenDrawing) fullscreenDrawing.classList.remove('hidden');
     
     // Setup canvas if not already done
     this.setupDrawingCanvas();
     
-    // Make drawing area full screen on mobile
-    if (window.innerWidth <= 768) {
-      drawingArea.classList.add('fullscreen-drawing');
+    // Reset submit button
+    const submitBtn = document.getElementById('submit-drawing');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit';
+      submitBtn.classList.remove('submitted', 'auto-submitted');
     }
   }
 
   showWaitingArea(title, message) {
     console.log('Showing waiting area:', title);
     
-    const playerView = document.getElementById('player-view');
+    if (this.isCastMode) {
+      // Don't show waiting area in cast mode
+      return;
+    }
+    
+    const playerGameView = document.getElementById('player-game-view');
     const waitingArea = document.getElementById('waiting-area');
     const waitingTitle = document.getElementById('waiting-title');
     const waitingMessage = document.getElementById('waiting-message');
-    const drawingArea = document.getElementById('drawing-area');
-    const monsterView = document.getElementById('monster-view');
-    const hostView = document.getElementById('host-view');
     
-    if (playerView) playerView.classList.remove('hidden');
-    if (hostView) hostView.classList.add('hidden');
+    if (playerGameView) playerGameView.classList.remove('hidden');
     if (waitingArea) waitingArea.classList.remove('hidden');
-    if (drawingArea) drawingArea.classList.add('hidden');
-    if (monsterView) monsterView.classList.add('hidden');
     
-    // Remove fullscreen class
-    if (drawingArea) drawingArea.classList.remove('fullscreen-drawing');
+    // Hide other areas
+    this.hideAllPlayerViews();
+    if (waitingArea) waitingArea.classList.remove('hidden');
     
     if (waitingTitle) waitingTitle.textContent = title;
     if (waitingMessage) waitingMessage.textContent = message;
   }
 
-  showHostStudying(currentPlayer, gameState) {
-    console.log('Showing host studying phase');
-    
-    const hostView = document.getElementById('host-view');
-    const playerView = document.getElementById('player-view');
-    const gameInfo = document.getElementById('game-info');
-    const drawingsDisplay = document.getElementById('drawings-display');
-    
-    if (hostView) hostView.classList.remove('hidden');
-    if (playerView) playerView.classList.add('hidden');
-    if (drawingsDisplay) drawingsDisplay.classList.add('hidden');
-    
-    if (gameInfo) {
-      gameInfo.innerHTML = `
-        <div class="host-game-phase">
-          <h2>Round ${gameState.currentRound} - Studying Phase</h2>
-          <div class="current-drawer">
-            <h3>Current Drawer: ${currentPlayer ? currentPlayer.name : 'Unknown'}</h3>
-            <p>They are memorizing the monster...</p>
-          </div>
-          <div class="phase-instructions">
-            <p>Players, get ready to draw!</p>
-            <p>The drawer will describe what they saw</p>
-          </div>
-        </div>
-      `;
-    }
+  hideAllPlayerViews() {
+    const views = ['monster-view', 'fullscreen-drawing', 'waiting-area'];
+    views.forEach(viewId => {
+      const view = document.getElementById(viewId);
+      if (view) view.classList.add('hidden');
+    });
   }
 
-  showHostDrawing(currentPlayer, gameState) {
-    console.log('Showing host drawing phase');
+  displayCastDrawings(drawings, originalMonster) {
+    const castDrawingsGallery = document.getElementById('cast-drawings-gallery');
+    if (!castDrawingsGallery) return;
     
-    const hostView = document.getElementById('host-view');
-    const playerView = document.getElementById('player-view');
-    const gameInfo = document.getElementById('game-info');
-    const drawingsDisplay = document.getElementById('drawings-display');
-    
-    if (hostView) hostView.classList.remove('hidden');
-    if (playerView) playerView.classList.add('hidden');
-    if (drawingsDisplay) drawingsDisplay.classList.add('hidden');
-    
-    if (gameInfo) {
-      gameInfo.innerHTML = `
-        <div class="host-game-phase">
-          <h2>Round ${gameState.currentRound} - Drawing Phase</h2>
-          <div class="current-drawer">
-            <h3>Drawer: ${currentPlayer ? currentPlayer.name : 'Unknown'}</h3>
-            <p>Now describing the monster</p>
-          </div>
-          <div class="phase-instructions">
-            <p>Other players are drawing on their phones</p>
-            <p>Listen carefully and draw what you hear!</p>
-          </div>
-          <div id="drawing-progress" class="drawing-progress">
-            <p>Drawings submitted: <span id="progress-count">0</span> / <span id="progress-total">0</span></p>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  showHostReveal(gameState, extraData) {
-    console.log('Showing host reveal phase');
-    
-    const hostView = document.getElementById('host-view');
-    const playerView = document.getElementById('player-view');
-    const gameInfo = document.getElementById('game-info');
-    const drawingsDisplay = document.getElementById('drawings-display');
-    
-    if (hostView) hostView.classList.remove('hidden');
-    if (playerView) playerView.classList.add('hidden');
-    if (drawingsDisplay) drawingsDisplay.classList.remove('hidden');
-    
-    if (gameInfo) {
-      gameInfo.innerHTML = `
-        <div class="host-game-phase">
-          <h2>Round ${gameState.currentRound} - Results!</h2>
-          <div class="reveal-header">
-            <h3>How did everyone do?</h3>
-            <p>Original monster vs. player drawings</p>
-          </div>
-        </div>
-      `;
-    }
-    
-    // Show drawings
-    this.displayAllDrawings(extraData.allDrawings || [], extraData.originalMonster);
-    
-    // Show next round button for host
-    if (this.isHost) {
-      this.showNextRoundButton(gameState);
-    }
-  }
-
-  displayAllDrawings(drawings, originalMonster) {
-    const drawingsDisplay = document.getElementById('drawings-display');
-    if (!drawingsDisplay) return;
-    
-    drawingsDisplay.innerHTML = `
-      <div class="drawings-gallery">
-        <div class="original-monster">
+    castDrawingsGallery.innerHTML = `
+      <div class="cast-drawings-grid">
+        <div class="cast-original-monster">
           <h4>Original Monster</h4>
-          <img src="images/${originalMonster}" alt="Original Monster" class="drawing-image">
+          <img src="images/${originalMonster}" alt="Original Monster" class="cast-drawing-image">
         </div>
         ${drawings.map(drawing => `
-          <div class="player-drawing">
+          <div class="cast-player-drawing">
             <h4>${drawing.playerName}${drawing.autoSubmitted ? ' (Auto)' : ''}</h4>
-            <img src="${drawing.imageData}" alt="${drawing.playerName}'s drawing" class="drawing-image">
+            <img src="${drawing.imageData}" alt="${drawing.playerName}'s drawing" class="cast-drawing-image">
           </div>
         `).join('')}
       </div>
-    `;
-  }
-
-  showNextRoundButton(gameState) {
-    const gameInfo = document.getElementById('game-info');
-    if (!gameInfo) return;
-    
-    const isLastRound = gameState.currentRound >= gameState.maxRounds;
-    
-    const buttonHtml = `
-      <div class="host-controls-active">
-        <button id="next-round-host-btn" class="party-btn ${isLastRound ? 'finish-btn' : 'next-btn'}">
-          ${isLastRound ? 'Finish Game' : 'Next Round'}
-        </button>
-      </div>
+      ${this.isHost ? `
+        <div class="cast-host-controls">
+          <button id="cast-next-round-btn" class="cast-btn next-btn">Next Round</button>
+        </div>
+      ` : ''}
     `;
     
-    gameInfo.innerHTML += buttonHtml;
-    
-    const nextRoundBtn = document.getElementById('next-round-host-btn');
+    // Add event listener for next round button
+    const nextRoundBtn = document.getElementById('cast-next-round-btn');
     if (nextRoundBtn) {
       nextRoundBtn.addEventListener('click', () => {
         this.socket.emit('next-round');
@@ -983,61 +1041,65 @@ class PartyGameClient {
     }
   }
 
-  updateGameStatus(gameState) {
-    const partyStatus = document.getElementById('party-status');
-    if (!partyStatus) return;
+  showNextRoundButton(gameState) {
+    const waitingArea = document.getElementById('waiting-area');
+    if (!waitingArea) return;
     
-    const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
-    const isMyTurn = this.socket.id === gameState.currentDrawer;
+    const isLastRound = gameState.currentRound >= gameState.maxRounds;
     
-    let statusText = '';
-    switch (gameState.phase) {
-      case 'studying':
-        statusText = `Round ${gameState.currentRound} - ${currentPlayer ? currentPlayer.name : 'Someone'} is studying the monster`;
-        break;
-      case 'drawing':
-        statusText = `Round ${gameState.currentRound} - Drawing phase! ${isMyTurn ? "It's your turn to describe!" : 'Draw what you hear!'}`;
-        break;
-      case 'reveal':
-        statusText = `Round ${gameState.currentRound} - Results time!`;
-        break;
-    }
-    
-    partyStatus.innerHTML = `
-      <h3>${statusText}</h3>
-      ${gameState.phase === 'drawing' && !isMyTurn ? '<p>Listen to the drawer and create your masterpiece!</p>' : ''}
+    const buttonHtml = `
+      <div class="waiting-host-controls">
+        <button id="next-round-waiting-btn" class="party-btn ${isLastRound ? 'finish-btn' : 'next-btn'}">
+          ${isLastRound ? 'Finish Game' : 'Next Round'}
+        </button>
+      </div>
     `;
+    
+    waitingArea.innerHTML += buttonHtml;
+    
+    const nextRoundBtn = document.getElementById('next-round-waiting-btn');
+    if (nextRoundBtn) {
+      nextRoundBtn.addEventListener('click', () => {
+        this.socket.emit('next-round');
+      });
+    }
   }
 
   updateGameTimer(timeLeft, phase) {
-    const partyTimer = document.getElementById('party-timer');
-    const drawingTimer = document.querySelector('.drawing-timer');
+    const timers = {
+      'cast-timer': document.getElementById('cast-timer'),
+      'drawing-timer': document.querySelector('.drawing-timer'),
+      'study-timer': document.querySelector('.study-timer'),
+      'waiting-timer': document.getElementById('waiting-timer')
+    };
     
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
     const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     
-    // Update main timer
-    if (partyTimer) {
-      partyTimer.textContent = timeString;
-      partyTimer.classList.remove('hidden');
-      
-      // Add warning class for last 10 seconds
-      if (timeLeft <= 10) {
-        partyTimer.classList.add('timer-warning');
-      } else {
-        partyTimer.classList.remove('timer-warning');
+    // Update all visible timers
+    Object.values(timers).forEach(timer => {
+      if (timer && !timer.classList.contains('hidden')) {
+        timer.textContent = timeString;
+        
+        // Add warning class for last 10 seconds (but no pulsing animation)
+        if (timeLeft <= 10) {
+          timer.classList.add('timer-warning');
+        } else {
+          timer.classList.remove('timer-warning');
+        }
       }
-    }
+    });
     
-    // Update drawing interface timer
-    if (drawingTimer && phase === 'drawing') {
-      drawingTimer.textContent = timeString;
+    // Update cast progress if in drawing phase
+    if (phase === 'drawing' && this.isCastMode) {
+      const progressCount = document.getElementById('cast-progress-count');
+      const progressTotal = document.getElementById('cast-progress-total');
       
-      if (timeLeft <= 10) {
-        drawingTimer.classList.add('timer-warning');
-      } else {
-        drawingTimer.classList.remove('timer-warning');
+      if (progressCount && this.currentRoom) {
+        const expectedSubmissions = this.currentRoom.players.filter(p => p.id !== this.currentRoom.gameState.currentDrawer).length;
+        progressCount.textContent = this.currentRoom.gameState.drawings.length;
+        if (progressTotal) progressTotal.textContent = expectedSubmissions;
       }
     }
     
@@ -1048,11 +1110,13 @@ class PartyGameClient {
   }
 
   updateDrawingProgress(data) {
-    const progressCount = document.getElementById('progress-count');
-    const progressTotal = document.getElementById('progress-total');
-    
-    if (progressCount) progressCount.textContent = data.totalSubmitted;
-    if (progressTotal) progressTotal.textContent = data.totalExpected;
+    if (this.isCastMode) {
+      const progressCount = document.getElementById('cast-progress-count');
+      const progressTotal = document.getElementById('cast-progress-total');
+      
+      if (progressCount) progressCount.textContent = data.totalSubmitted;
+      if (progressTotal) progressTotal.textContent = data.totalExpected;
+    }
     
     this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
   }
@@ -1070,7 +1134,7 @@ class PartyGameClient {
     this.ctx.lineWidth = 3;
     this.ctx.strokeStyle = '#000000';
     
-    // Resize canvas for mobile
+    // Resize canvas to be large and responsive
     this.resizeCanvas();
     
     // Touch/mouse events for drawing
@@ -1084,8 +1148,8 @@ class PartyGameClient {
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
       
-      lastX = clientX - rect.left;
-      lastY = clientY - rect.top;
+      lastX = (clientX - rect.left) * (canvas.width / rect.width);
+      lastY = (clientY - rect.top) * (canvas.height / rect.height);
     };
     
     const draw = (e) => {
@@ -1096,8 +1160,8 @@ class PartyGameClient {
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
       
-      const currentX = clientX - rect.left;
-      const currentY = clientY - rect.top;
+      const currentX = (clientX - rect.left) * (canvas.width / rect.width);
+      const currentY = (clientY - rect.top) * (canvas.height / rect.height);
       
       this.ctx.beginPath();
       this.ctx.moveTo(lastX, lastY);
@@ -1143,19 +1207,19 @@ class PartyGameClient {
   resizeCanvas() {
     if (!this.canvas) return;
     
-    // Make canvas responsive
+    // For fullscreen drawing, make canvas as large as possible
     const container = this.canvas.parentElement;
     if (container) {
-      const containerWidth = container.clientWidth - 40; // Account for padding
-      const maxSize = Math.min(containerWidth, window.innerHeight * 0.6);
+      const containerRect = container.getBoundingClientRect();
+      const size = Math.min(containerRect.width - 20, containerRect.height - 20, 600);
       
-      this.canvas.style.width = maxSize + 'px';
-      this.canvas.style.height = maxSize + 'px';
+      this.canvas.style.width = size + 'px';
+      this.canvas.style.height = size + 'px';
       
-      // Maintain drawing resolution
+      // Maintain high resolution
       const scale = window.devicePixelRatio || 1;
-      this.canvas.width = maxSize * scale;
-      this.canvas.height = maxSize * scale;
+      this.canvas.width = size * scale;
+      this.canvas.height = size * scale;
       this.ctx.scale(scale, scale);
       
       // Restore drawing properties
@@ -1209,17 +1273,19 @@ class PartyGameClient {
     console.log('Game finished:', data);
     this.stopAllMusicImmediate();
     
-    if (this.isHost) {
-      const gameInfo = document.getElementById('game-info');
-      if (gameInfo) {
-        gameInfo.innerHTML = `
-          <div class="host-game-phase">
+    if (this.isCastMode) {
+      const castPhaseDisplay = document.getElementById('cast-phase-display');
+      if (castPhaseDisplay) {
+        castPhaseDisplay.innerHTML = `
+          <div class="cast-phase-content">
             <h2>Game Complete!</h2>
             <p>Thanks for playing Drawblins!</p>
-            <div class="host-controls-active">
-              <button id="new-game-btn" class="party-btn create-btn">Start New Game</button>
-              <button id="back-to-lobby-btn" class="party-btn back-btn">Back to Lobby</button>
-            </div>
+            ${this.isHost ? `
+              <div class="cast-host-controls">
+                <button id="new-game-btn" class="cast-btn create-btn">Start New Game</button>
+                <button id="back-to-lobby-btn" class="cast-btn back-btn">Back to Lobby</button>
+              </div>
+            ` : ''}
           </div>
         `;
         
@@ -1228,18 +1294,20 @@ class PartyGameClient {
         
         if (newGameBtn) {
           newGameBtn.addEventListener('click', () => {
+            this.exitCastMode();
             this.showLobby();
           });
         }
         
         if (backToLobbyBtn) {
           backToLobbyBtn.addEventListener('click', () => {
+            this.exitCastMode();
             this.showLobby();
           });
         }
       }
     } else {
-      this.showWaitingArea('Game Complete!', 'Thanks for playing! Check the host screen for final results.');
+      this.showWaitingArea('Game Complete!', 'Thanks for playing! The host can start a new game.');
     }
   }
 
@@ -1311,6 +1379,11 @@ class PartyGameClient {
       this.gameTimer = null;
     }
     
+    // Exit cast mode
+    if (this.isCastMode) {
+      this.exitCastMode();
+    }
+    
     // Disconnect socket
     if (this.socket && this.isConnected) {
       this.socket.disconnect();
@@ -1325,6 +1398,7 @@ class PartyGameClient {
     this.currentRoom = null;
     this.canvas = null;
     this.ctx = null;
+    this.isCastMode = false;
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
@@ -1333,14 +1407,8 @@ class PartyGameClient {
     const submitBtn = document.getElementById('submit-drawing');
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit Drawing';
+      submitBtn.textContent = 'Submit';
       submitBtn.classList.remove('submitted', 'auto-submitted');
-    }
-    
-    // Remove fullscreen class
-    const drawingArea = document.getElementById('drawing-area');
-    if (drawingArea) {
-      drawingArea.classList.remove('fullscreen-drawing');
     }
   }
 }

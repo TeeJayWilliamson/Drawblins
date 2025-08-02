@@ -69,7 +69,7 @@ function createRoom(hostId, hostName) {
     gameState: {
       phase: 'lobby', // lobby, studying, drawing, reveal, finished
       currentDrawer: null,
-      currentDrawerIndex: 0,
+      currentDrawerIndex: 0, // FIXED: Start at 0 instead of undefined
       currentRound: 1,
       maxRounds: 5,
       viewTime: 20,
@@ -127,11 +127,19 @@ function removePlayerFromRoom(playerId) {
   return { roomCode, room };
 }
 
+// FIXED: Proper drawer selection logic
 function selectNextDrawer(room) {
   if (room.players.length === 0) return null;
   
-  room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex) % room.players.length;
-  return room.players[room.gameState.currentDrawerIndex].id;
+  // Get the current drawer index, ensuring it's within bounds
+  let currentIndex = room.gameState.currentDrawerIndex || 0;
+  
+  // Select the player at the current index
+  const selectedPlayer = room.players[currentIndex];
+  
+  console.log(`Selecting drawer: index ${currentIndex}, player:`, selectedPlayer?.name, `(ID: ${selectedPlayer?.id})`);
+  
+  return selectedPlayer ? selectedPlayer.id : null;
 }
 
 function startGameTimer(room, roomCode, duration, phase, onComplete) {
@@ -318,20 +326,32 @@ io.on('connection', (socket) => {
     room.gameState.difficulty = data.difficulty || 'standard';
     room.gameState.maxRounds = data.maxRounds || room.players.length;
 
+    // FIXED: Initialize drawer selection properly
+    room.gameState.currentDrawerIndex = 0;
+    room.gameState.currentRound = 1;
+
     // Start first round
     startNextRound(room, roomCode);
 
-    console.log(`Game started in room ${roomCode}`);
+    console.log(`Game started in room ${roomCode} with ${room.players.length} players`);
   });
 
   function startNextRound(room, roomCode) {
+    console.log(`Starting round ${room.gameState.currentRound} in room ${roomCode}`);
+    console.log(`Current drawer index: ${room.gameState.currentDrawerIndex}`);
+    console.log(`Players in room:`, room.players.map(p => `${p.name} (${p.id})`));
+    
     // Select next drawer
     room.gameState.currentDrawer = selectNextDrawer(room);
     
     if (!room.gameState.currentDrawer) {
+      console.error('No valid drawer found!');
       io.to(roomCode).emit('game-error', { error: 'No valid drawer found' });
       return;
     }
+
+    const currentDrawerPlayer = room.players.find(p => p.id === room.gameState.currentDrawer);
+    console.log(`Selected drawer: ${currentDrawerPlayer?.name} (${room.gameState.currentDrawer})`);
 
     // Select monster (avoid repeats)
     let monster;
@@ -343,6 +363,8 @@ io.on('connection', (socket) => {
     room.gameState.usedMonsters.push(monster);
     room.gameState.drawings = [];
     room.gameState.phase = 'studying';
+
+    console.log(`Round ${room.gameState.currentRound}: ${currentDrawerPlayer?.name} will draw ${monster}`);
 
     // Notify all players about game start/round start
     io.to(roomCode).emit('game-started', {
@@ -356,10 +378,14 @@ io.on('connection', (socket) => {
       viewTime: room.gameState.viewTime
     });
 
+    console.log(`Monster ${monster} sent to drawer ${currentDrawerPlayer?.name}`);
+
     // Start studying timer
     startGameTimer(room, roomCode, room.gameState.viewTime, 'studying', () => {
       // Move to drawing phase
       room.gameState.phase = 'drawing';
+      
+      console.log(`Moving to drawing phase - Round ${room.gameState.currentRound}`);
       
       io.to(roomCode).emit('phase-changed', {
         gameState: room.gameState,
@@ -376,6 +402,8 @@ io.on('connection', (socket) => {
         setTimeout(() => {
           // Move to reveal phase
           room.gameState.phase = 'reveal';
+          
+          console.log(`Moving to reveal phase - Round ${room.gameState.currentRound}`);
           
           io.to(roomCode).emit('phase-changed', {
             gameState: room.gameState,
@@ -397,10 +425,17 @@ io.on('connection', (socket) => {
     const { room, roomCode } = playerRoom;
     const player = room.players.find(p => p.id === socket.id);
     
-    if (!player || room.gameState.phase !== 'drawing') return;
+    if (!player || room.gameState.phase !== 'drawing') {
+      console.log(`Drawing submission rejected: player=${player?.name}, phase=${room.gameState.phase}`);
+      return;
+    }
     
     // Don't allow current drawer to submit
-    if (socket.id === room.gameState.currentDrawer) return;
+    if (socket.id === room.gameState.currentDrawer) {
+      console.log(`Drawing submission rejected: ${player.name} is the current drawer`);
+      socket.emit('drawing-error', { error: 'Current drawer cannot submit drawing' });
+      return;
+    }
 
     // Check if already submitted
     if (room.gameState.drawings.find(d => d.playerId === socket.id)) {
@@ -418,6 +453,8 @@ io.on('connection', (socket) => {
 
     room.gameState.drawings.push(drawing);
 
+    console.log(`Drawing submitted by ${player.name} in room ${roomCode} (${room.gameState.drawings.length} total)`);
+
     // Notify room that a drawing was submitted
     const expectedSubmissions = room.players.filter(p => p.id !== room.gameState.currentDrawer).length;
     
@@ -429,6 +466,7 @@ io.on('connection', (socket) => {
 
     // Check if all players have submitted (early end)
     if (checkAllPlayersSubmitted(room) && room.gameState.timerInterval) {
+      console.log(`All players submitted drawings early in room ${roomCode}`);
       clearInterval(room.gameState.timerInterval);
       room.gameState.timerInterval = null;
       
@@ -444,8 +482,6 @@ io.on('connection', (socket) => {
         earlyEnd: true
       });
     }
-
-    console.log(`Drawing submitted by ${player.name} in room ${roomCode}`);
   });
 
   // Auto-submit response (when time runs out)
@@ -486,13 +522,23 @@ io.on('connection', (socket) => {
     const { room, roomCode } = playerRoom;
     
     // Only host can advance
-    if (room.hostId !== socket.id) return;
+    if (room.hostId !== socket.id) {
+      console.log(`Next round rejected: ${socket.id} is not host (host is ${room.hostId})`);
+      return;
+    }
 
+    console.log(`Advancing to next round in room ${roomCode}`);
+    console.log(`Current: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
+
+    // FIXED: Advance to next round and next drawer
     room.gameState.currentRound++;
-    room.gameState.currentDrawerIndex++;
+    room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex + 1) % room.players.length;
+
+    console.log(`New: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
 
     if (room.gameState.currentRound > room.gameState.maxRounds) {
       // Game finished
+      console.log(`Game finished in room ${roomCode}`);
       room.gameState.phase = 'finished';
       io.to(roomCode).emit('game-finished', {
         room: room,
@@ -500,10 +546,9 @@ io.on('connection', (socket) => {
       });
     } else {
       // Start next round
+      console.log(`Starting next round ${room.gameState.currentRound} in room ${roomCode}`);
       startNextRound(room, roomCode);
     }
-
-    console.log(`Advanced to round ${room.gameState.currentRound} in room ${roomCode}`);
   });
 
   // Get room state
@@ -537,7 +582,7 @@ io.on('connection', (socket) => {
           leftPlayerId: socket.id
         });
         
-        console.log(`Player left room ${roomCode}`);
+        console.log(`Player left room ${roomCode} - ${room.players.length} players remaining`);
       }
     }
 
@@ -561,10 +606,28 @@ app.get('/api/rooms', (req, res) => {
     playerCount: room.players.length,
     phase: room.gameState.phase,
     currentRound: room.gameState.currentRound,
+    currentDrawer: room.players.find(p => p.id === room.gameState.currentDrawer)?.name || 'Unknown',
+    currentDrawerIndex: room.gameState.currentDrawerIndex,
     createdAt: room.createdAt
   }));
   
   res.json({ rooms: roomList });
+});
+
+// Debug endpoint to get specific room details
+app.get('/api/rooms/:roomCode', (req, res) => {
+  const room = getRoom(req.params.roomCode.toUpperCase());
+  if (!room) {
+    res.status(404).json({ error: 'Room not found' });
+    return;
+  }
+  
+  res.json({
+    room: {
+      ...room,
+      players: room.players.map(p => ({ ...p, id: p.id.substring(0, 8) + '...' })) // Truncate IDs for privacy
+    }
+  });
 });
 
 const PORT = process.env.PORT || 3001;
@@ -572,4 +635,5 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Drawblins Party Mode server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Debug API available at /api/rooms`);
 });
