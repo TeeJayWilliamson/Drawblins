@@ -1,4 +1,4 @@
-// Party Mode Client - Add this to your existing project
+// Debug version of Party Mode Client
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -10,11 +10,12 @@ class PartyGameClient {
     this.canvas = null;
     this.ctx = null;
     this.isDrawing = false;
-    this.serverUrl = 'wss://your-railway-app.railway.app'; // Replace with your Railway URL
+    this.serverUrl = 'https://drawblins-production.up.railway.app';
   }
 
   // Initialize party mode
   init() {
+    console.log('Initializing Party Mode...');
     this.createPartyModeUI();
     this.setupDrawingCanvas();
   }
@@ -23,62 +24,81 @@ class PartyGameClient {
   connect() {
     if (this.socket && this.isConnected) return;
 
-    // Use Socket.io client (you'll need to include this in your HTML)
+    console.log('Connecting to:', this.serverUrl);
+    
+    // Use Socket.io client
     this.socket = io(this.serverUrl, {
-      transports: ['websocket']
+      transports: ['websocket'],
+      timeout: 10000
     });
 
     this.socket.on('connect', () => {
-      console.log('Connected to party server');
+      console.log('✅ Connected to party server');
       this.isConnected = true;
       this.updateConnectionStatus('Connected');
     });
 
     this.socket.on('disconnect', () => {
-      console.log('Disconnected from party server');
+      console.log('❌ Disconnected from party server');
       this.isConnected = false;
       this.updateConnectionStatus('Disconnected');
     });
 
+    this.socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      this.updateConnectionStatus('Connection Failed');
+      this.showError('Failed to connect to server');
+    });
+
     // Room events
     this.socket.on('room-created', (data) => {
+      console.log('Room created response:', data);
       if (data.success) {
         this.roomCode = data.roomCode;
         this.currentRoom = data.room;
         this.isHost = true;
         this.showLobby();
+        console.log('✅ Room created successfully:', data.roomCode);
       } else {
+        console.error('❌ Room creation failed:', data.error);
         this.showError(data.error);
       }
     });
 
     this.socket.on('room-joined', (data) => {
+      console.log('Room joined response:', data);
       if (data.success) {
         this.currentRoom = data.room;
         this.showLobby();
+        console.log('✅ Joined room successfully');
       } else {
+        console.error('❌ Failed to join room:', data.error);
         this.showError(data.error);
       }
     });
 
     this.socket.on('player-joined', (data) => {
+      console.log('Player joined:', data);
       this.currentRoom = data.room;
       this.updatePlayerList();
       this.showMessage(`${data.player.name} joined the game!`);
     });
 
     this.socket.on('player-left', (data) => {
+      console.log('Player left:', data);
       this.currentRoom = data.room;
       this.updatePlayerList();
     });
 
     // Game events
     this.socket.on('game-started', (data) => {
+      console.log('Game started:', data);
       this.currentRoom = data.room;
       this.startPartyGamePhase(data.gameState);
     });
 
     this.socket.on('phase-changed', (data) => {
+      console.log('Phase changed:', data);
       this.currentRoom = data.room;
       this.startPartyGamePhase(data.gameState);
     });
@@ -92,16 +112,25 @@ class PartyGameClient {
     });
 
     this.socket.on('game-error', (data) => {
+      console.error('Game error:', data);
       this.showError(data.error);
     });
   }
 
   // Create party mode UI elements
   createPartyModeUI() {
+    console.log('Creating Party Mode UI...');
     const container = document.querySelector('.container');
     
     // Add party mode toggle to start screen
     const startScreen = document.getElementById('start-screen');
+    
+    // Check if already exists
+    if (document.getElementById('party-mode-section')) {
+      console.log('Party mode UI already exists');
+      return;
+    }
+    
     const partyModeSection = document.createElement('div');
     partyModeSection.id = 'party-mode-section';
     partyModeSection.className = 'party-mode-section hidden';
@@ -177,81 +206,147 @@ class PartyGameClient {
     startScreen.appendChild(partyModeSection);
     
     // Add mode toggle buttons
-    const modeToggle = document.createElement('div');
-    modeToggle.className = 'mode-toggle';
-    modeToggle.innerHTML = `
-      <button id="local-mode-btn" class="mode-btn active">Local Mode</button>
-      <button id="party-mode-btn" class="mode-btn">Party Mode</button>
-    `;
-    
-    startScreen.insertBefore(modeToggle, startScreen.firstChild);
+    let modeToggle = document.querySelector('.mode-toggle');
+    if (!modeToggle) {
+      modeToggle = document.createElement('div');
+      modeToggle.className = 'mode-toggle';
+      modeToggle.innerHTML = `
+        <button id="local-mode-btn" class="mode-btn active">Local Mode</button>
+        <button id="party-mode-btn" class="mode-btn">Party Mode</button>
+      `;
+      
+      startScreen.insertBefore(modeToggle, startScreen.firstChild);
+    }
     
     this.setupPartyModeEventListeners();
+    console.log('✅ Party Mode UI created');
   }
 
   setupPartyModeEventListeners() {
-    // Mode toggle
-    document.getElementById('local-mode-btn').addEventListener('click', () => {
-      this.showLocalMode();
-    });
+    console.log('Setting up event listeners...');
     
-    document.getElementById('party-mode-btn').addEventListener('click', () => {
-      this.showPartyMode();
-      if (!this.isConnected) {
-        this.connect();
-      }
-    });
+    // Mode toggle
+    const localBtn = document.getElementById('local-mode-btn');
+    const partyBtn = document.getElementById('party-mode-btn');
+    
+    if (localBtn) {
+      localBtn.addEventListener('click', () => {
+        console.log('Switching to Local Mode');
+        this.showLocalMode();
+      });
+    }
+    
+    if (partyBtn) {
+      partyBtn.addEventListener('click', () => {
+        console.log('Switching to Party Mode');
+        this.showPartyMode();
+        if (!this.isConnected) {
+          this.connect();
+        }
+      });
+    }
 
     // Party mode actions
-    document.getElementById('create-room-btn').addEventListener('click', () => {
-      this.createRoom();
-    });
+    const createBtn = document.getElementById('create-room-btn');
+    if (createBtn) {
+      createBtn.addEventListener('click', () => {
+        console.log('Create room button clicked');
+        this.createRoom();
+      });
+    } else {
+      console.error('❌ Create room button not found!');
+    }
 
-    document.getElementById('join-room-btn').addEventListener('click', () => {
-      this.joinRoom();
-    });
+    const joinBtn = document.getElementById('join-room-btn');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', () => {
+        console.log('Join room button clicked');
+        this.joinRoom();
+      });
+    }
 
-    document.getElementById('start-party-game-btn').addEventListener('click', () => {
-      this.startPartyGame();
-    });
+    const startGameBtn = document.getElementById('start-party-game-btn');
+    if (startGameBtn) {
+      startGameBtn.addEventListener('click', () => {
+        console.log('Start party game button clicked');
+        this.startPartyGame();
+      });
+    }
 
-    document.getElementById('back-to-local').addEventListener('click', () => {
-      this.showLocalMode();
-    });
+    const backBtn = document.getElementById('back-to-local');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        console.log('Back to local button clicked');
+        this.showLocalMode();
+      });
+    }
 
-    // Drawing canvas events will be set up in setupDrawingCanvas()
+    console.log('✅ Event listeners set up');
   }
 
   showLocalMode() {
-    document.getElementById('local-mode-btn').classList.add('active');
-    document.getElementById('party-mode-btn').classList.remove('active');
-    document.getElementById('party-mode-section').classList.add('hidden');
-    document.querySelector('.settings-group').classList.remove('hidden');
-    document.getElementById('start-buttons').classList.remove('hidden');
+    console.log('Showing Local Mode');
+    const localBtn = document.getElementById('local-mode-btn');
+    const partyBtn = document.getElementById('party-mode-btn');
+    const partySection = document.getElementById('party-mode-section');
+    const settingsGroup = document.querySelector('.settings-group');
+    const startButtons = document.getElementById('start-buttons');
+    
+    if (localBtn) localBtn.classList.add('active');
+    if (partyBtn) partyBtn.classList.remove('active');
+    if (partySection) partySection.classList.add('hidden');
+    if (settingsGroup) settingsGroup.classList.remove('hidden');
+    if (startButtons) startButtons.classList.remove('hidden');
   }
 
   showPartyMode() {
-    document.getElementById('party-mode-btn').classList.add('active');
-    document.getElementById('local-mode-btn').classList.remove('active');
-    document.getElementById('party-mode-section').classList.remove('hidden');
-    document.querySelector('.settings-group').classList.add('hidden');
-    document.getElementById('start-buttons').classList.add('hidden');
+    console.log('Showing Party Mode');
+    const localBtn = document.getElementById('local-mode-btn');
+    const partyBtn = document.getElementById('party-mode-btn');
+    const partySection = document.getElementById('party-mode-section');
+    const settingsGroup = document.querySelector('.settings-group');
+    const startButtons = document.getElementById('start-buttons');
+    
+    if (partyBtn) partyBtn.classList.add('active');
+    if (localBtn) localBtn.classList.remove('active');
+    if (partySection) partySection.classList.remove('hidden');
+    if (settingsGroup) settingsGroup.classList.add('hidden');
+    if (startButtons) startButtons.classList.add('hidden');
   }
 
   createRoom() {
-    const playerName = document.getElementById('player-name-input').value.trim();
+    console.log('Creating room...');
+    const playerNameInput = document.getElementById('player-name-input');
+    const playerName = playerNameInput ? playerNameInput.value.trim() : '';
+    
+    console.log('Player name:', playerName);
+    
     if (!playerName) {
+      console.error('❌ No player name entered');
       this.showError('Please enter your name');
       return;
     }
 
+    if (!this.socket || !this.isConnected) {
+      console.error('❌ Not connected to server');
+      this.showError('Not connected to server. Please try again.');
+      return;
+    }
+
     this.playerName = playerName;
+    console.log('Emitting create-room event...');
     this.socket.emit('create-room', { playerName });
   }
 
   joinRoom() {
-    const playerName = document.getElementById('player-name-input').value.trim();
-    const roomCode = document.getElementById('join-room-code').value.trim().toUpperCase();
+    console.log('Joining room...');
+    const playerNameInput = document.getElementById('player-name-input');
+    const roomCodeInput = document.getElementById('join-room-code');
+    
+    const playerName = playerNameInput ? playerNameInput.value.trim() : '';
+    const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : '';
+    
+    console.log('Player name:', playerName, 'Room code:', roomCode);
     
     if (!playerName) {
       this.showError('Please enter your name');
@@ -263,24 +358,39 @@ class PartyGameClient {
       return;
     }
 
+    if (!this.socket || !this.isConnected) {
+      this.showError('Not connected to server. Please try again.');
+      return;
+    }
+
     this.playerName = playerName;
+    console.log('Emitting join-room event...');
     this.socket.emit('join-room', { roomCode, playerName });
   }
 
   showLobby() {
-    document.getElementById('party-setup').classList.add('hidden');
-    document.getElementById('party-lobby').classList.remove('hidden');
-    document.getElementById('room-code-display').textContent = this.roomCode || this.currentRoom.code;
+    console.log('Showing lobby...');
+    const partySetup = document.getElementById('party-setup');
+    const partyLobby = document.getElementById('party-lobby');
+    const roomCodeDisplay = document.getElementById('room-code-display');
+    const hostControls = document.getElementById('host-controls');
     
-    if (this.isHost) {
-      document.getElementById('host-controls').classList.remove('hidden');
+    if (partySetup) partySetup.classList.add('hidden');
+    if (partyLobby) partyLobby.classList.remove('hidden');
+    if (roomCodeDisplay) roomCodeDisplay.textContent = this.roomCode || this.currentRoom.code;
+    
+    if (this.isHost && hostControls) {
+      hostControls.classList.remove('hidden');
     }
     
     this.updatePlayerList();
+    console.log('✅ Lobby shown');
   }
 
   updatePlayerList() {
     const playerList = document.getElementById('player-list');
+    if (!playerList || !this.currentRoom) return;
+    
     playerList.innerHTML = '';
     
     this.currentRoom.players.forEach(player => {
@@ -295,346 +405,83 @@ class PartyGameClient {
   }
 
   startPartyGame() {
-    const viewTime = parseInt(document.getElementById('party-view-time').value);
-    const drawTime = parseInt(document.getElementById('party-draw-time').value);
+    console.log('Starting party game...');
+    const viewTimeSelect = document.getElementById('party-view-time');
+    const drawTimeSelect = document.getElementById('party-draw-time');
+    
+    const viewTime = viewTimeSelect ? parseInt(viewTimeSelect.value) : 20;
+    const drawTime = drawTimeSelect ? parseInt(drawTimeSelect.value) : 120;
+    
+    console.log('Game settings:', { viewTime, drawTime });
+    
+    if (!this.socket || !this.isConnected) {
+      this.showError('Not connected to server');
+      return;
+    }
     
     this.socket.emit('start-game', { viewTime, drawTime });
   }
 
   startPartyGamePhase(gameState) {
+    console.log('Starting phase:', gameState.phase);
+    // ... rest of the phase logic (keeping it simple for now)
+    
     const gameArea = document.getElementById('party-game-area');
     const lobby = document.getElementById('party-lobby');
     const status = document.getElementById('party-status');
-    const drawingArea = document.getElementById('drawing-area');
     
-    lobby.classList.add('hidden');
-    gameArea.classList.remove('hidden');
+    if (lobby) lobby.classList.add('hidden');
+    if (gameArea) gameArea.classList.remove('hidden');
     
     const currentPlayer = this.currentRoom.players.find(p => p.id === gameState.currentDrawer);
     const isMyTurn = this.socket.id === gameState.currentDrawer;
-    const isHost = this.isHost;
     
-    switch (gameState.phase) {
-      case 'studying':
-        if (isMyTurn) {
-          // Show monster image to current player
-          status.innerHTML = `
-            <h3>🎨 Study this monster carefully!</h3>
-            <p>Round ${gameState.currentRound} - You'll describe it to others</p>
-            <div class="monster-display">
-              <img src="images/${gameState.currentMonster}" style="max-width: 300px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);" />
-            </div>
-          `;
-          
-          // Start timer if host
-          if (isHost) {
-            setTimeout(() => {
-              this.socket.emit('start-phase-timer', {
-                phase: 'studying',
-                duration: gameState.viewTime
-              });
-            }, 1000);
-          }
-        } else if (isHost) {
-          // Host screen - show controls and status
-          status.innerHTML = `
-            <h3>⏳ ${currentPlayer.name} is studying the monster...</h3>
-            <p>Round ${gameState.currentRound} - Preparing for drawing phase</p>
-            <div class="host-controls-active">
-              <button id="skip-to-drawing" class="party-btn">Skip to Drawing</button>
-            </div>
-          `;
-          
-          // Add skip functionality
-          setTimeout(() => {
-            const skipBtn = document.getElementById('skip-to-drawing');
-            if (skipBtn) {
-              skipBtn.addEventListener('click', () => {
-                this.socket.emit('advance-phase');
-              });
-            }
-          }, 100);
-        } else {
-          // Other players
-          status.innerHTML = `
-            <h3>⏳ ${currentPlayer.name} is studying the monster...</h3>
-            <p>Round ${gameState.currentRound} - Get ready to draw!</p>
-          `;
-        }
-        drawingArea.classList.add('hidden');
-        break;
-        
-      case 'drawing':
-        if (isMyTurn) {
-          if (isHost) {
-            // Host/Drawer sees description interface
-            status.innerHTML = `
-              <h3>🎤 Describe the monster while others draw!</h3>
-              <p>Guide your team with clear descriptions</p>
-              <div class="host-controls-active">
-                <button id="end-drawing-phase" class="party-btn">End Drawing Phase</button>
-              </div>
-            `;
-            
-            // Add end drawing functionality
-            setTimeout(() => {
-              const endBtn = document.getElementById('end-drawing-phase');
-              if (endBtn) {
-                endBtn.addEventListener('click', () => {
-                  this.socket.emit('advance-phase');
-                });
-              }
-            }, 100);
-          } else {
-            status.innerHTML = `
-              <h3>🎤 Describe the monster while others draw!</h3>
-              <p>Use the main screen if you're the host</p>
-            `;
-          }
-          drawingArea.classList.add('hidden');
-          
-          // Start drawing timer if host
-          if (isHost) {
-            setTimeout(() => {
-              this.socket.emit('start-phase-timer', {
-                phase: 'drawing',
-                duration: gameState.drawTime
-              });
-            }, 1000);
-          }
-        } else {
-          // Other players draw
-          status.innerHTML = `
-            <h3>✏️ Draw what ${currentPlayer.name} describes!</h3>
-            <p>Listen carefully and draw on the canvas below</p>
-          `;
-          drawingArea.classList.remove('hidden');
-          this.clearCanvas();
-        }
-        break;
-        
-      case 'reveal':
-        if (isHost) {
-          // Host screen shows all drawings in a gallery
-          status.innerHTML = `
-            <h3>🎉 Round ${gameState.currentRound} Complete!</h3>
-            <p>Here are all the drawings compared to the original:</p>
-            <div class="drawings-gallery" id="drawings-gallery">
-              <div class="original-monster">
-                <h4>Original Monster</h4>
-                <img src="images/${gameState.currentMonster}" style="max-width: 200px; border-radius: 8px;" />
-              </div>
-              ${gameState.drawings.map(drawing => `
-                <div class="player-drawing">
-                  <h4>${drawing.playerName}</h4>
-                  <img src="${drawing.imageData}" style="max-width: 200px; border-radius: 8px;" />
-                </div>
-              `).join('')}
-            </div>
-            <div class="host-controls-active">
-              <button id="next-round-btn" class="party-btn">Next Round</button>
-              <button id="end-game-btn" class="party-btn" style="background: #e74c3c;">End Game</button>
-            </div>
-          `;
-          
-          // Add next round functionality
-          setTimeout(() => {
-            const nextBtn = document.getElementById('next-round-btn');
-            const endBtn = document.getElementById('end-game-btn');
-            if (nextBtn) {
-              nextBtn.addEventListener('click', () => {
-                this.socket.emit('advance-phase');
-              });
-            }
-            if (endBtn) {
-              endBtn.addEventListener('click', () => {
-                // End game logic
-                this.showLobby();
-              });
-            }
-          }, 100);
-        } else {
-          status.innerHTML = `
-            <h3>🎉 Round ${gameState.currentRound} Complete!</h3>
-            <p>Check the main screen to see all drawings and the original monster!</p>
-          `;
-        }
-        drawingArea.classList.add('hidden');
-        break;
-        
-      case 'finished':
-        status.innerHTML = `
-          <h3>🏆 Game Complete!</h3>
-          <p>Thanks for playing! The host can start a new game.</p>
-        `;
-        drawingArea.classList.add('hidden');
-        break;
+    if (status) {
+      status.innerHTML = `<h3>Phase: ${gameState.phase}</h3><p>Current drawer: ${currentPlayer ? currentPlayer.name : 'Unknown'}</p><p>Your turn: ${isMyTurn ? 'Yes' : 'No'}</p>`;
     }
-  }
-
-  // Handle timer updates
-  handleTimerUpdate(data) {
-    const { timeLeft, phase } = data;
-    
-    // Show timer countdown in status area
-    const timerDisplay = document.getElementById('party-timer-display');
-    if (!timerDisplay) {
-      const status = document.getElementById('party-status');
-      const timer = document.createElement('div');
-      timer.id = 'party-timer-display';
-      timer.className = 'party-timer';
-      status.appendChild(timer);
-    }
-    
-    const timer = document.getElementById('party-timer-display');
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
-    // Add warning class for last 10 seconds
-    if (timeLeft <= 10) {
-      timer.classList.add('timer-warning');
-    } else {
-      timer.classList.remove('timer-warning');
-    }
-  }
-
-  setupDrawingCanvas() {
-    // Will be called when drawing area is shown
-    document.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('party-canvas');
-      if (!canvas) return;
-      
-      this.canvas = canvas;
-      this.ctx = canvas.getContext('2d');
-      
-      // Set up drawing event listeners
-      canvas.addEventListener('mousedown', this.startDrawing.bind(this));
-      canvas.addEventListener('mousemove', this.draw.bind(this));
-      canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
-      canvas.addEventListener('mouseout', this.stopDrawing.bind(this));
-      
-      // Touch events for mobile
-      canvas.addEventListener('touchstart', this.handleTouch.bind(this));
-      canvas.addEventListener('touchmove', this.handleTouch.bind(this));
-      canvas.addEventListener('touchend', this.stopDrawing.bind(this));
-      
-      // Tool controls
-      document.getElementById('clear-canvas').addEventListener('click', () => {
-        this.clearCanvas();
-      });
-      
-      document.getElementById('submit-drawing').addEventListener('click', () => {
-        this.submitDrawing();
-      });
-    });
-  }
-
-  startDrawing(e) {
-    this.isDrawing = true;
-    this.draw(e);
-  }
-
-  draw(e) {
-    if (!this.isDrawing) return;
-    
-    const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    const color = document.getElementById('brush-color').value;
-    const size = document.getElementById('brush-size').value;
-    
-    this.ctx.lineWidth = size;
-    this.ctx.lineCap = 'round';
-    this.ctx.strokeStyle = color;
-    
-    this.ctx.lineTo(x, y);
-    this.ctx.stroke();
-    this.ctx.beginPath();
-    this.ctx.moveTo(x, y);
-  }
-
-  stopDrawing() {
-    if (!this.isDrawing) return;
-    this.isDrawing = false;
-    this.ctx.beginPath();
-  }
-
-  handleTouch(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                     e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-      clientX: touch.clientX,
-      clientY: touch.clientY
-    });
-    this.canvas.dispatchEvent(mouseEvent);
-  }
-
-  clearCanvas() {
-    if (!this.ctx) return;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  }
-
-  submitDrawing() {
-    if (!this.canvas) return;
-    
-    const imageData = this.canvas.toDataURL();
-    this.socket.emit('submit-drawing', {
-      imageData: imageData
-    });
-    
-    // Hide drawing area and show waiting message
-    document.getElementById('drawing-area').classList.add('hidden');
-    document.getElementById('party-status').innerHTML = `
-      <h3>✅ Drawing Submitted!</h3>
-      <p>Waiting for other players to finish...</p>
-    `;
   }
 
   updateConnectionStatus(status) {
+    console.log('Connection status:', status);
     const statusElement = document.getElementById('party-connection-status');
+    if (!statusElement) return;
+    
     const indicator = statusElement.querySelector('.status-indicator');
     const text = statusElement.querySelector('.status-text');
     
-    text.textContent = status;
+    if (text) text.textContent = status;
     
-    if (status === 'Connected') {
-      indicator.className = 'status-indicator connected';
-    } else {
-      indicator.className = 'status-indicator disconnected';
+    if (indicator) {
+      if (status === 'Connected') {
+        indicator.className = 'status-indicator connected';
+      } else {
+        indicator.className = 'status-indicator disconnected';
+      }
     }
   }
 
   showError(message) {
-    // You can integrate this with your existing error display system
+    console.error('Error:', message);
     alert(`Party Mode Error: ${message}`);
   }
 
   showMessage(message) {
-    // You can integrate this with your existing message system
-    console.log(`Party Mode: ${message}`);
-    
-    // Simple toast notification
-    const toast = document.createElement('div');
-    toast.className = 'party-toast';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      toast.remove();
-    }, 3000);
+    console.log('Message:', message);
   }
+
+  // Placeholder methods
+  setupDrawingCanvas() {}
+  handleTimerUpdate() {}
 }
 
 // Initialize party mode when DOM is loaded
 let partyClient = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Only initialize if we're not in an iframe (to avoid conflicts)
+  console.log('DOM loaded, initializing party client...');
   if (window.self === window.top) {
     partyClient = new PartyGameClient();
     partyClient.init();
+    console.log('✅ Party client initialized');
   }
 });
