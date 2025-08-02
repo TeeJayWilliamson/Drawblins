@@ -10,7 +10,7 @@ class PartyGameClient {
     this.canvas = null;
     this.ctx = null;
     this.isDrawing = false;
-    this.serverUrl = 'wss://your-railway-app.railway.app'; // Replace with your Railway URL
+    this.serverUrl = 'https://your-railway-url.up.railway.app'; // Replace with your Railway URL
   }
 
   // Initialize party mode
