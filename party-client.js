@@ -1525,11 +1525,12 @@ class CustomCastManager {
     this.partyClient = partyClient;
     this.castSession = null;
     this.APPLICATION_ID = '570D13B8'; // Your custom receiver application ID
+    this.useDefaultReceiver = false; // Set to true to test Default Media Receiver
     this.init();
   }
 
   init() {
-    // Load Google Cast SDK
+    // Load Google Cast SDK if not loaded
     if (!window.chrome || !window.chrome.cast) {
       const script = document.createElement('script');
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
@@ -1554,12 +1555,13 @@ class CustomCastManager {
   initializeCast() {
     try {
       const castContext = cast.framework.CastContext.getInstance();
-      
-castContext.setOptions({
-  receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, // Test with default
-  autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-});
 
+      castContext.setOptions({
+        receiverApplicationId: this.useDefaultReceiver
+          ? chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
+          : this.APPLICATION_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+      });
 
       castContext.addEventListener(
         cast.framework.CastContextEventType.CAST_STATE_CHANGED,
@@ -1567,7 +1569,7 @@ castContext.setOptions({
       );
 
       this.updateCastButton('ready');
-      console.log('Cast initialized with Application ID:', this.APPLICATION_ID);
+      console.log('Cast initialized with Application ID:', this.useDefaultReceiver ? 'DEFAULT_MEDIA_RECEIVER' : this.APPLICATION_ID);
     } catch (error) {
       console.error('Cast init failed:', error);
       this.showError('Cast initialization failed');
@@ -1577,7 +1579,7 @@ castContext.setOptions({
   onCastStateChanged(event) {
     const castState = event.castState;
     const castBtn = document.getElementById('cast-to-tv-btn');
-    
+
     switch (castState) {
       case cast.framework.CastState.CONNECTED:
         this.castSession = cast.framework.CastContext.getInstance().getCurrentSession();
@@ -1586,18 +1588,23 @@ castContext.setOptions({
           castBtn.innerHTML = '📺 Connected';
         }
         this.partyClient.showMessage('Connected to Chromecast! Game will display on TV.');
-        
-        // Send initial game data
-        this.sendInitialGameData();
+
+        // Send initial game data if using custom receiver
+        if (!this.useDefaultReceiver) {
+          this.sendInitialGameData();
+        } else {
+          // If testing default receiver, load sample media
+          this.testCastDefaultMedia();
+        }
         break;
-        
+
       case cast.framework.CastState.CONNECTING:
         if (castBtn) {
           castBtn.classList.add('connecting');
           castBtn.innerHTML = '📺 Connecting...';
         }
         break;
-        
+
       case cast.framework.CastState.NOT_CONNECTED:
         this.castSession = null;
         if (castBtn) {
@@ -1639,7 +1646,7 @@ castContext.setOptions({
       this.sendMessage('room-code', {
         roomCode: this.partyClient.roomCode
       });
-      
+
       // Send current game state if available
       if (this.partyClient.currentRoom.gameState) {
         this.sendMessage('game-update', {
@@ -1656,7 +1663,7 @@ castContext.setOptions({
 
   sendMessage(type, data) {
     if (!this.castSession) return;
-    
+
     try {
       const message = { type, ...data };
       this.castSession.sendMessage(
@@ -1670,6 +1677,23 @@ castContext.setOptions({
     } catch (error) {
       console.error('Send message error:', error);
     }
+  }
+
+  testCastDefaultMedia() {
+    if (!this.castSession) return;
+
+    const mediaInfo = new chrome.cast.media.MediaInfo(
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'video/mp4'
+    );
+
+    const request = new chrome.cast.media.LoadRequest(mediaInfo);
+
+    this.castSession.loadMedia(request).then(() => {
+      console.log('Default media loaded on Chromecast');
+    }).catch((error) => {
+      console.error('Error loading media:', error);
+    });
   }
 
   updateCastButton(state) {
@@ -1710,7 +1734,7 @@ castContext.setOptions({
       }
       this.castSession = null;
     }
-    
+
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
       castBtn.classList.remove('connected', 'connecting');
@@ -1719,6 +1743,7 @@ castContext.setOptions({
     }
   }
 }
+
 
 // Initialize party mode when DOM is loaded
 let partyClient = null;
