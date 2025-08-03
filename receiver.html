@@ -389,6 +389,11 @@
         // Custom message bus for game data
         const CUSTOM_CHANNEL = 'urn:x-cast:com.drawblins.gamedata';
         
+        // Chunked drawings handling
+        let pendingDrawings = [];
+        let expectedDrawings = 0;
+        let pendingOriginalMonster = null;
+        
         context.addCustomMessageListener(CUSTOM_CHANNEL, (customEvent) => {
             const message = customEvent.data;
             console.log('Received custom message:', message);
@@ -402,6 +407,24 @@
                     break;
                 case 'show-drawings':
                     showDrawingsResults(message.drawings, message.originalMonster);
+                    break;
+                case 'show-drawings-start':
+                    console.log('📦 Starting chunked drawings reception...');
+                    pendingDrawings = [];
+                    expectedDrawings = message.totalDrawings;
+                    pendingOriginalMonster = message.originalMonster;
+                    break;
+                case 'show-drawing-chunk':
+                    console.log(`📥 Received drawing chunk ${message.index + 1}/${expectedDrawings}`);
+                    pendingDrawings[message.index] = message.drawing;
+                    
+                    if (message.isLast || pendingDrawings.filter(d => d).length === expectedDrawings) {
+                        console.log('📦 All drawing chunks received, displaying...');
+                        showDrawingsResults(pendingDrawings.filter(d => d), pendingOriginalMonster);
+                    }
+                    break;
+                case 'show-drawings-complete':
+                    console.log('✅ Drawings reception complete');
                     break;
                 case 'room-code':
                     setRoomCode(message.roomCode);

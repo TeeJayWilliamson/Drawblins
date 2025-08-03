@@ -1552,17 +1552,17 @@ sendToCastDisplay(type, data) {
 }
 
 // Custom Cast Manager with your Application ID - UPDATED WITH DEBUGGING
+// Custom Cast Manager with Image Compression and Message Splitting
 class CustomCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
     this.castSession = null;
-    this.APPLICATION_ID = '570D13B8'; // Your custom receiver application ID
-    this.useDefaultReceiver = false; // Set to true to test Default Media Receiver
+    this.APPLICATION_ID = '570D13B8';
+    this.useDefaultReceiver = false;
     this.init();
   }
 
   init() {
-    // Load Google Cast SDK if not loaded
     if (!window.chrome || !window.chrome.cast) {
       const script = document.createElement('script');
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
@@ -1587,7 +1587,6 @@ class CustomCastManager {
   initializeCast() {
     try {
       const castContext = cast.framework.CastContext.getInstance();
-
       castContext.setOptions({
         receiverApplicationId: this.useDefaultReceiver
           ? chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
@@ -1620,13 +1619,8 @@ class CustomCastManager {
           castBtn.innerHTML = '📺 Connected';
         }
         this.partyClient.showMessage('Connected to Chromecast! Game will display on TV.');
-
-        // Send initial game data if using custom receiver
         if (!this.useDefaultReceiver) {
           this.sendInitialGameData();
-        } else {
-          // If testing default receiver, load sample media
-          this.testCastDefaultMedia();
         }
         break;
 
@@ -1649,10 +1643,8 @@ class CustomCastManager {
 
   handleCastClick() {
     if (this.castSession) {
-      // Already connected, show status
       this.partyClient.showMessage('Already connected to Chromecast. Game is displaying on TV.');
     } else {
-      // Try to connect
       try {
         const castContext = cast.framework.CastContext.getInstance();
         castContext.requestSession()
@@ -1675,12 +1667,10 @@ class CustomCastManager {
   sendInitialGameData() {
     console.log('🎮 Sending initial game data to cast...');
     if (this.castSession && this.partyClient.currentRoom) {
-      // Send room code first
       this.sendMessage('room-code', {
         roomCode: this.partyClient.roomCode
       });
 
-      // Send current game state if available
       if (this.partyClient.currentRoom.gameState) {
         this.sendMessage('game-update', {
           gameState: this.partyClient.currentRoom.gameState,
@@ -1690,9 +1680,135 @@ class CustomCastManager {
     }
   }
 
+  // Compress image data
+  compressImageData(imageData, quality = 0.7) {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Set canvas size (reduce if too large)
+        const maxSize = 400; // Reduce image size for cast
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedData = canvas.toDataURL('image/jpeg', quality);
+        
+        console.log(`🗜️ Image compressed: ${imageData.length} → ${compressedData.length} (${Math.round(compressedData.length/imageData.length*100)}%)`);
+        resolve(compressedData);
+      };
+      
+      img.onerror = () => {
+        console.warn('Failed to compress image, using original');
+        resolve(imageData);
+      };
+      
+      img.src = imageData;
+    });
+  }
+
+  // Process drawings with compression
+  async processDrawingsForCast(drawings) {
+    if (!drawings || drawings.length === 0) return [];
+    
+    console.log('🖼️ Processing drawings for cast...');
+    const processedDrawings = [];
+    
+    for (let i = 0; i < drawings.length; i++) {
+      const drawing = drawings[i];
+      console.log(`Processing drawing ${i + 1}/${drawings.length} for ${drawing.playerName}`);
+      
+      if (drawing.imageData) {
+        try {
+          const compressedImage = await this.compressImageData(drawing.imageData, 0.6);
+          processedDrawings.push({
+            ...drawing,
+            imageData: compressedImage
+          });
+        } catch (error) {
+          console.error('Error processing drawing:', error);
+          // Use original if compression fails
+          processedDrawings.push(drawing);
+        }
+      } else {
+        processedDrawings.push(drawing);
+      }
+    }
+    
+    return processedDrawings;
+  }
+
   sendToCast(type, data) {
-    console.log('📡 sendToCast called:', type, data);
-    this.sendMessage(type, data);
+    console.log('📡 sendToCast called:', type);
+    
+    if (type === 'show-drawings') {
+      this.sendDrawingsData(data);
+    } else {
+      this.sendMessage(type, data);
+    }
+  }
+
+  async sendDrawingsData(data) {
+    console.log('🎨 Sending drawings data...');
+    
+    try {
+      // Process drawings with compression
+      const processedDrawings = await this.processDrawingsForCast(data.drawings);
+      
+      // Calculate message size
+      const testMessage = {
+        type: 'show-drawings',
+        drawings: processedDrawings,
+        originalMonster: data.originalMonster
+      };
+      
+      const messageSize = JSON.stringify(testMessage).length;
+      console.log(`📏 Message size: ${messageSize} characters`);
+      
+      if (messageSize > 64000) { // Cast SDK limit is around 64KB
+        console.log('📦 Message too large, splitting...');
+        await this.sendDrawingsInChunks(processedDrawings, data.originalMonster);
+      } else {
+        console.log('📤 Sending complete drawings message...');
+        this.sendMessage('show-drawings', {
+          drawings: processedDrawings,
+          originalMonster: data.originalMonster
+        });
+      }
+    } catch (error) {
+      console.error('Error sending drawings data:', error);
+      this.partyClient.showError('Failed to send drawings to TV');
+    }
+  }
+
+  async sendDrawingsInChunks(drawings, originalMonster) {
+    console.log('📦 Splitting drawings into chunks...');
+    
+    // Send original monster first
+    this.sendMessage('show-drawings-start', {
+      originalMonster: originalMonster,
+      totalDrawings: drawings.length
+    });
+    
+    // Send drawings one by one
+    for (let i = 0; i < drawings.length; i++) {
+      console.log(`📤 Sending drawing ${i + 1}/${drawings.length}`);
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between messages
+      
+      this.sendMessage('show-drawing-chunk', {
+        drawing: drawings[i],
+        index: i,
+        isLast: i === drawings.length - 1
+      });
+    }
+    
+    // Send completion message
+    this.sendMessage('show-drawings-complete', {});
   }
 
   sendMessage(type, data) {
@@ -1703,31 +1819,16 @@ class CustomCastManager {
 
     try {
       const message = { type, ...data };
+      const messageSize = JSON.stringify(message).length;
       
-      // DEBUG: Log what we're sending
       console.log('=== SENDING TO CAST ===');
       console.log('Type:', type);
-      console.log('Data keys:', Object.keys(data));
+      console.log('Message size:', messageSize, 'characters');
       
-      if (type === 'show-drawings') {
-        console.log('📸 DRAWINGS DEBUG:');
-        console.log('- Drawings count:', data.drawings?.length || 0);
-        console.log('- Original monster:', data.originalMonster);
-        
-        // Check each drawing
-        if (data.drawings && data.drawings.length > 0) {
-          data.drawings.forEach((drawing, i) => {
-            console.log(`Drawing ${i + 1}:`, {
-              playerName: drawing.playerName,
-              hasImageData: !!drawing.imageData,
-              imageDataStart: drawing.imageData ? drawing.imageData.substring(0, 50) + '...' : 'NO IMAGE DATA',
-              imageDataLength: drawing.imageData ? drawing.imageData.length : 0,
-              autoSubmitted: drawing.autoSubmitted
-            });
-          });
-        } else {
-          console.log('❌ No drawings to send!');
-        }
+      if (messageSize > 64000) {
+        console.error('❌ Message too large:', messageSize);
+        this.partyClient.showError(`Message too large for Cast: ${messageSize} characters`);
+        return;
       }
       
       this.castSession.sendMessage(
@@ -1737,27 +1838,14 @@ class CustomCastManager {
         console.log('✅ Cast message sent successfully:', type);
       }).catch((error) => {
         console.error('❌ Cast message error:', error);
+        if (error === 'invalid_parameter') {
+          console.error('Message was likely too large or contained invalid data');
+          this.partyClient.showError('Message too large for Cast TV');
+        }
       });
     } catch (error) {
       console.error('❌ Send message error:', error);
     }
-  }
-
-  testCastDefaultMedia() {
-    if (!this.castSession) return;
-
-    const mediaInfo = new chrome.cast.media.MediaInfo(
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      'video/mp4'
-    );
-
-    const request = new chrome.cast.media.LoadRequest(mediaInfo);
-
-    this.castSession.loadMedia(request).then(() => {
-      console.log('Default media loaded on Chromecast');
-    }).catch((error) => {
-      console.error('Error loading media:', error);
-    });
   }
 
   updateCastButton(state) {
