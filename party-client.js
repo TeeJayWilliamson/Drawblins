@@ -747,7 +747,7 @@ class PartyGameClient {
     }
   }
 
-handleRevealPhase(gameState, extraData) {
+  handleRevealPhase(gameState, extraData) {
     console.log('🎭 === REVEAL PHASE DEBUG ===');
     console.log('gameState:', gameState);
     console.log('extraData:', extraData);
@@ -803,20 +803,20 @@ handleRevealPhase(gameState, extraData) {
     }
   }
 
-// Also add this method if it doesn't exist or update it:
-sendToCastDisplay(type, data) {
-  console.log('🎬 === SEND TO CAST DISPLAY ===');
-  console.log('Type:', type);
-  console.log('Data:', data);
-  console.log('Cast manager exists:', !!this.castManager);
-  
-  if (this.castManager) {
-    console.log('📡 Calling castManager.sendToCast...');
-    this.castManager.sendToCast(type, data);
-  } else {
-    console.log('❌ No cast manager available');
+  // Also add this method if it doesn't exist or update it:
+  sendToCastDisplay(type, data) {
+    console.log('🎬 === SEND TO CAST DISPLAY ===');
+    console.log('Type:', type);
+    console.log('Data:', data);
+    console.log('Cast manager exists:', !!this.castManager);
+    
+    if (this.castManager) {
+      console.log('📡 Calling castManager.sendToCast...');
+      this.castManager.sendToCast(type, data);
+    } else {
+      console.log('❌ No cast manager available');
+    }
   }
-}
 
   showMonsterToDrawer(monster, viewTime) {
     console.log('Showing monster to drawer:', monster);
@@ -1316,14 +1316,84 @@ sendToCastDisplay(type, data) {
     // Listen for messages from the drawing interface
     window.addEventListener('message', (event) => {
       if (event.data.type === 'drawing-submitted') {
-        this.submitDrawing(event.data.imageData);
+        this.handleDrawingSubmission(event.data.imageData);
         this.hideDrawingOverlay();
       }
       
       if (event.data.type === 'drawing-auto-submitted') {
-        this.handleAutoSubmitResponse(event.data.imageData);
+        this.handleDrawingSubmission(event.data.imageData, true);
         this.hideDrawingOverlay();
       }
+    });
+  }
+
+  // Enhanced drawing submission handler with validation
+  handleDrawingSubmission(imageData, isAutoSubmit = false) {
+    console.log('🎨 Handling drawing submission...');
+    console.log('🎨 Image data length:', imageData?.length || 0);
+    console.log('🎨 Image data preview:', imageData?.substring(0, 50));
+    console.log('🎨 Is auto-submit:', isAutoSubmit);
+    
+    // Validate image data
+    if (!imageData || typeof imageData !== 'string') {
+      console.error('❌ Invalid image data received');
+      this.showError('Invalid drawing data');
+      return;
+    }
+    
+    if (!imageData.startsWith('data:image/')) {
+      console.error('❌ Image data does not start with data:image/');
+      this.showError('Invalid image format');
+      return;
+    }
+    
+    if (imageData.length < 100) {
+      console.error('❌ Image data too short:', imageData.length);
+      this.showError('Drawing appears to be empty');
+      return;
+    }
+    
+    // Test if the image data is valid by creating an image
+    this.validateImageData(imageData).then((isValid) => {
+      if (isValid) {
+        console.log('✅ Image data validation passed');
+        if (isAutoSubmit) {
+          this.socket.emit('auto-submit-response', { imageData });
+          this.showMessage('Time up! Drawing auto-submitted.');
+        } else {
+          this.socket.emit('submit-drawing', { imageData });
+          this.showMessage('Drawing submitted successfully!');
+        }
+      } else {
+        console.error('❌ Image data validation failed');
+        this.showError('Drawing data is corrupted');
+      }
+    });
+  }
+
+  // Add image validation method
+  validateImageData(imageData) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        console.log('✅ Image data loaded successfully for validation');
+        console.log('✅ Image dimensions:', img.width, 'x', img.height);
+        resolve(true);
+      };
+      
+      img.onerror = (error) => {
+        console.error('❌ Image data failed to load for validation:', error);
+        resolve(false);
+      };
+      
+      // Set a timeout for validation
+      setTimeout(() => {
+        console.warn('⚠️ Image validation timeout');
+        resolve(false);
+      }, 5000);
+      
+      img.src = imageData;
     });
   }
 
@@ -1438,11 +1508,9 @@ sendToCastDisplay(type, data) {
     this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
   }
 
+  // Legacy method for compatibility
   submitDrawing(imageData) {
-    if (!this.socket) return;
-    
-    this.socket.emit('submit-drawing', { imageData });
-    this.showMessage('Drawing submitted successfully!');
+    this.handleDrawingSubmission(imageData, false);
   }
 
   handleAutoSubmit() {
@@ -1458,11 +1526,9 @@ sendToCastDisplay(type, data) {
     }
   }
 
+  // Legacy method for compatibility
   handleAutoSubmitResponse(imageData) {
-    if (!this.socket) return;
-    
-    this.socket.emit('auto-submit-response', { imageData });
-    this.showMessage('Time up! Drawing auto-submitted.');
+    this.handleDrawingSubmission(imageData, true);
   }
 
   handleGameFinished(data) {
@@ -1572,8 +1638,7 @@ sendToCastDisplay(type, data) {
   }
 }
 
-// Custom Cast Manager with your Application ID - UPDATED WITH DEBUGGING
-// Custom Cast Manager with Image Compression and Message Splitting
+// Custom Cast Manager with Enhanced Image Processing and Debugging
 class CustomCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
@@ -1701,14 +1766,20 @@ class CustomCastManager {
     }
   }
 
-  // Compress image data
-  compressImageData(imageData, quality = 0.7) {
+  // Enhanced image compression with debugging
+  async compressImageData(imageData, quality = 0.7) {
     return new Promise((resolve) => {
+      console.log('🗜️ Starting image compression...');
+      console.log('🗜️ Original data length:', imageData.length);
+      console.log('🗜️ Original data preview:', imageData.substring(0, 50));
+      
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
       
       img.onload = () => {
+        console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
+        
         // Set canvas size (reduce if too large)
         const maxSize = 400; // Reduce image size for cast
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
@@ -1716,17 +1787,31 @@ class CustomCastManager {
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         
+        console.log('🗜️ Canvas size for compression:', canvas.width, 'x', canvas.height);
+        
+        // Fill with white background first
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         // Draw and compress
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const compressedData = canvas.toDataURL('image/jpeg', quality);
         
-        console.log(`🗜️ Image compressed: ${imageData.length} → ${compressedData.length} (${Math.round(compressedData.length/imageData.length*100)}%)`);
-        resolve(compressedData);
+        try {
+          const compressedData = canvas.toDataURL('image/jpeg', quality);
+          console.log('🗜️ Compressed data length:', compressedData.length);
+          console.log('🗜️ Compression ratio:', Math.round(compressedData.length/imageData.length*100) + '%');
+          console.log('🗜️ Compressed data preview:', compressedData.substring(0, 50));
+          resolve(compressedData);
+        } catch (error) {
+          console.error('🗜️ Compression failed:', error);
+          resolve(imageData); // Return original on error
+        }
       };
       
-      img.onerror = () => {
-        console.warn('Failed to compress image, using original');
-        resolve(imageData);
+      img.onerror = (error) => {
+        console.error('🗜️ Failed to load image for compression:', error);
+        console.error('🗜️ Image data that failed:', imageData.substring(0, 100));
+        resolve(imageData); // Return original on error
       };
       
       img.src = imageData;
@@ -1916,7 +2001,6 @@ class CustomCastManager {
     }
   }
 }
-
 
 // Initialize party mode when DOM is loaded
 let partyClient = null;
