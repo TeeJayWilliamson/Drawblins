@@ -265,6 +265,25 @@
             display: none !important; 
         }
         
+        .cast-debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            max-width: 300px;
+            z-index: 9999;
+            display: none;
+        }
+        
+        .cast-debug-info.show {
+            display: block;
+        }
+        
         /* Image loading states */
         .cast-drawing-image {
             opacity: 0;
@@ -364,6 +383,12 @@
         </div>
     </div>
     
+    <!-- Debug info display -->
+    <div id="cast-debug" class="cast-debug-info">
+        <div>Debug Info:</div>
+        <div id="debug-content">Waiting for messages...</div>
+    </div>
+    
     <!-- Cast SDK -->
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
     
@@ -394,18 +419,43 @@
         let expectedDrawings = 0;
         let pendingOriginalMonster = null;
         
+        // Debug helper
+        function addDebugInfo(text) {
+            const debugDiv = document.getElementById('cast-debug');
+            const contentDiv = document.getElementById('debug-content');
+            if (debugDiv && contentDiv) {
+                contentDiv.innerHTML = text + '<br>' + contentDiv.innerHTML;
+                debugDiv.classList.add('show');
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (debugDiv.classList.contains('show')) {
+                        debugDiv.classList.remove('show');
+                    }
+                }, 10000);
+            }
+        }
+        
         context.addCustomMessageListener(CUSTOM_CHANNEL, (customEvent) => {
             const message = customEvent.data;
-            console.log('Received custom message:', message);
+            console.log('🎬 === RECEIVED CAST MESSAGE ===');
+            console.log('🎬 Message type:', message.type);
+            console.log('🎬 Full message:', message);
             
             switch (message.type) {
                 case 'game-update':
+                    console.log('🎮 Processing game-update...');
                     handleGameUpdate(message.gameState, message.room);
                     break;
                 case 'timer-update':
+                    console.log('⏰ Processing timer-update...');
                     updateTimer(message.timeString, message.timeLeft);
                     break;
                 case 'show-drawings':
+                    console.log('🎨 Processing show-drawings...');
+                    console.log('🎨 Drawings in message:', message.drawings);
+                    console.log('🎨 Original monster:', message.originalMonster);
+                    addDebugInfo(`Received drawings: ${message.drawings?.length || 0} drawings, monster: ${message.originalMonster}`);
                     showDrawingsResults(message.drawings, message.originalMonster);
                     break;
                 case 'show-drawings-start':
@@ -427,8 +477,11 @@
                     console.log('✅ Drawings reception complete');
                     break;
                 case 'room-code':
+                    console.log('🏠 Setting room code:', message.roomCode);
                     setRoomCode(message.roomCode);
                     break;
+                default:
+                    console.log('❓ Unknown message type:', message.type);
             }
         });
         
@@ -559,7 +612,7 @@
             }
         }
         
-function showDrawingsResults(drawings, originalMonster) {
+        function showDrawingsResults(drawings, originalMonster) {
             console.log('🎨 === SHOWING DRAWINGS RESULTS ===');
             console.log('📊 Drawings received:', drawings);
             console.log('📊 Drawings count:', drawings?.length || 0);
