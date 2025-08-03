@@ -505,7 +505,7 @@ class PartyGameClient {
 
     console.log('Event listeners set up');
   }
-
+/*
   // Initialize Google Cast SDK
   initializeCastSDK() {
     if (window.chrome && window.chrome.cast) {
@@ -611,6 +611,8 @@ class PartyGameClient {
       .catch((error) => console.error('Failed to send data to cast:', error));
   }
 
+*/
+
   // Fallback to popup window if Cast SDK unavailable
   fallbackCast() {
     console.log('Using fallback popup cast');
@@ -666,24 +668,239 @@ class PartyGameClient {
   }
 
   // Handle cast button click
-  handleCastClick() {
-    if (window.chrome && window.chrome.cast && cast.framework) {
-      // Use native Cast SDK
-      const castContext = cast.framework.CastContext.getInstance();
-      castContext.requestSession()
-        .then(() => {
-          console.log('Cast session requested');
-        })
-        .catch((error) => {
-          console.error('Cast session request failed:', error);
-          // Fallback to popup
-          this.fallbackCast();
-        });
-    } else {
-      // Fallback to popup window
-      this.fallbackCast();
+handleCastClick() {
+  this.showTVSetupModal();
+}
+
+// ADD these new methods (they don't exist yet):
+showTVSetupModal() {
+  // Create modal with QR code and instructions
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 6000;
+    padding: 1rem;
+  `;
+
+  const content = document.createElement('div');
+  content.style.cssText = `
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  `;
+
+  const castUrl = `${window.location.origin}/cast.html?room=${this.roomCode}`;
+  
+  content.innerHTML = `
+    <h3 style="margin: 0 0 1rem 0; color: #333; font-size: 1.5rem;">
+      🖥️ TV Setup
+    </h3>
+    
+    <p style="color: #666; margin: 0 0 2rem 0; line-height: 1.5;">
+      Open this URL on your TV's web browser or scan the QR code:
+    </p>
+    
+    <div id="qr-code-container" style="
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 1rem 0;
+      display: flex;
+      justify-content: center;
+    ">
+      <!-- QR code will be inserted here -->
+    </div>
+    
+    <div style="
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+      color: #495057;
+      border: 1px solid #dee2e6;
+    ">
+      ${castUrl}
+    </div>
+    
+    <div style="
+      background: #e3f2fd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #1565c0;
+      border: 1px solid #bbdefb;
+    ">
+      <strong>💡 Pro Tip:</strong> Make the TV browser fullscreen for the best experience!
+    </div>
+    
+    <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
+      <button id="copy-url-btn" style="
+        flex: 1;
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      ">
+        📋 Copy URL
+      </button>
+      <button id="close-modal-btn" style="
+        flex: 1;
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.75rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      ">
+        Close
+      </button>
+    </div>
+    
+    <p style="
+      font-size: 0.8rem;
+      color: #868e96;
+      margin: 1rem 0 0 0;
+      font-style: italic;
+    ">
+      Works with Smart TVs, Roku, Apple TV, or any device with a web browser
+    </p>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+
+  // Generate QR code
+  this.generateQRCode(castUrl, 'qr-code-container');
+
+  // Event listeners
+  document.getElementById('copy-url-btn').onclick = () => {
+    navigator.clipboard.writeText(castUrl).then(() => {
+      const btn = document.getElementById('copy-url-btn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '✅ Copied!';
+      btn.style.background = '#28a745';
+      
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.background = '#4CAF50';
+      }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      this.fallbackCopyToClipboard(castUrl);
+    });
+  };
+
+  document.getElementById('close-modal-btn').onclick = () => {
+    document.body.removeChild(modal);
+  };
+
+  // Close on backdrop click
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
     }
+  };
+}
+
+generateQRCode(url, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Use QR Server API (free, no signup required)
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+  
+  const img = document.createElement('img');
+  img.src = qrUrl;
+  img.alt = 'QR Code for TV Display';
+  img.style.cssText = `
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+  `;
+  
+  img.onerror = () => {
+    // Fallback if QR service fails
+    container.innerHTML = `
+      <div style="
+        width: 200px;
+        height: 200px;
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-align: center;
+        line-height: 1.4;
+      ">
+        QR code not available<br>
+        Use the URL below instead
+      </div>
+    `;
+  };
+  
+  container.appendChild(img);
+}
+
+fallbackCopyToClipboard(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.style.position = 'fixed';
+  textArea.style.left = '-999999px';
+  textArea.style.top = '-999999px';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    document.execCommand('copy');
+    this.showMessage('URL copied to clipboard!');
+  } catch (err) {
+    this.showError('Could not copy URL. Please copy it manually.');
   }
+  
+  document.body.removeChild(textArea);
+}
+
+// REPLACE the existing updateCastButton method with this:
+updateCastButton(castAvailable) {
+  const castBtn = document.getElementById('cast-to-tv-btn');
+  if (!castBtn) return;
+
+  castBtn.innerHTML = `<span class="cast-icon">🖥️</span> Display on TV`;
+  castBtn.title = 'Get instructions to display the game on your TV';
+  
+  // Make it prominent on mobile
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    castBtn.style.background = '#FF6B6B';
+    castBtn.style.fontSize = '1.1rem';
+    castBtn.style.fontWeight = 'bold';
+  }
+}
 
   updateCastButton(castAvailable) {
     const castBtn = document.getElementById('cast-to-tv-btn');
