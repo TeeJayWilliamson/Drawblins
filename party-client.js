@@ -1701,7 +1701,7 @@ class SimpleCastManager {
     if (!this.castSession) return;
 
     // Create the cast URL - this needs to be the FULL URL to your cast.html
-    const castUrl = `${window.location.origin}/cast.html?room=${this.partyClient.roomCode}`;
+    const castUrl = `${window.location.origin}/Drawblins/cast.html?room=${this.partyClient.roomCode}`;
     
     console.log('Loading cast URL:', castUrl);
 
@@ -1849,7 +1849,7 @@ class SimpleCastManager {
 
   showFallback() {
     // Simple fallback: just show the cast URL
-    const castUrl = `${window.location.origin}/cast.html?room=${this.partyClient.roomCode}`;
+    const castUrl = `${window.location.origin}/Drawblins/cast.html?room=${this.partyClient.roomCode}`;
     
     // For mobile, use share API
     if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
