@@ -19,6 +19,7 @@ class PartyGameClient {
     console.log('Initializing Enhanced Party Mode...');
     this.createPartyModeUI();
     this.setupAudio();
+    this.initializeCastSDK(); // Initialize Cast SDK
   }
 
   // Setup audio system
@@ -364,7 +365,7 @@ class PartyGameClient {
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
               <button id="cast-to-tv-btn" class="party-btn cast-btn">
-                <span class="cast-icon">📺</span> Cast to TV
+                <span class="cast-icon"></span> Cast to TV
               </button>
             </div>
           </div>
@@ -469,8 +470,8 @@ class PartyGameClient {
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
       castBtn.addEventListener('click', () => {
-        console.log('Cast to TV button clicked');
-        this.openCastWindow();
+        console.log('Cast button clicked');
+        this.handleCastClick();
       });
     }
 
@@ -505,7 +506,117 @@ class PartyGameClient {
     console.log('Event listeners set up');
   }
 
-  // Simple cast window functionality
+  // Initialize Google Cast SDK
+  initializeCastSDK() {
+    if (window.chrome && window.chrome.cast) {
+      console.log('Google Cast SDK already loaded');
+      this.setupCastAPI();
+      return;
+    }
+
+    // Load Google Cast SDK
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+    script.onload = () => {
+      console.log('Google Cast SDK loaded');
+      this.setupCastAPI();
+    };
+    script.onerror = () => {
+      console.warn('Google Cast SDK failed to load, falling back to popup');
+      this.fallbackCast();
+    };
+    document.head.appendChild(script);
+  }
+
+  setupCastAPI() {
+    window['__onGCastApiAvailable'] = (isAvailable) => {
+      if (isAvailable) {
+        this.initializeCast();
+      } else {
+        console.warn('Google Cast API not available, falling back to popup');
+        this.fallbackCast();
+      }
+    };
+  }
+
+  initializeCast() {
+    const castContext = cast.framework.CastContext.getInstance();
+    
+    castContext.setOptions({
+      receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, // We'll use default for now
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+    });
+
+    // Listen for cast state changes
+    castContext.addEventListener(
+      cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+      (event) => this.onCastStateChanged(event)
+    );
+
+    console.log('Google Cast initialized successfully');
+    this.updateCastButton(true);
+  }
+
+  onCastStateChanged(event) {
+    const castState = event.castState;
+    const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    
+    switch (castState) {
+      case cast.framework.CastState.CONNECTED:
+        console.log('Connected to cast device');
+        this.castSession = castSession;
+        this.sendGameDataToCast();
+        this.showMessage('Connected to cast device!');
+        if (castBtn) {
+          castBtn.classList.add('connected');
+          castBtn.classList.remove('connecting');
+          castBtn.innerHTML = '<span class="cast-icon"></span> Connected';
+        }
+        break;
+        
+      case cast.framework.CastState.CONNECTING:
+        console.log('Connecting to cast device...');
+        this.showMessage('Connecting to cast device...');
+        if (castBtn) {
+          castBtn.classList.add('connecting');
+          castBtn.classList.remove('connected');
+          castBtn.innerHTML = '<span class="cast-icon"></span> Connecting...';
+        }
+        break;
+        
+      case cast.framework.CastState.NOT_CONNECTED:
+        console.log('Disconnected from cast device');
+        this.castSession = null;
+        if (castBtn) {
+          castBtn.classList.remove('connected', 'connecting');
+          castBtn.innerHTML = '<span class="cast-icon"></span> Cast to TV';
+        }
+        break;
+    }
+  }
+
+  sendGameDataToCast() {
+    if (!this.castSession) return;
+
+    const gameData = {
+      type: 'game-state',
+      roomCode: this.roomCode,
+      currentRoom: this.currentRoom,
+      gameState: this.currentRoom?.gameState
+    };
+
+    this.castSession.sendMessage('urn:x-cast:com.drawblins.game', gameData)
+      .then(() => console.log('Game data sent to cast device'))
+      .catch((error) => console.error('Failed to send data to cast:', error));
+  }
+
+  // Fallback to popup window if Cast SDK unavailable
+  fallbackCast() {
+    console.log('Using fallback popup cast');
+    this.openCastWindow();
+  }
+
   openCastWindow() {
     if (this.castWindow && !this.castWindow.closed) {
       this.castWindow.focus();
@@ -551,6 +662,39 @@ class PartyGameClient {
         type,
         ...data
       }, window.location.origin);
+    }
+  }
+
+  // Handle cast button click
+  handleCastClick() {
+    if (window.chrome && window.chrome.cast && cast.framework) {
+      // Use native Cast SDK
+      const castContext = cast.framework.CastContext.getInstance();
+      castContext.requestSession()
+        .then(() => {
+          console.log('Cast session requested');
+        })
+        .catch((error) => {
+          console.error('Cast session request failed:', error);
+          // Fallback to popup
+          this.fallbackCast();
+        });
+    } else {
+      // Fallback to popup window
+      this.fallbackCast();
+    }
+  }
+
+  updateCastButton(castAvailable) {
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (!castBtn) return;
+
+    if (castAvailable) {
+      castBtn.innerHTML = `<span class="cast-icon"></span> Cast to TV`;
+      castBtn.title = 'Cast to TV using Chromecast or compatible device';
+    } else {
+      castBtn.innerHTML = `<span class="cast-icon-unicode">📺</span> Open on TV`;
+      castBtn.title = 'Open cast window (drag to TV)';
     }
   }
 
@@ -940,32 +1084,39 @@ class PartyGameClient {
           }
           
           .drawing-controls {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(10px);
             padding: 1.5rem;
             flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             flex-wrap: wrap;
             gap: 1rem;
-            min-height: 100px;
+            min-height: 120px;
+            position: sticky;
+            bottom: 0;
+            width: 100%;
           }
           
           .color-size-controls {
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
           }
           
           .action-controls {
             display: flex;
             gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
           }
           
           #brush-color {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border: 3px solid white;
             border-radius: 15px;
             cursor: pointer;
@@ -977,7 +1128,7 @@ class PartyGameClient {
           }
           
           #brush-size {
-            width: 150px;
+            width: 120px;
             height: 8px;
             -webkit-appearance: none;
             background: rgba(255,255,255,0.3);
@@ -1009,36 +1160,41 @@ class PartyGameClient {
             background: white;
             color: #333;
             border: none;
-            padding: 1rem 2rem;
-            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: bold;
             transition: all 0.3s ease;
-            min-width: 120px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-width: 140px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
           }
           
           .control-btn:hover:not(:disabled) {
             background: #f0f0f0;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
           }
           
           .control-btn:disabled {
             background: #cccccc;
             cursor: not-allowed;
             transform: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
           }
           
           .control-btn.submit-btn {
             background: #27ae60;
             color: white;
+            font-size: 1.3rem;
+            min-width: 160px;
+            padding: 1.2rem 2rem;
           }
           
           .control-btn.submit-btn:hover:not(:disabled) {
             background: #229954;
+            box-shadow: 0 8px 30px rgba(39, 174, 96, 0.4);
           }
           
           .control-btn.submit-btn.submitted {
@@ -1061,15 +1217,76 @@ class PartyGameClient {
             }
             
             .drawing-controls {
-              padding: 1rem;
+              padding: 1.25rem;
               flex-direction: column;
-              gap: 1rem;
-              min-height: 140px;
+              gap: 1.25rem;
+              min-height: 160px;
+            }
+            
+            .color-size-controls {
+              order: 1;
+            }
+            
+            .action-controls {
+              order: 2;
+              width: 100%;
+              justify-content: center;
             }
             
             .control-btn {
-              padding: 0.75rem 1.5rem;
-              min-width: 100px;
+              padding: 1rem 1.25rem;
+              font-size: 1.1rem;
+              min-width: 120px;
+            }
+            
+            .control-btn.submit-btn {
+              font-size: 1.2rem;
+              min-width: 140px;
+              padding: 1.1rem 1.75rem;
+            }
+            
+            #brush-color {
+              width: 45px;
+              height: 45px;
+            }
+            
+            #brush-size {
+              width: 100px;
+            }
+          }
+          
+          @media (max-width: 480px) {
+            .drawing-header {
+              flex-direction: column;
+              gap: 0.75rem;
+              text-align: center;
+              min-height: 100px;
+            }
+            
+            .drawing-controls {
+              padding: 1rem;
+              min-height: 180px;
+              gap: 1.5rem;
+            }
+            
+            .action-controls {
+              flex-direction: column;
+              align-items: center;
+              gap: 1rem;
+            }
+            
+            .control-btn {
+              width: 100%;
+              max-width: 280px;
+              padding: 1.1rem;
+              font-size: 1.1rem;
+            }
+            
+            .control-btn.submit-btn {
+              font-size: 1.3rem;
+              padding: 1.3rem;
+              background: #27ae60;
+              box-shadow: 0 6px 25px rgba(39, 174, 96, 0.3);
             }
           }
         </style>
