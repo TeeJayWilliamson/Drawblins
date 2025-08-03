@@ -1555,10 +1555,11 @@ class CustomCastManager {
     try {
       const castContext = cast.framework.CastContext.getInstance();
       
-      castContext.setOptions({
-        receiverApplicationId: this.APPLICATION_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-      });
+castContext.setOptions({
+  receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, // Test with default
+  autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+});
+
 
       castContext.addEventListener(
         cast.framework.CastContextEventType.CAST_STATE_CHANGED,
