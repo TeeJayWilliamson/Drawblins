@@ -265,6 +265,28 @@
             display: none !important; 
         }
         
+        /* Image loading states */
+        .cast-drawing-image {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .cast-drawing-image.loaded {
+            opacity: 1;
+        }
+        
+        .cast-drawing-placeholder {
+            width: 100%;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.1);
+            border-radius: 12px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
         /* Responsive for different TV sizes */
         @media (max-width: 1200px) {
             .cast-header {
@@ -355,6 +377,15 @@
         let room = null;
         let roomCode = null;
         
+        // Image handling
+        const imageCache = new Map();
+        const IMAGE_BASE_URLS = [
+            'https://teejaywilliamson.github.io/Drawblins/images/',
+            './images/',
+            '../images/',
+            'images/'
+        ];
+        
         // Custom message bus for game data
         const CUSTOM_CHANNEL = 'urn:x-cast:com.drawblins.gamedata';
         
@@ -377,6 +408,45 @@
                     break;
             }
         });
+        
+        // Image loading utility
+        function loadImageWithFallbacks(imageName, callback) {
+            if (imageCache.has(imageName)) {
+                callback(imageCache.get(imageName), null);
+                return;
+            }
+            
+            let currentUrlIndex = 0;
+            
+            function tryNextUrl() {
+                if (currentUrlIndex >= IMAGE_BASE_URLS.length) {
+                    console.error('Failed to load image after trying all URLs:', imageName);
+                    callback(null, 'Failed to load image');
+                    return;
+                }
+                
+                const url = IMAGE_BASE_URLS[currentUrlIndex] + imageName;
+                console.log(`Trying to load image from: ${url}`);
+                
+                const img = new Image();
+                
+                img.onload = function() {
+                    console.log(`Successfully loaded image from: ${url}`);
+                    imageCache.set(imageName, url);
+                    callback(url, null);
+                };
+                
+                img.onerror = function() {
+                    console.log(`Failed to load image from: ${url}`);
+                    currentUrlIndex++;
+                    tryNextUrl();
+                };
+                
+                img.src = url;
+            }
+            
+            tryNextUrl();
+        }
         
         // Handle game updates
         function handleGameUpdate(newGameState, newRoom) {
@@ -467,6 +537,8 @@
         }
         
         function showDrawingsResults(drawings, originalMonster) {
+            console.log('Showing drawings results:', { drawings, originalMonster });
+            
             document.getElementById('cast-connecting').classList.add('hidden');
             document.getElementById('cast-game-content').classList.add('hidden');
             document.getElementById('cast-drawings').classList.remove('hidden');
@@ -476,29 +548,83 @@
             
             // Add original monster first
             if (originalMonster) {
+                console.log('Adding original monster:', originalMonster);
                 const originalDiv = document.createElement('div');
                 originalDiv.className = 'cast-original-monster';
+                
+                // Create placeholder first
                 originalDiv.innerHTML = `
                     <h3>Original Monster</h3>
-                    <img src="https://teejaywilliamson.github.io/Drawblins/images/${originalMonster}" alt="Original Monster" class="cast-drawing-image">
+                    <div class="cast-drawing-placeholder">Loading original monster...</div>
                 `;
                 grid.appendChild(originalDiv);
+                
+                // Load image with fallbacks
+                loadImageWithFallbacks(originalMonster, (imageUrl, error) => {
+                    const placeholder = originalDiv.querySelector('.cast-drawing-placeholder');
+                    if (imageUrl) {
+                        const img = document.createElement('img');
+                        img.className = 'cast-drawing-image';
+                        img.alt = 'Original Monster';
+                        img.onload = () => {
+                            img.classList.add('loaded');
+                        };
+                        img.src = imageUrl;
+                        placeholder.replaceWith(img);
+                    } else {
+                        placeholder.textContent = 'Failed to load original monster';
+                        placeholder.style.color = '#e74c3c';
+                    }
+                });
             }
             
             // Add player drawings
             if (drawings && drawings.length > 0) {
-                drawings.forEach(drawing => {
+                console.log('Adding player drawings:', drawings.length);
+                drawings.forEach((drawing, index) => {
+                    console.log(`Adding drawing ${index + 1}:`, drawing.playerName);
+                    
                     const drawingDiv = document.createElement('div');
                     drawingDiv.className = 'cast-player-drawing';
+                    
+                    // Create with placeholder first
                     drawingDiv.innerHTML = `
                         <h3>
                             ${drawing.playerName}
                             ${drawing.autoSubmitted ? '<span class="cast-auto-submitted-badge">Auto</span>' : ''}
                         </h3>
-                        <img src="${drawing.imageData}" alt="${drawing.playerName}'s drawing" class="cast-drawing-image">
+                        <div class="cast-drawing-placeholder">Loading drawing...</div>
                     `;
                     grid.appendChild(drawingDiv);
+                    
+                    // Load the drawing image
+                    if (drawing.imageData) {
+                        const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
+                        const img = document.createElement('img');
+                        img.className = 'cast-drawing-image';
+                        img.alt = `${drawing.playerName}'s drawing`;
+                        
+                        img.onload = () => {
+                            console.log(`Loaded drawing for ${drawing.playerName}`);
+                            img.classList.add('loaded');
+                        };
+                        
+                        img.onerror = () => {
+                            console.error(`Failed to load drawing for ${drawing.playerName}`);
+                            placeholder.textContent = 'Failed to load drawing';
+                            placeholder.style.color = '#e74c3c';
+                        };
+                        
+                        img.src = drawing.imageData;
+                        placeholder.replaceWith(img);
+                    } else {
+                        const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
+                        placeholder.textContent = 'No drawing data';
+                        placeholder.style.color = '#f39c12';
+                    }
                 });
+            } else {
+                console.log('No drawings to display');
             }
         }
         
