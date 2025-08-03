@@ -514,42 +514,56 @@ io.on('connection', (socket) => {
     console.log(`Auto-submitted drawing for ${player.name} in room ${roomCode}`);
   });
 
-  // Advance to next round (host only)
-  socket.on('next-round', () => {
-    const playerRoom = getPlayerRoom(socket.id);
-    if (!playerRoom) return;
+// Advance to next round (host only)
+socket.on('next-round', () => {
+  const playerRoom = getPlayerRoom(socket.id);
+  if (!playerRoom) return;
 
-    const { room, roomCode } = playerRoom;
-    
-    // Only host can advance
-    if (room.hostId !== socket.id) {
-      console.log(`Next round rejected: ${socket.id} is not host (host is ${room.hostId})`);
-      return;
-    }
+  const { room, roomCode } = playerRoom;
+  
+  // Only host can advance
+  if (room.hostId !== socket.id) {
+    console.log(`Next round rejected: ${socket.id} is not host (host is ${room.hostId})`);
+    return;
+  }
 
-    console.log(`Advancing to next round in room ${roomCode}`);
-    console.log(`Current: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
+  console.log(`Advancing to next round in room ${roomCode}`);
+  console.log(`Current: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
 
-    // FIXED: Advance to next round and next drawer
-    room.gameState.currentRound++;
-    room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex + 1) % room.players.length;
+  // FIXED: Advance to next round and next drawer
+  room.gameState.currentRound++;
+  room.gameState.currentDrawerIndex = (room.gameState.currentDrawerIndex + 1) % room.players.length;
 
-    console.log(`New: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
+  console.log(`New: Round ${room.gameState.currentRound}, Drawer Index ${room.gameState.currentDrawerIndex}`);
 
-    if (room.gameState.currentRound > room.gameState.maxRounds) {
-      // Game finished
-      console.log(`Game finished in room ${roomCode}`);
-      room.gameState.phase = 'finished';
-      io.to(roomCode).emit('game-finished', {
-        room: room,
-        gameState: room.gameState
-      });
-    } else {
-      // Start next round
-      console.log(`Starting next round ${room.gameState.currentRound} in room ${roomCode}`);
-      startNextRound(room, roomCode);
-    }
+  // REMOVED THE maxRounds CHECK - Game continues indefinitely
+  // Start next round immediately
+  console.log(`Starting next round ${room.gameState.currentRound} in room ${roomCode}`);
+  startNextRound(room, roomCode);
+});
+
+// NEW: Finish game (host only)
+socket.on('finish-game', () => {
+  const playerRoom = getPlayerRoom(socket.id);
+  if (!playerRoom) return;
+
+  const { room, roomCode } = playerRoom;
+  
+  // Only host can finish game
+  if (room.hostId !== socket.id) {
+    console.log(`Finish game rejected: ${socket.id} is not host (host is ${room.hostId})`);
+    return;
+  }
+
+  console.log(`Host finishing game in room ${roomCode}`);
+  
+  // End the game
+  room.gameState.phase = 'finished';
+  io.to(roomCode).emit('game-finished', {
+    room: room,
+    gameState: room.gameState
   });
+});
 
   // Get room state
   socket.on('get-room-state', () => {
