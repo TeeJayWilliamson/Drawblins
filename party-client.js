@@ -747,7 +747,7 @@ class PartyGameClient {
     }
   }
 
-  handleRevealPhase(gameState, extraData) {
+handleRevealPhase(gameState, extraData) {
     console.log('🎭 === REVEAL PHASE DEBUG ===');
     console.log('gameState:', gameState);
     console.log('extraData:', extraData);
