@@ -1436,12 +1436,14 @@ class PartyGameClient {
     const waitingArea = document.getElementById('waiting-area');
     if (!waitingArea) return;
     
-    const isLastRound = gameState.currentRound >= gameState.maxRounds;
-    
+    // Always show both buttons - no max rounds, game continues until host chooses to finish
     const buttonHtml = `
       <div class="waiting-host-controls">
-        <button id="next-round-waiting-btn" class="party-btn ${isLastRound ? 'finish-btn' : 'next-btn'}">
-          ${isLastRound ? 'Finish Game' : 'Next Round'}
+        <button id="next-round-waiting-btn" class="party-btn next-btn">
+          Next Round
+        </button>
+        <button id="finish-game-waiting-btn" class="party-btn finish-btn">
+          Finish Game
         </button>
       </div>
     `;
@@ -1449,9 +1451,17 @@ class PartyGameClient {
     waitingArea.innerHTML += buttonHtml;
     
     const nextRoundBtn = document.getElementById('next-round-waiting-btn');
+    const finishGameBtn = document.getElementById('finish-game-waiting-btn');
+    
     if (nextRoundBtn) {
       nextRoundBtn.addEventListener('click', () => {
         this.socket.emit('next-round');
+      });
+    }
+    
+    if (finishGameBtn) {
+      finishGameBtn.addEventListener('click', () => {
+        this.socket.emit('finish-game');
       });
     }
   }

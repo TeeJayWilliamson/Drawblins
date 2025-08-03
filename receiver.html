@@ -265,25 +265,6 @@
             display: none !important; 
         }
         
-        .cast-debug-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #00ff00;
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            max-width: 300px;
-            z-index: 9999;
-            display: none;
-        }
-        
-        .cast-debug-info.show {
-            display: block;
-        }
-        
         /* Image loading states */
         .cast-drawing-image {
             opacity: 0;
@@ -383,12 +364,6 @@
         </div>
     </div>
     
-    <!-- Debug info display -->
-    <div id="cast-debug" class="cast-debug-info">
-        <div>Debug Info:</div>
-        <div id="debug-content">Waiting for messages...</div>
-    </div>
-    
     <!-- Cast SDK -->
     <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
     
@@ -419,69 +394,38 @@
         let expectedDrawings = 0;
         let pendingOriginalMonster = null;
         
-        // Debug helper
-        function addDebugInfo(text) {
-            const debugDiv = document.getElementById('cast-debug');
-            const contentDiv = document.getElementById('debug-content');
-            if (debugDiv && contentDiv) {
-                contentDiv.innerHTML = text + '<br>' + contentDiv.innerHTML;
-                debugDiv.classList.add('show');
-                
-                // Auto-hide after 10 seconds
-                setTimeout(() => {
-                    if (debugDiv.classList.contains('show')) {
-                        debugDiv.classList.remove('show');
-                    }
-                }, 10000);
-            }
-        }
-        
         context.addCustomMessageListener(CUSTOM_CHANNEL, (customEvent) => {
             const message = customEvent.data;
-            console.log('🎬 === RECEIVED CAST MESSAGE ===');
-            console.log('🎬 Message type:', message.type);
-            console.log('🎬 Full message:', message);
+            console.log('🎬 Received cast message:', message.type);
             
             switch (message.type) {
                 case 'game-update':
-                    console.log('🎮 Processing game-update...');
                     handleGameUpdate(message.gameState, message.room);
                     break;
                 case 'timer-update':
-                    console.log('⏰ Processing timer-update...');
                     updateTimer(message.timeString, message.timeLeft);
                     break;
                 case 'show-drawings':
-                    console.log('🎨 Processing show-drawings...');
-                    console.log('🎨 Drawings in message:', message.drawings);
-                    console.log('🎨 Original monster:', message.originalMonster);
-                    addDebugInfo(`Received drawings: ${message.drawings?.length || 0} drawings, monster: ${message.originalMonster}`);
                     showDrawingsResults(message.drawings, message.originalMonster);
                     break;
                 case 'show-drawings-start':
-                    console.log('📦 Starting chunked drawings reception...');
                     pendingDrawings = [];
                     expectedDrawings = message.totalDrawings;
                     pendingOriginalMonster = message.originalMonster;
                     break;
                 case 'show-drawing-chunk':
-                    console.log(`📥 Received drawing chunk ${message.index + 1}/${expectedDrawings}`);
                     pendingDrawings[message.index] = message.drawing;
                     
                     if (message.isLast || pendingDrawings.filter(d => d).length === expectedDrawings) {
-                        console.log('📦 All drawing chunks received, displaying...');
                         showDrawingsResults(pendingDrawings.filter(d => d), pendingOriginalMonster);
                     }
                     break;
                 case 'show-drawings-complete':
-                    console.log('✅ Drawings reception complete');
+                    // Drawings reception complete
                     break;
                 case 'room-code':
-                    console.log('🏠 Setting room code:', message.roomCode);
                     setRoomCode(message.roomCode);
                     break;
-                default:
-                    console.log('❓ Unknown message type:', message.type);
             }
         });
         
@@ -502,18 +446,15 @@
                 }
                 
                 const url = IMAGE_BASE_URLS[currentUrlIndex] + imageName;
-                console.log(`Trying to load image from: ${url}`);
                 
                 const img = new Image();
                 
                 img.onload = function() {
-                    console.log(`Successfully loaded image from: ${url}`);
                     imageCache.set(imageName, url);
                     callback(url, null);
                 };
                 
                 img.onerror = function() {
-                    console.log(`Failed to load image from: ${url}`);
                     currentUrlIndex++;
                     tryNextUrl();
                 };
@@ -613,23 +554,6 @@
         }
         
         function showDrawingsResults(drawings, originalMonster) {
-            console.log('🎨 === SHOWING DRAWINGS RESULTS ===');
-            console.log('📊 Drawings received:', drawings);
-            console.log('📊 Drawings count:', drawings?.length || 0);
-            console.log('📊 Original monster:', originalMonster);
-            
-            // Log each drawing data
-            if (drawings && drawings.length > 0) {
-                drawings.forEach((drawing, index) => {
-                    console.log(`📊 Drawing ${index + 1}:`, {
-                        playerName: drawing.playerName,
-                        hasImageData: !!drawing.imageData,
-                        imageDataLength: drawing.imageData?.length || 0,
-                        imageDataPreview: drawing.imageData?.substring(0, 50) + '...'
-                    });
-                });
-            }
-            
             document.getElementById('cast-connecting').classList.add('hidden');
             document.getElementById('cast-game-content').classList.add('hidden');
             document.getElementById('cast-drawings').classList.remove('hidden');
@@ -639,7 +563,6 @@
             
             // Add original monster first
             if (originalMonster) {
-                console.log('🖼️ Adding original monster:', originalMonster);
                 const originalDiv = document.createElement('div');
                 originalDiv.className = 'cast-original-monster';
                 
@@ -658,16 +581,11 @@
                         img.className = 'cast-drawing-image';
                         img.alt = 'Original Monster';
                         img.onload = () => {
-                            console.log('✅ Original monster image loaded successfully');
                             img.classList.add('loaded');
-                        };
-                        img.onerror = () => {
-                            console.error('❌ Failed to load original monster image');
                         };
                         img.src = imageUrl;
                         placeholder.replaceWith(img);
                     } else {
-                        console.error('❌ No image URL for original monster');
                         placeholder.textContent = 'Failed to load original monster';
                         placeholder.style.color = '#e74c3c';
                     }
@@ -676,10 +594,7 @@
             
             // Add player drawings
             if (drawings && drawings.length > 0) {
-                console.log('🖼️ Adding player drawings:', drawings.length);
-                drawings.forEach((drawing, index) => {
-                    console.log(`🖼️ Processing drawing ${index + 1} for ${drawing.playerName}`);
-                    
+                drawings.forEach((drawing) => {
                     const drawingDiv = document.createElement('div');
                     drawingDiv.className = 'cast-player-drawing';
                     
@@ -695,43 +610,35 @@
                     
                     // Load the drawing image
                     if (drawing.imageData) {
-                        console.log(`🖼️ Loading image data for ${drawing.playerName} (${drawing.imageData.length} chars)`);
                         const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
                         const img = document.createElement('img');
                         img.className = 'cast-drawing-image';
                         img.alt = `${drawing.playerName}'s drawing`;
                         
                         img.onload = () => {
-                            console.log(`✅ Successfully loaded drawing for ${drawing.playerName}`);
                             img.classList.add('loaded');
                         };
                         
-                        img.onerror = (error) => {
-                            console.error(`❌ Failed to load drawing for ${drawing.playerName}:`, error);
-                            console.error('❌ Image data preview:', drawing.imageData.substring(0, 100));
+                        img.onerror = () => {
                             placeholder.textContent = 'Failed to load drawing';
                             placeholder.style.color = '#e74c3c';
                         };
                         
                         // Validate image data format
                         if (drawing.imageData.startsWith('data:image/')) {
-                            console.log(`✅ Valid image data format for ${drawing.playerName}`);
                             img.src = drawing.imageData;
                             placeholder.replaceWith(img);
                         } else {
-                            console.error(`❌ Invalid image data format for ${drawing.playerName}:`, drawing.imageData.substring(0, 50));
                             placeholder.textContent = 'Invalid image format';
                             placeholder.style.color = '#e74c3c';
                         }
                     } else {
-                        console.error(`❌ No image data for ${drawing.playerName}`);
                         const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
                         placeholder.textContent = 'No drawing data';
                         placeholder.style.color = '#f39c12';
                     }
                 });
             } else {
-                console.log('❌ No drawings to display');
                 const noDrawingsDiv = document.createElement('div');
                 noDrawingsDiv.style.textAlign = 'center';
                 noDrawingsDiv.style.fontSize = '1.5rem';
