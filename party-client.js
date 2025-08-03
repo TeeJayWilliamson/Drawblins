@@ -747,23 +747,55 @@ class PartyGameClient {
     }
   }
 
-  handleRevealPhase(gameState, extraData) {
-    console.log('Handling reveal phase', extraData);
-    this.stopAllMusicImmediate();
-    
-    // Send drawings to cast display
-    this.sendToCastDisplay('show-drawings', {
-      drawings: extraData.allDrawings || [],
-      originalMonster: extraData.originalMonster
-    });
-    
-    this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
-    
-    // Show next round button for host
-    if (this.isHost) {
-      this.showNextRoundButton(gameState);
-    }
+handleRevealPhase(gameState, extraData) {
+  console.log('🎭 === REVEAL PHASE DEBUG ===');
+  console.log('gameState:', gameState);
+  console.log('extraData:', extraData);
+  console.log('extraData.allDrawings:', extraData.allDrawings);
+  console.log('extraData.originalMonster:', extraData.originalMonster);
+  console.log('gameState.drawings:', gameState.drawings);
+  console.log('gameState.currentMonster:', gameState.currentMonster);
+  
+  this.stopAllMusicImmediate();
+  
+  // Try multiple sources for drawings data
+  let drawings = extraData.allDrawings || extraData.drawings || gameState.drawings || [];
+  let originalMonster = extraData.originalMonster || gameState.currentMonster;
+  
+  console.log('📸 Final data to send:');
+  console.log('- drawings:', drawings);
+  console.log('- drawings length:', drawings?.length || 0);
+  console.log('- originalMonster:', originalMonster);
+  
+  // Send drawings to cast display
+  console.log('📤 About to call sendToCastDisplay...');
+  this.sendToCastDisplay('show-drawings', {
+    drawings: drawings,
+    originalMonster: originalMonster
+  });
+  
+  this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
+  
+  // Show next round button for host
+  if (this.isHost) {
+    this.showNextRoundButton(gameState);
   }
+}
+
+// Also add this method if it doesn't exist or update it:
+sendToCastDisplay(type, data) {
+  console.log('🎬 === SEND TO CAST DISPLAY ===');
+  console.log('Type:', type);
+  console.log('Data:', data);
+  console.log('Cast manager exists:', !!this.castManager);
+  
+  if (this.castManager) {
+    console.log('📡 Calling castManager.sendToCast...');
+    this.castManager.sendToCast(type, data);
+  } else {
+    console.log('❌ No cast manager available');
+  }
+}
 
   showMonsterToDrawer(monster, viewTime) {
     console.log('Showing monster to drawer:', monster);
@@ -1519,7 +1551,7 @@ class PartyGameClient {
   }
 }
 
-// Custom Cast Manager with your Application ID
+// Custom Cast Manager with your Application ID - UPDATED WITH DEBUGGING
 class CustomCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
@@ -1641,6 +1673,7 @@ class CustomCastManager {
   }
 
   sendInitialGameData() {
+    console.log('🎮 Sending initial game data to cast...');
     if (this.castSession && this.partyClient.currentRoom) {
       // Send room code first
       this.sendMessage('room-code', {
@@ -1658,24 +1691,55 @@ class CustomCastManager {
   }
 
   sendToCast(type, data) {
+    console.log('📡 sendToCast called:', type, data);
     this.sendMessage(type, data);
   }
 
   sendMessage(type, data) {
-    if (!this.castSession) return;
+    if (!this.castSession) {
+      console.error('❌ No cast session available for message:', type);
+      return;
+    }
 
     try {
       const message = { type, ...data };
+      
+      // DEBUG: Log what we're sending
+      console.log('=== SENDING TO CAST ===');
+      console.log('Type:', type);
+      console.log('Data keys:', Object.keys(data));
+      
+      if (type === 'show-drawings') {
+        console.log('📸 DRAWINGS DEBUG:');
+        console.log('- Drawings count:', data.drawings?.length || 0);
+        console.log('- Original monster:', data.originalMonster);
+        
+        // Check each drawing
+        if (data.drawings && data.drawings.length > 0) {
+          data.drawings.forEach((drawing, i) => {
+            console.log(`Drawing ${i + 1}:`, {
+              playerName: drawing.playerName,
+              hasImageData: !!drawing.imageData,
+              imageDataStart: drawing.imageData ? drawing.imageData.substring(0, 50) + '...' : 'NO IMAGE DATA',
+              imageDataLength: drawing.imageData ? drawing.imageData.length : 0,
+              autoSubmitted: drawing.autoSubmitted
+            });
+          });
+        } else {
+          console.log('❌ No drawings to send!');
+        }
+      }
+      
       this.castSession.sendMessage(
         'urn:x-cast:com.drawblins.gamedata',
         message
       ).then(() => {
-        console.log('Cast message sent:', type);
+        console.log('✅ Cast message sent successfully:', type);
       }).catch((error) => {
-        console.error('Cast message error:', error);
+        console.error('❌ Cast message error:', error);
       });
     } catch (error) {
-      console.error('Send message error:', error);
+      console.error('❌ Send message error:', error);
     }
   }
 
