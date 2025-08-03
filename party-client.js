@@ -11,7 +11,7 @@ class PartyGameClient {
     this.serverUrl = 'https://drawblins-production.up.railway.app';
     this.audioInitialized = false;
     this.currentMusicPhase = null;
-    this.castWindow = null; // For the cast window
+    this.castManager = null; // Will hold our cast manager
   }
 
   // Initialize party mode
@@ -31,6 +31,11 @@ class PartyGameClient {
     this.waitingMusic = waitingMusic;
     this.drawingMusic = drawingMusic;
     this.buzzer = buzzer;
+  }
+
+  // Initialize Google Cast SDK with improved manager
+  initializeCastSDK() {
+    this.castManager = new SimpleCastManager(this);
   }
 
   // Connect to the backend server
@@ -365,7 +370,7 @@ class PartyGameClient {
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
               <button id="cast-to-tv-btn" class="party-btn cast-btn">
-                <span class="cast-icon"></span> Cast to TV
+                📺 Cast to TV
               </button>
             </div>
           </div>
@@ -466,7 +471,7 @@ class PartyGameClient {
       });
     }
 
-    // Simple cast button
+    // Fixed cast button
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
       castBtn.addEventListener('click', () => {
@@ -506,195 +511,10 @@ class PartyGameClient {
     console.log('Event listeners set up');
   }
 
-  // Initialize Google Cast SDK
-  initializeCastSDK() {
-    if (window.chrome && window.chrome.cast) {
-      console.log('Google Cast SDK already loaded');
-      this.setupCastAPI();
-      return;
-    }
-
-    // Load Google Cast SDK
-    const script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
-    script.onload = () => {
-      console.log('Google Cast SDK loaded');
-      this.setupCastAPI();
-    };
-    script.onerror = () => {
-      console.warn('Google Cast SDK failed to load, falling back to popup');
-      this.fallbackCast();
-    };
-    document.head.appendChild(script);
-  }
-
-  setupCastAPI() {
-    window['__onGCastApiAvailable'] = (isAvailable) => {
-      if (isAvailable) {
-        this.initializeCast();
-      } else {
-        console.warn('Google Cast API not available, falling back to popup');
-        this.fallbackCast();
-      }
-    };
-  }
-
-  initializeCast() {
-    const castContext = cast.framework.CastContext.getInstance();
-    
-    castContext.setOptions({
-      receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID, // We'll use default for now
-      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-    });
-
-    // Listen for cast state changes
-    castContext.addEventListener(
-      cast.framework.CastContextEventType.CAST_STATE_CHANGED,
-      (event) => this.onCastStateChanged(event)
-    );
-
-    console.log('Google Cast initialized successfully');
-    this.updateCastButton(true);
-  }
-
-  onCastStateChanged(event) {
-    const castState = event.castState;
-    const castSession = cast.framework.CastContext.getInstance().getCurrentSession();
-    const castBtn = document.getElementById('cast-to-tv-btn');
-    
-    switch (castState) {
-      case cast.framework.CastState.CONNECTED:
-        console.log('Connected to cast device');
-        this.castSession = castSession;
-        this.sendGameDataToCast();
-        this.showMessage('Connected to cast device!');
-        if (castBtn) {
-          castBtn.classList.add('connected');
-          castBtn.classList.remove('connecting');
-          castBtn.innerHTML = '<span class="cast-icon"></span> Connected';
-        }
-        break;
-        
-      case cast.framework.CastState.CONNECTING:
-        console.log('Connecting to cast device...');
-        this.showMessage('Connecting to cast device...');
-        if (castBtn) {
-          castBtn.classList.add('connecting');
-          castBtn.classList.remove('connected');
-          castBtn.innerHTML = '<span class="cast-icon"></span> Connecting...';
-        }
-        break;
-        
-      case cast.framework.CastState.NOT_CONNECTED:
-        console.log('Disconnected from cast device');
-        this.castSession = null;
-        if (castBtn) {
-          castBtn.classList.remove('connected', 'connecting');
-          castBtn.innerHTML = '<span class="cast-icon"></span> Cast to TV';
-        }
-        break;
-    }
-  }
-
-  sendGameDataToCast() {
-    if (!this.castSession) return;
-
-    const gameData = {
-      type: 'game-state',
-      roomCode: this.roomCode,
-      currentRoom: this.currentRoom,
-      gameState: this.currentRoom?.gameState
-    };
-
-    this.castSession.sendMessage('urn:x-cast:com.drawblins.game', gameData)
-      .then(() => console.log('Game data sent to cast device'))
-      .catch((error) => console.error('Failed to send data to cast:', error));
-  }
-
-  // Fallback to popup window if Cast SDK unavailable
-  fallbackCast() {
-    console.log('Using fallback popup cast');
-    this.openCastWindow();
-  }
-
-  openCastWindow() {
-    if (this.castWindow && !this.castWindow.closed) {
-      this.castWindow.focus();
-      return;
-    }
-
-    // Open the cast window
-    const castUrl = `cast.html?room=${this.roomCode}&player=${this.playerName}`;
-    this.castWindow = window.open(
-      castUrl,
-      'drawblins-cast',
-      'width=1200,height=800,scrollbars=no,resizable=yes,status=no,toolbar=no,menubar=no'
-    );
-
-    if (!this.castWindow) {
-      this.showError('Please allow popups to cast to TV');
-      return;
-    }
-
-    // Listen for cast window messages
-    window.addEventListener('message', (event) => {
-      if (event.origin !== window.location.origin) return;
-      
-      if (event.data.type === 'cast-ready') {
-        // Send initial game state to cast window
-        this.sendToCastWindow('game-update', {
-          gameState: this.currentRoom?.gameState,
-          room: this.currentRoom
-        });
-      }
-      
-      if (event.data.type === 'cast-window-closed') {
-        this.castWindow = null;
-      }
-    });
-
-    this.showMessage('Cast window opened! Make it fullscreen on your TV.');
-  }
-
-  sendToCastWindow(type, data) {
-    if (this.castWindow && !this.castWindow.closed) {
-      this.castWindow.postMessage({
-        type,
-        ...data
-      }, window.location.origin);
-    }
-  }
-
-  // Handle cast button click
+  // Handle cast button click - now uses the SimpleCastManager
   handleCastClick() {
-    if (window.chrome && window.chrome.cast && cast.framework) {
-      // Use native Cast SDK
-      const castContext = cast.framework.CastContext.getInstance();
-      castContext.requestSession()
-        .then(() => {
-          console.log('Cast session requested');
-        })
-        .catch((error) => {
-          console.error('Cast session request failed:', error);
-          // Fallback to popup
-          this.fallbackCast();
-        });
-    } else {
-      // Fallback to popup window
-      this.fallbackCast();
-    }
-  }
-
-  updateCastButton(castAvailable) {
-    const castBtn = document.getElementById('cast-to-tv-btn');
-    if (!castBtn) return;
-
-    if (castAvailable) {
-      castBtn.innerHTML = `<span class="cast-icon"></span> Cast to TV`;
-      castBtn.title = 'Cast to TV using Chromecast or compatible device';
-    } else {
-      castBtn.innerHTML = `<span class="cast-icon-unicode">📺</span> Open on TV`;
-      castBtn.title = 'Open cast window (drag to TV)';
+    if (this.castManager) {
+      this.castManager.handleCastClick();
     }
   }
 
@@ -879,7 +699,7 @@ class PartyGameClient {
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.remove('hidden');
     
-    // Send update to cast window
+    // Send update to cast display
     this.sendToCastWindow('game-update', {
       gameState: gameState,
       room: this.currentRoom
@@ -932,7 +752,7 @@ class PartyGameClient {
     console.log('Handling reveal phase', extraData);
     this.stopAllMusicImmediate();
     
-    // Send drawings to cast window
+    // Send drawings to cast display
     this.sendToCastWindow('show-drawings', {
       drawings: extraData.allDrawings || [],
       originalMonster: extraData.originalMonster
@@ -1034,7 +854,6 @@ class PartyGameClient {
             justify-content: space-between;
             align-items: center;
             padding: 1rem 2rem;
-            background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
             color: white;
             flex-shrink: 0;
@@ -1623,7 +1442,7 @@ class PartyGameClient {
       }
     });
     
-    // Send to cast window
+    // Send to cast display
     this.sendToCastWindow('timer-update', {
       timeString,
       timeLeft,
@@ -1650,7 +1469,7 @@ class PartyGameClient {
   }
 
   updateDrawingProgress(data) {
-    // Send to cast window
+    // Send to cast display
     this.sendToCastWindow('drawing-progress', data);
     
     this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
@@ -1687,7 +1506,7 @@ class PartyGameClient {
     console.log('Game finished:', data);
     this.stopAllMusicImmediate();
     
-    // Send to cast window
+    // Send to cast display
     this.sendToCastWindow('game-finished', data);
     
     this.showWaitingArea('Game Complete!', 'Thanks for playing! The host can start a new game.');
@@ -1744,6 +1563,13 @@ class PartyGameClient {
     }, 3000);
   }
 
+  // Updated cast methods using SimpleCastManager
+  sendToCastWindow(type, data) {
+    if (this.castManager) {
+      this.castManager.sendToCast(type, data);
+    }
+  }
+
   cleanup() {
     console.log('Cleaning up party mode...');
     
@@ -1757,10 +1583,9 @@ class PartyGameClient {
       this.gameTimer = null;
     }
     
-    // Close cast window
-    if (this.castWindow && !this.castWindow.closed) {
-      this.castWindow.close();
-      this.castWindow = null;
+    // Cleanup cast manager
+    if (this.castManager) {
+      this.castManager.cleanup();
     }
     
     // Hide drawing overlay
@@ -1781,6 +1606,328 @@ class PartyGameClient {
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
+  }
+}
+
+// Simple Google Cast Manager
+class SimpleCastManager {
+  constructor(partyClient) {
+    this.partyClient = partyClient;
+    this.castSession = null;
+    this.init();
+  }
+
+  init() {
+    // Load Google Cast SDK
+    if (!window.chrome || !window.chrome.cast) {
+      const script = document.createElement('script');
+      script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+      script.onload = () => this.setupCast();
+      script.onerror = () => this.showFallback();
+      document.head.appendChild(script);
+    } else {
+      this.setupCast();
+    }
+  }
+
+  setupCast() {
+    window['__onGCastApiAvailable'] = (isAvailable) => {
+      if (isAvailable) {
+        this.initializeCast();
+      } else {
+        this.showFallback();
+      }
+    };
+  }
+
+  initializeCast() {
+    try {
+      const castContext = cast.framework.CastContext.getInstance();
+      
+      // Use the Default Media Receiver but load our HTML page as "media"
+      castContext.setOptions({
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+      });
+
+      castContext.addEventListener(
+        cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+        (event) => this.onCastStateChanged(event)
+      );
+
+      this.updateCastButton(true);
+      console.log('Cast initialized');
+    } catch (error) {
+      console.error('Cast init failed:', error);
+      this.showFallback();
+    }
+  }
+
+  onCastStateChanged(event) {
+    const castState = event.castState;
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    
+    switch (castState) {
+      case cast.framework.CastState.CONNECTED:
+        console.log('Cast connected');
+        this.castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+        this.loadGameOnTV();
+        
+        if (castBtn) {
+          castBtn.classList.add('connected');
+          castBtn.innerHTML = '📺 Connected';
+        }
+        this.partyClient.showMessage('Connected to TV!');
+        break;
+        
+      case cast.framework.CastState.CONNECTING:
+        if (castBtn) {
+          castBtn.classList.add('connecting');
+          castBtn.innerHTML = '📺 Connecting...';
+        }
+        break;
+        
+      case cast.framework.CastState.NOT_CONNECTED:
+        this.castSession = null;
+        if (castBtn) {
+          castBtn.classList.remove('connected', 'connecting');
+          castBtn.innerHTML = '📺 Cast to TV';
+        }
+        break;
+    }
+  }
+
+  loadGameOnTV() {
+    if (!this.castSession) return;
+
+    // Create the cast URL - this needs to be the FULL URL to your cast.html
+    const castUrl = `${window.location.origin}/cast.html?room=${this.partyClient.roomCode}`;
+    
+    console.log('Loading cast URL:', castUrl);
+
+    // Create media info - we're "casting" our HTML page as if it were a video
+    const mediaInfo = new chrome.cast.media.MediaInfo(castUrl, 'text/html');
+    mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+    mediaInfo.metadata.title = `Drawblins - Room ${this.partyClient.roomCode}`;
+    mediaInfo.metadata.subtitle = 'Party Game Display';
+
+    const request = new chrome.cast.media.LoadRequest(mediaInfo);
+    
+    this.castSession.loadMedia(request)
+      .then(() => {
+        console.log('Game loaded on TV successfully');
+        this.sendInitialGameData();
+      })
+      .catch((error) => {
+        console.error('Failed to load game on TV:', error);
+        // Try alternative approach
+        this.tryAlternativeApproach();
+      });
+  }
+
+  tryAlternativeApproach() {
+    // If the HTML casting doesn't work, try to send data via custom messages
+    // This requires the receiver to handle custom message types
+    if (!this.castSession) return;
+
+    const gameData = {
+      type: 'LOAD_GAME',
+      roomCode: this.partyClient.roomCode,
+      gameState: this.partyClient.currentRoom?.gameState || {},
+      timestamp: Date.now()
+    };
+
+    try {
+      // Try to send custom message
+      this.castSession.sendMessage('urn:x-cast:com.drawblins.game', gameData)
+        .then(() => console.log('Game data sent via custom message'))
+        .catch((error) => {
+          console.log('Custom messages not supported:', error);
+          this.showManualInstructions();
+        });
+    } catch (error) {
+      console.log('Sending custom message failed:', error);
+      this.showManualInstructions();
+    }
+  }
+
+  sendInitialGameData() {
+    // Send current game state to the cast display
+    this.sendGameUpdate();
+  }
+
+  sendGameUpdate() {
+    if (!this.castSession) return;
+
+    const gameData = {
+      type: 'GAME_UPDATE',
+      roomCode: this.partyClient.roomCode,
+      room: this.partyClient.currentRoom,
+      gameState: this.partyClient.currentRoom?.gameState,
+      timestamp: Date.now()
+    };
+
+    // Try multiple ways to send data
+    try {
+      // Method 1: Custom messages
+      this.castSession.sendMessage('urn:x-cast:com.drawblins.game', gameData);
+    } catch (error) {
+      try {
+        // Method 2: Media metadata
+        if (this.castSession.media && this.castSession.media[0]) {
+          this.castSession.media[0].customData = gameData;
+        }
+      } catch (error2) {
+        console.log('Could not send game data to cast device');
+      }
+    }
+  }
+
+  showManualInstructions() {
+    // Show instructions for manually opening the cast URL
+    const castUrl = `${window.location.origin}/cast.html?room=${this.partyClient.roomCode}`;
+    
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+      <div class="manual-cast-modal">
+        <h3>Manual TV Setup</h3>
+        <p>Your TV is connected but may need manual setup.</p>
+        <p><strong>Open this URL on your TV or connected device:</strong></p>
+        <div class="url-box">
+          <input type="text" value="${castUrl}" readonly onclick="this.select()">
+          <button onclick="navigator.clipboard.writeText('${castUrl}').then(() => alert('Copied!'))">Copy</button>
+        </div>
+        <p><small>Paste this URL into your TV's web browser or any device connected to your TV</small></p>
+        <button onclick="this.parentElement.parentElement.remove()">Close</button>
+      </div>
+    `;
+    
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center;
+      z-index: 10000; padding: 20px; box-sizing: border-box;
+    `;
+    
+    modal.querySelector('.manual-cast-modal').style.cssText = `
+      background: white; padding: 2rem; border-radius: 15px; max-width: 500px; text-align: center;
+    `;
+    
+    modal.querySelector('.url-box').style.cssText = `
+      display: flex; gap: 10px; margin: 1rem 0; padding: 10px; background: #f5f5f5; border-radius: 8px;
+    `;
+    
+    modal.querySelector('input').style.cssText = `
+      flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;
+    `;
+    
+    document.body.appendChild(modal);
+  }
+
+  handleCastClick() {
+    if (!window.chrome || !window.chrome.cast || !cast.framework) {
+      this.showFallback();
+      return;
+    }
+
+    try {
+      const castContext = cast.framework.CastContext.getInstance();
+      castContext.requestSession()
+        .then(() => console.log('Cast session requested'))
+        .catch((error) => {
+          console.error('Cast session failed:', error);
+          if (error.code === 'cancel') {
+            // User cancelled, do nothing
+            return;
+          }
+          this.showFallback();
+        });
+    } catch (error) {
+      console.error('Cast request error:', error);
+      this.showFallback();
+    }
+  }
+
+  showFallback() {
+    // Simple fallback: just show the cast URL
+    const castUrl = `${window.location.origin}/cast.html?room=${this.partyClient.roomCode}`;
+    
+    // For mobile, use share API
+    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      navigator.share({
+        title: 'Drawblins TV Display',
+        text: 'Open this link on your TV to display the game',
+        url: castUrl
+      }).catch(() => this.showLinkDialog(castUrl));
+    } else {
+      this.showLinkDialog(castUrl);
+    }
+  }
+
+  showLinkDialog(castUrl) {
+    const modal = document.createElement('div');
+    modal.innerHTML = `
+      <div class="cast-fallback-modal">
+        <h3>Display Game on TV</h3>
+        <p>Copy this link and open it on your TV or any device connected to your TV:</p>
+        <div class="url-box">
+          <input type="text" value="${castUrl}" readonly onclick="this.select()">
+          <button onclick="navigator.clipboard.writeText('${castUrl}').then(() => this.textContent='Copied!')">Copy Link</button>
+        </div>
+        <p><small>Works with smart TVs, laptops connected to TV, tablets, etc.</small></p>
+        <button onclick="this.parentElement.parentElement.remove()">Close</button>
+      </div>
+    `;
+    
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center;
+      z-index: 10000; padding: 20px;
+    `;
+    
+    modal.querySelector('.cast-fallback-modal').style.cssText = `
+      background: white; padding: 2rem; border-radius: 15px; max-width: 450px; text-align: center;
+    `;
+    
+    modal.querySelector('.url-box').style.cssText = `
+      display: flex; gap: 10px; margin: 1.5rem 0; padding: 10px; background: #f8f9fa; border-radius: 8px;
+    `;
+    
+    modal.querySelector('input').style.cssText = `
+      flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: monospace;
+    `;
+    
+    modal.querySelector('button').style.cssText = `
+      padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;
+    `;
+    
+    document.body.appendChild(modal);
+  }
+
+  updateCastButton(available = false) {
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (!castBtn) return;
+
+    if (available) {
+      castBtn.innerHTML = '📺 Cast to TV';
+      castBtn.title = 'Cast game display to TV';
+    } else {
+      castBtn.innerHTML = '📺 Show on TV';
+      castBtn.title = 'Get link to display game on TV';
+    }
+  }
+
+  // Methods for sending updates to cast display
+  sendToCast(type, data) {
+    if (this.castSession) {
+      this.sendGameUpdate();
+    }
+  }
+
+  cleanup() {
+    if (this.castSession) {
+      this.castSession.endSession(false);
+      this.castSession = null;
+    }
   }
 }
 
