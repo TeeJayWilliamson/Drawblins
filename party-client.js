@@ -748,39 +748,48 @@ class PartyGameClient {
   }
 
 handleRevealPhase(gameState, extraData) {
-  console.log('🎭 === REVEAL PHASE DEBUG ===');
-  console.log('gameState:', gameState);
-  console.log('extraData:', extraData);
-  console.log('extraData.allDrawings:', extraData.allDrawings);
-  console.log('extraData.originalMonster:', extraData.originalMonster);
-  console.log('gameState.drawings:', gameState.drawings);
-  console.log('gameState.currentMonster:', gameState.currentMonster);
-  
-  this.stopAllMusicImmediate();
-  
-  // Try multiple sources for drawings data
-  let drawings = extraData.allDrawings || extraData.drawings || gameState.drawings || [];
-  let originalMonster = extraData.originalMonster || gameState.currentMonster;
-  
-  console.log('📸 Final data to send:');
-  console.log('- drawings:', drawings);
-  console.log('- drawings length:', drawings?.length || 0);
-  console.log('- originalMonster:', originalMonster);
-  
-  // Send drawings to cast display
-  console.log('📤 About to call sendToCastDisplay...');
-  this.sendToCastDisplay('show-drawings', {
-    drawings: drawings,
-    originalMonster: originalMonster
-  });
-  
-  this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
-  
-  // Show next round button for host
-  if (this.isHost) {
-    this.showNextRoundButton(gameState);
+    console.log('🎭 === REVEAL PHASE DEBUG ===');
+    console.log('gameState:', gameState);
+    console.log('extraData:', extraData);
+    console.log('extraData.allDrawings:', extraData.allDrawings);
+    console.log('extraData.originalMonster:', extraData.originalMonster);
+    console.log('gameState.drawings:', gameState.drawings);
+    console.log('gameState.currentMonster:', gameState.currentMonster);
+    
+    this.stopAllMusicImmediate();
+    
+    // Try multiple sources for drawings data
+    let drawings = extraData.allDrawings || extraData.drawings || gameState.drawings || [];
+    let originalMonster = extraData.originalMonster || gameState.currentMonster;
+    
+    console.log('📸 Final data to send:');
+    console.log('- drawings:', drawings);
+    console.log('- drawings length:', drawings?.length || 0);
+    console.log('- originalMonster:', originalMonster);
+    
+    // Send a lightweight game update first (without drawings to avoid size limit)
+    this.sendToCastDisplay('game-update', {
+      gameState: {
+        ...gameState,
+        drawings: [] // Remove drawings from game state to avoid size limit
+      },
+      room: this.currentRoom
+    });
+    
+    // Then send drawings separately using the compression system
+    console.log('📤 About to call sendToCastDisplay for drawings...');
+    this.sendToCastDisplay('show-drawings', {
+      drawings: drawings,
+      originalMonster: originalMonster
+    });
+    
+    this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
+    
+    // Show next round button for host
+    if (this.isHost) {
+      this.showNextRoundButton(gameState);
+    }
   }
-}
 
 // Also add this method if it doesn't exist or update it:
 sendToCastDisplay(type, data) {

@@ -559,8 +559,23 @@
             }
         }
         
-        function showDrawingsResults(drawings, originalMonster) {
-            console.log('Showing drawings results:', { drawings, originalMonster });
+function showDrawingsResults(drawings, originalMonster) {
+            console.log('🎨 === SHOWING DRAWINGS RESULTS ===');
+            console.log('📊 Drawings received:', drawings);
+            console.log('📊 Drawings count:', drawings?.length || 0);
+            console.log('📊 Original monster:', originalMonster);
+            
+            // Log each drawing data
+            if (drawings && drawings.length > 0) {
+                drawings.forEach((drawing, index) => {
+                    console.log(`📊 Drawing ${index + 1}:`, {
+                        playerName: drawing.playerName,
+                        hasImageData: !!drawing.imageData,
+                        imageDataLength: drawing.imageData?.length || 0,
+                        imageDataPreview: drawing.imageData?.substring(0, 50) + '...'
+                    });
+                });
+            }
             
             document.getElementById('cast-connecting').classList.add('hidden');
             document.getElementById('cast-game-content').classList.add('hidden');
@@ -571,7 +586,7 @@
             
             // Add original monster first
             if (originalMonster) {
-                console.log('Adding original monster:', originalMonster);
+                console.log('🖼️ Adding original monster:', originalMonster);
                 const originalDiv = document.createElement('div');
                 originalDiv.className = 'cast-original-monster';
                 
@@ -590,11 +605,16 @@
                         img.className = 'cast-drawing-image';
                         img.alt = 'Original Monster';
                         img.onload = () => {
+                            console.log('✅ Original monster image loaded successfully');
                             img.classList.add('loaded');
+                        };
+                        img.onerror = () => {
+                            console.error('❌ Failed to load original monster image');
                         };
                         img.src = imageUrl;
                         placeholder.replaceWith(img);
                     } else {
+                        console.error('❌ No image URL for original monster');
                         placeholder.textContent = 'Failed to load original monster';
                         placeholder.style.color = '#e74c3c';
                     }
@@ -603,9 +623,9 @@
             
             // Add player drawings
             if (drawings && drawings.length > 0) {
-                console.log('Adding player drawings:', drawings.length);
+                console.log('🖼️ Adding player drawings:', drawings.length);
                 drawings.forEach((drawing, index) => {
-                    console.log(`Adding drawing ${index + 1}:`, drawing.playerName);
+                    console.log(`🖼️ Processing drawing ${index + 1} for ${drawing.playerName}`);
                     
                     const drawingDiv = document.createElement('div');
                     drawingDiv.className = 'cast-player-drawing';
@@ -622,32 +642,50 @@
                     
                     // Load the drawing image
                     if (drawing.imageData) {
+                        console.log(`🖼️ Loading image data for ${drawing.playerName} (${drawing.imageData.length} chars)`);
                         const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
                         const img = document.createElement('img');
                         img.className = 'cast-drawing-image';
                         img.alt = `${drawing.playerName}'s drawing`;
                         
                         img.onload = () => {
-                            console.log(`Loaded drawing for ${drawing.playerName}`);
+                            console.log(`✅ Successfully loaded drawing for ${drawing.playerName}`);
                             img.classList.add('loaded');
                         };
                         
-                        img.onerror = () => {
-                            console.error(`Failed to load drawing for ${drawing.playerName}`);
+                        img.onerror = (error) => {
+                            console.error(`❌ Failed to load drawing for ${drawing.playerName}:`, error);
+                            console.error('❌ Image data preview:', drawing.imageData.substring(0, 100));
                             placeholder.textContent = 'Failed to load drawing';
                             placeholder.style.color = '#e74c3c';
                         };
                         
-                        img.src = drawing.imageData;
-                        placeholder.replaceWith(img);
+                        // Validate image data format
+                        if (drawing.imageData.startsWith('data:image/')) {
+                            console.log(`✅ Valid image data format for ${drawing.playerName}`);
+                            img.src = drawing.imageData;
+                            placeholder.replaceWith(img);
+                        } else {
+                            console.error(`❌ Invalid image data format for ${drawing.playerName}:`, drawing.imageData.substring(0, 50));
+                            placeholder.textContent = 'Invalid image format';
+                            placeholder.style.color = '#e74c3c';
+                        }
                     } else {
+                        console.error(`❌ No image data for ${drawing.playerName}`);
                         const placeholder = drawingDiv.querySelector('.cast-drawing-placeholder');
                         placeholder.textContent = 'No drawing data';
                         placeholder.style.color = '#f39c12';
                     }
                 });
             } else {
-                console.log('No drawings to display');
+                console.log('❌ No drawings to display');
+                const noDrawingsDiv = document.createElement('div');
+                noDrawingsDiv.style.textAlign = 'center';
+                noDrawingsDiv.style.fontSize = '1.5rem';
+                noDrawingsDiv.style.color = '#f39c12';
+                noDrawingsDiv.style.gridColumn = '1 / -1';
+                noDrawingsDiv.textContent = 'No drawings received';
+                grid.appendChild(noDrawingsDiv);
             }
         }
         
