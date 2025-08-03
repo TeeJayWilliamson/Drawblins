@@ -747,7 +747,7 @@ class PartyGameClient {
     }
   }
 
-handleRevealPhase(gameState, extraData) {
+  handleRevealPhase(gameState, extraData) {
     console.log('🎭 === REVEAL PHASE DEBUG ===');
     console.log('gameState:', gameState);
     console.log('extraData:', extraData);
@@ -770,10 +770,22 @@ handleRevealPhase(gameState, extraData) {
     // Send a lightweight game update first (without drawings to avoid size limit)
     this.sendToCastDisplay('game-update', {
       gameState: {
-        ...gameState,
-        drawings: [] // Remove drawings from game state to avoid size limit
+        phase: gameState.phase,
+        currentRound: gameState.currentRound,
+        maxRounds: gameState.maxRounds,
+        currentDrawer: gameState.currentDrawer,
+        currentDrawerIndex: gameState.currentDrawerIndex
+        // Exclude drawings and other large data
       },
-      room: this.currentRoom
+      room: {
+        code: this.currentRoom.code,
+        players: this.currentRoom.players.map(p => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost
+        }))
+        // Exclude gameState from room to avoid duplication
+      }
     });
     
     // Then send drawings separately using the compression system
