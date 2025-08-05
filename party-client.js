@@ -1606,6 +1606,8 @@ createDrawingOverlay() {
   
   if (nextRoundBtn) {
     nextRoundBtn.addEventListener('click', () => {
+      // Clear the last sent drawings to reset state
+      this.lastSentDrawings = null;
       this.socket.emit('next-round');
     });
   }
@@ -1793,23 +1795,31 @@ createDrawingOverlay() {
     this.roomCode = '';
     this.isHost = false;
     this.currentRoom = null;
+    this.lastSentDrawings = null;
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
   }
 }
 
-// Custom Cast Manager with Enhanced Image Processing and Debugging
+// Enhanced Custom Cast Manager with Image Processing and iPad Support
 class CustomCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
     this.castSession = null;
     this.APPLICATION_ID = '570D13B8';
     this.useDefaultReceiver = false;
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     this.init();
   }
 
   init() {
+    // For iOS devices, show a different message since they don't support Cast SDK
+    if (this.isIOS) {
+      this.setupIOSFallback();
+      return;
+    }
+
     if (!window.chrome || !window.chrome.cast) {
       const script = document.createElement('script');
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
@@ -1818,6 +1828,17 @@ class CustomCastManager {
       document.head.appendChild(script);
     } else {
       this.setupCast();
+    }
+  }
+
+  setupIOSFallback() {
+    // For iOS, update the cast button to show it's not available
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (castBtn) {
+      castBtn.innerHTML = '📺 iOS Not Supported';
+      castBtn.disabled = true;
+      castBtn.title = 'Casting is not available on iOS devices. Use Chrome on Android or desktop.';
+      castBtn.style.opacity = '0.6';
     }
   }
 
@@ -1889,6 +1910,11 @@ class CustomCastManager {
   }
 
   handleCastClick() {
+    if (this.isIOS) {
+      this.partyClient.showError('Casting is not supported on iOS devices. Please use Chrome on Android or desktop.');
+      return;
+    }
+
     if (this.castSession) {
       this.partyClient.showMessage('Already connected to Chromecast. Game is displaying on TV.');
     } else {
@@ -1927,12 +1953,11 @@ class CustomCastManager {
     }
   }
 
-  // Enhanced image compression with debugging
-  async compressImageData(imageData, quality = 0.02) {
+  // Ultra-aggressive image compression for Cast
+  async compressImageData(imageData, quality = 0.4) {
     return new Promise((resolve) => {
-      console.log('🗜️ Starting image compression...');
+      console.log('🗜️ Starting ultra compression...');
       console.log('🗜️ Original data length:', imageData.length);
-      console.log('🗜️ Original data preview:', imageData.substring(0, 50));
       
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -1941,155 +1966,108 @@ class CustomCastManager {
       img.onload = () => {
         console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
         
-        // Set canvas size (reduce if too large)
-const maxSize = 50;
-const width = img.width;
-const height = img.height;
-const scale = Math.min(maxSize / width, maxSize / height, 1);
-
-// Debug actual scaling
-console.log(`Original: ${width}x${height}, Scale: ${scale}`);
-console.log(`🗜️ Final canvas size: ${canvas.width}x${canvas.height}`);
-
-
-canvas.width = Math.floor(width * scale);
-canvas.height = Math.floor(height * scale);
-
+        // Much smaller size for TV display
+        const maxSize = 300;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
         
         console.log('🗜️ Canvas size for compression:', canvas.width, 'x', canvas.height);
         
-        // Fill with white background first
+        // Fill with white background
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw and compress
+        // Draw and compress heavily
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
         try {
-          const compressedData = canvas.toDataURL('image/webp', quality);
+          const compressedData = canvas.toDataURL('image/jpeg', quality);
           console.log('🗜️ Compressed data length:', compressedData.length);
           console.log('🗜️ Compression ratio:', Math.round(compressedData.length/imageData.length*100) + '%');
-          console.log('🗜️ Compressed data preview:', compressedData.substring(0, 50));
           resolve(compressedData);
         } catch (error) {
           console.error('🗜️ Compression failed:', error);
-          resolve(imageData); // Return original on error
+          resolve(imageData);
         }
       };
       
       img.onerror = (error) => {
         console.error('🗜️ Failed to load image for compression:', error);
-        console.error('🗜️ Image data that failed:', imageData.substring(0, 100));
-        resolve(imageData); // Return original on error
+        resolve(imageData);
       };
       
       img.src = imageData;
     });
   }
 
-  // Process drawings with compression
-  async processDrawingsForCast(drawings) {
-    if (!drawings || drawings.length === 0) return [];
-    
-    console.log('🖼️ Processing drawings for cast...');
-    const processedDrawings = [];
-    
-    for (let i = 0; i < drawings.length; i++) {
-      const drawing = drawings[i];
-      console.log(`Processing drawing ${i + 1}/${drawings.length} for ${drawing.playerName}`);
-      
-      if (drawing.imageData) {
-        try {
-          const compressedImage = await this.compressImageData(drawing.imageData, 0.02);
-          processedDrawings.push({
-            ...drawing,
-            imageData: compressedImage
-          });
-        } catch (error) {
-          console.error('Error processing drawing:', error);
-          // Use original if compression fails
-          processedDrawings.push(drawing);
-        }
-      } else {
-        processedDrawings.push(drawing);
-      }
-    }
-    
-    return processedDrawings;
-  }
-
   sendToCast(type, data) {
     console.log('📡 sendToCast called:', type);
     
-    if (type === 'show-drawings') {
-      this.sendDrawingsData(data);
+    if (type === 'show-drawings-slideshow') {
+      this.sendDrawingsSlideshowData(data);
     } else {
       this.sendMessage(type, data);
     }
   }
 
-  async sendDrawingsData(data) {
-    console.log('🎨 Sending drawings data...');
+  async sendDrawingsSlideshowData(data) {
+    console.log('🎨 Sending drawings slideshow data...');
     
     try {
-      // Process drawings with compression
-      const processedDrawings = await this.processDrawingsForCast(data.drawings);
-      
-      // Calculate message size
-      const testMessage = {
-        type: 'show-drawings',
-        drawings: processedDrawings,
-        originalMonster: data.originalMonster
-      };
-      
-      const messageSize = JSON.stringify(testMessage).length;
-      console.log(`📏 Message size: ${messageSize} characters`);
-      
-if (processedDrawings.length > 1 || messageSize > 64000) {
-    console.log('📦 Sending drawings in chunks...');
-    await this.sendDrawingsInChunks(processedDrawings, data.originalMonster);
-} else {
-    console.log('📤 Sending single drawing message...');
-    this.sendMessage('show-drawings', {
-        drawings: processedDrawings,
-        originalMonster: data.originalMonster
-    });
-}
+      // First, send the original monster
+      if (data.originalMonster) {
+        this.sendMessage('slideshow-start', {
+          originalMonster: data.originalMonster,
+          totalDrawings: data.drawings?.length || 0
+        });
+      }
 
+      // Then send compressed drawings one by one
+      if (data.drawings && data.drawings.length > 0) {
+        for (let i = 0; i < data.drawings.length; i++) {
+          const drawing = data.drawings[i];
+          console.log(`📤 Processing drawing ${i + 1}/${data.drawings.length} for slideshow`);
+          
+          if (drawing.imageData) {
+            try {
+              // Ultra compress for slideshow
+              const compressedImage = await this.compressImageData(drawing.imageData, 0.3);
+              
+              // Send individual drawing for slideshow
+              this.sendMessage('slideshow-drawing', {
+                playerName: drawing.playerName,
+                imageData: compressedImage,
+                autoSubmitted: drawing.autoSubmitted,
+                index: i,
+                isLast: i === data.drawings.length - 1
+              });
+              
+              // Small delay between drawings
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+            } catch (error) {
+              console.error('Error processing drawing for slideshow:', error);
+            }
+          }
+        }
+      }
+      
     } catch (error) {
-      console.error('Error sending drawings data:', error);
+      console.error('Error sending slideshow data:', error);
       this.partyClient.showError('Failed to send drawings to TV');
     }
-  }
-
-  async sendDrawingsInChunks(drawings, originalMonster) {
-    console.log('📦 Splitting drawings into chunks...');
-    
-    // Send original monster first
-    this.sendMessage('show-drawings-start', {
-      originalMonster: originalMonster,
-      totalDrawings: drawings.length
-    });
-    
-    // Send drawings one by one
-    for (let i = 0; i < drawings.length; i++) {
-      console.log(`📤 Sending drawing ${i + 1}/${drawings.length}`);
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between messages
-      
-      this.sendMessage('show-drawing-chunk', {
-        drawing: drawings[i],
-        index: i,
-        isLast: i === drawings.length - 1
-      });
-    }
-    
-    // Send completion message
-    this.sendMessage('show-drawings-complete', {});
   }
 
   sendMessage(type, data) {
     if (!this.castSession) {
       console.error('❌ No cast session available for message:', type);
+      return;
+    }
+
+    if (this.isIOS) {
+      console.error('❌ iOS devices cannot send cast messages');
       return;
     }
 
@@ -2101,7 +2079,8 @@ if (processedDrawings.length > 1 || messageSize > 64000) {
       console.log('Type:', type);
       console.log('Message size:', messageSize, 'characters');
       
-      if (messageSize > 64000) {
+      // Much stricter size limit to prevent accumulation
+      if (messageSize > 30000) {
         console.error('❌ Message too large:', messageSize);
         this.partyClient.showError(`Message too large for Cast: ${messageSize} characters`);
         return;
@@ -2127,6 +2106,11 @@ if (processedDrawings.length > 1 || messageSize > 64000) {
   updateCastButton(state) {
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (!castBtn) return;
+
+    if (this.isIOS) {
+      // iOS button handled in setupIOSFallback
+      return;
+    }
 
     switch (state) {
       case 'ready':
@@ -2154,7 +2138,7 @@ if (processedDrawings.length > 1 || messageSize > 64000) {
   }
 
   cleanup() {
-    if (this.castSession) {
+    if (this.castSession && !this.isIOS) {
       try {
         this.castSession.endSession(false);
       } catch (error) {
@@ -2164,7 +2148,7 @@ if (processedDrawings.length > 1 || messageSize > 64000) {
     }
 
     const castBtn = document.getElementById('cast-to-tv-btn');
-    if (castBtn) {
+    if (castBtn && !this.isIOS) {
       castBtn.classList.remove('connected', 'connecting');
       castBtn.innerHTML = '📺 Cast to TV';
       castBtn.disabled = false;
