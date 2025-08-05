@@ -1928,7 +1928,7 @@ class CustomCastManager {
   }
 
   // Enhanced image compression with debugging
-  async compressImageData(imageData, quality = 0.7) {
+  async compressImageData(imageData, quality = 0.2) {
     return new Promise((resolve) => {
       console.log('🗜️ Starting image compression...');
       console.log('🗜️ Original data length:', imageData.length);
