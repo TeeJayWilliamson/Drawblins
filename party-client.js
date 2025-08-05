@@ -1958,7 +1958,7 @@ class CustomCastManager {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
         try {
-          const compressedData = canvas.toDataURL('image/jpeg', quality);
+          const compressedData = canvas.toDataURL('image/webp', quality);
           console.log('🗜️ Compressed data length:', compressedData.length);
           console.log('🗜️ Compression ratio:', Math.round(compressedData.length/imageData.length*100) + '%');
           console.log('🗜️ Compressed data preview:', compressedData.substring(0, 50));
