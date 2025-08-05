@@ -1928,7 +1928,7 @@ class CustomCastManager {
   }
 
   // Enhanced image compression with debugging
-  async compressImageData(imageData, quality = 0.1) {
+  async compressImageData(imageData, quality = 0.05) {
     return new Promise((resolve) => {
       console.log('🗜️ Starting image compression...');
       console.log('🗜️ Original data length:', imageData.length);
@@ -1942,7 +1942,7 @@ class CustomCastManager {
         console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
         
         // Set canvas size (reduce if too large)
-        const maxSize = 200; // Reduce image size for cast
+        const maxSize = 100; // Reduce image size for cast
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
         
         canvas.width = img.width * scale;
@@ -1992,7 +1992,7 @@ class CustomCastManager {
       
       if (drawing.imageData) {
         try {
-          const compressedImage = await this.compressImageData(drawing.imageData, 0.1);
+          const compressedImage = await this.compressImageData(drawing.imageData, 0.05);
           processedDrawings.push({
             ...drawing,
             imageData: compressedImage
@@ -2037,16 +2037,17 @@ class CustomCastManager {
       const messageSize = JSON.stringify(testMessage).length;
       console.log(`📏 Message size: ${messageSize} characters`);
       
-      if (messageSize > 64000) { // Cast SDK limit is around 64KB
-        console.log('📦 Message too large, splitting...');
-        await this.sendDrawingsInChunks(processedDrawings, data.originalMonster);
-      } else {
-        console.log('📤 Sending complete drawings message...');
-        this.sendMessage('show-drawings', {
-          drawings: processedDrawings,
-          originalMonster: data.originalMonster
-        });
-      }
+if (processedDrawings.length > 1 || messageSize > 64000) {
+    console.log('📦 Sending drawings in chunks...');
+    await this.sendDrawingsInChunks(processedDrawings, data.originalMonster);
+} else {
+    console.log('📤 Sending single drawing message...');
+    this.sendMessage('show-drawings', {
+        drawings: processedDrawings,
+        originalMonster: data.originalMonster
+    });
+}
+
     } catch (error) {
       console.error('Error sending drawings data:', error);
       this.partyClient.showError('Failed to send drawings to TV');
