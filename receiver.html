@@ -32,14 +32,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 2rem 4rem;
+            padding: 1.5rem 3rem;
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(10px);
             flex-shrink: 0;
         }
         
         .cast-title {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
@@ -47,11 +47,11 @@
         .cast-timer {
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 1.5rem 3rem;
-            border-radius: 40px;
-            font-size: 3rem;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            font-size: 2rem;
             font-weight: bold;
-            min-width: 200px;
+            min-width: 150px;
             text-align: center;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
@@ -65,43 +65,44 @@
         }
         
         .cast-room-code {
-            font-size: 1.2rem;
+            font-size: 1rem;
             opacity: 0.8;
             margin: 0;
         }
         
         .cast-room-code-value {
             font-family: 'Courier New', monospace;
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: bold;
             margin: 0.5rem 0 0 0;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
         
         /* Main content area */
         .cast-content {
             flex: 1;
-            padding: 3rem 4rem;
+            padding: 2rem 3rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
             overflow-y: auto;
+            min-height: 0; /* Important for flex child */
         }
         
         .cast-phase-info {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 2rem;
         }
         
         .cast-phase-title {
-            font-size: 4rem;
+            font-size: 3rem;
             margin: 0 0 1rem 0;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
             font-weight: bold;
         }
         
         .cast-phase-subtitle {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             margin: 0;
             opacity: 0.9;
             font-weight: 300;
@@ -110,15 +111,15 @@
         .cast-current-player {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 20px;
-            padding: 2rem 3rem;
-            margin: 2rem 0;
+            padding: 1.5rem 2rem;
+            margin: 1.5rem 0;
             text-align: center;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .cast-player-name {
-            font-size: 2.5rem;
+            font-size: 2rem;
             margin: 0 0 0.5rem 0;
             color: #FFD700;
             font-weight: bold;
@@ -126,7 +127,7 @@
         }
         
         .cast-player-action {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             margin: 0;
             opacity: 0.9;
         }
@@ -134,38 +135,31 @@
         .cast-progress-info {
             background: rgba(255, 152, 0, 0.2);
             border-radius: 15px;
-            padding: 1.5rem 2rem;
+            padding: 1rem 1.5rem;
             margin: 1rem 0;
             text-align: center;
             border: 1px solid rgba(255, 152, 0, 0.3);
         }
         
         .cast-progress-text {
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             margin: 0;
             font-weight: bold;
         }
         
-        /* Slideshow section */
+        /* Slideshow section - Fixed layout */
         .cast-slideshow-section {
-            margin-top: 2rem;
-            height: 60vh;
+            flex: 1;
             display: flex;
-            align-items: center;
+            align-items: stretch;
             justify-content: center;
-        }
-        
-        .cast-slideshow-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            align-items: center;
-            gap: 4rem;
+            gap: 2rem;
+            min-height: 0;
+            padding: 1rem 0;
         }
         
         .cast-original-display {
-            flex: 0 0 40%;
-            height: 100%;
+            flex: 0 0 35%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -174,59 +168,58 @@
         
         .cast-original-monster {
             background: linear-gradient(135deg, #FFD700, #FFA500);
-            border: 4px solid #FF8C00;
-            border-radius: 20px;
-            padding: 2rem;
+            border: 3px solid #FF8C00;
+            border-radius: 15px;
+            padding: 1.5rem;
             text-align: center;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 500px;
-            height: auto;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
         }
         
         .cast-original-monster h3 {
             color: #8B4513;
-            margin: 0 0 1.5rem 0;
+            margin: 0 0 1rem 0;
             font-weight: bold;
-            font-size: 2rem;
+            font-size: 1.5rem;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
         
         .cast-original-image {
             width: 100%;
-            height: 280px;
+            height: 250px;
             object-fit: contain;
-            border-radius: 12px;
+            border-radius: 10px;
             border: 2px solid rgba(139, 69, 19, 0.3);
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
         .cast-drawing-display {
-            flex: 0 0 55%;
-            height: 100%;
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            min-height: 0;
             position: relative;
         }
         
         .cast-slideshow-title {
-            font-size: 2.5rem;
+            font-size: 2rem;
             text-align: center;
-            margin: 0 0 2rem 0;
+            margin: 0 0 1.5rem 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        /* Fixed slideshow container to prevent size changes */
+        /* Fixed slideshow container - better positioning */
         #cast-slideshow-container {
             position: relative;
             width: 100%;
-            max-width: 600px;
-            height: auto;
+            max-width: 500px;
+            height: 350px; /* Fixed height instead of auto */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -234,19 +227,19 @@
         
         .cast-drawing-slide {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 2rem;
+            border-radius: 15px;
+            padding: 1.5rem;
             text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             width: 100%;
-            height: auto;
+            height: 100%;
             display: flex;
             flex-direction: column;
             position: absolute;
             top: 0;
             left: 0;
             opacity: 0;
-            transition: opacity 0.6s ease-in-out;
+            transition: opacity 0.5s ease-in-out;
         }
         
         .cast-drawing-slide.active {
@@ -255,21 +248,23 @@
         
         .cast-drawing-slide h3 {
             color: #333;
-            margin: 0 0 1.5rem 0;
-            font-size: 1.8rem;
+            margin: 0 0 1rem 0;
+            font-size: 1.4rem;
             font-weight: bold;
+            flex-shrink: 0;
         }
         
         .cast-drawing-image {
             width: 100%;
-            height: 280px;
+            flex: 1;
             object-fit: contain;
-            border-radius: 12px;
+            border-radius: 10px;
             border: 2px solid rgba(0,0,0,0.1);
             background: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             opacity: 0;
             transition: opacity 0.3s ease;
+            min-height: 200px;
         }
         
         .cast-drawing-image.loaded {
@@ -280,16 +275,16 @@
             display: inline-block;
             background: #95a5a6;
             color: white;
-            padding: 0.4rem 1rem;
-            border-radius: 15px;
-            font-size: 0.9rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
             font-weight: bold;
-            margin-left: 0.75rem;
+            margin-left: 0.5rem;
         }
         
         .cast-slideshow-progress {
             position: absolute;
-            bottom: -4rem;
+            bottom: -3rem;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -299,8 +294,8 @@
         }
         
         .cast-progress-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
@@ -308,12 +303,12 @@
         
         .cast-progress-dot.active {
             background: #FFD700;
-            transform: scale(1.2);
+            transform: scale(1.3);
         }
         
         .cast-no-drawings {
             text-align: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             color: #f39c12;
             opacity: 0.8;
             display: flex;
@@ -333,22 +328,22 @@
         }
         
         .cast-connecting h2 {
-            font-size: 3rem;
+            font-size: 2.5rem;
             margin: 0 0 1rem 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         .cast-connecting p {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             opacity: 0.8;
             margin: 0;
         }
         
         .cast-loading-spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255,255,255,0.3);
-            border-top: 6px solid white;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top: 5px solid white;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 2rem 0;
@@ -366,41 +361,34 @@
         /* Responsive for different TV sizes */
         @media (max-width: 1200px) {
             .cast-header {
-                padding: 2rem 3rem;
+                padding: 1rem 2rem;
             }
             
             .cast-timer {
-                font-size: 2.5rem;
-                padding: 1.2rem 2.5rem;
-                min-width: 160px;
+                font-size: 1.8rem;
+                padding: 0.8rem 1.5rem;
+                min-width: 120px;
             }
             
             .cast-phase-title {
-                font-size: 3rem;
+                font-size: 2.5rem;
             }
             
             .cast-player-name {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
             
-            .cast-slideshow-container {
-                gap: 2rem;
-            }
-            
-            .cast-original-monster {
-                height: auto;
+            .cast-slideshow-section {
+                gap: 1.5rem;
             }
             
             .cast-original-image {
-                height: 220px;
+                height: 200px;
             }
             
             #cast-slideshow-container {
-                height: auto;
-            }
-            
-            .cast-drawing-image {
-                height: 220px;
+                height: 300px;
+                max-width: 400px;
             }
         }
     </style>
@@ -447,23 +435,21 @@
             
             <!-- Slideshow display -->
             <div id="cast-slideshow" class="cast-slideshow-section hidden">
-                <div class="cast-slideshow-container">
-                    <!-- Original monster (left side) -->
-                    <div class="cast-original-display">
-                        <div class="cast-original-monster">
-                            <h3>Original Monster</h3>
-                            <img id="cast-original-image" class="cast-original-image" src="" alt="Original Monster">
-                        </div>
+                <!-- Original monster (left side) -->
+                <div class="cast-original-display">
+                    <div class="cast-original-monster">
+                        <h3>Original Monster</h3>
+                        <img id="cast-original-image" class="cast-original-image" src="" alt="Original Monster">
                     </div>
-                    
-                    <!-- Drawing slideshow (right side) -->
-                    <div class="cast-drawing-display">
-                        <div id="cast-slideshow-container">
-                            <!-- Drawing slides will be inserted here -->
-                        </div>
-                        <div id="cast-slideshow-progress" class="cast-slideshow-progress">
-                            <!-- Progress dots will be inserted here -->
-                        </div>
+                </div>
+                
+                <!-- Drawing slideshow (right side) -->
+                <div class="cast-drawing-display">
+                    <div id="cast-slideshow-container">
+                        <!-- Drawing slides will be inserted here -->
+                    </div>
+                    <div id="cast-slideshow-progress" class="cast-slideshow-progress">
+                        <!-- Progress dots will be inserted here -->
                     </div>
                 </div>
             </div>
@@ -591,11 +577,11 @@
                 });
             }
             
-            // Show slideshow section
+            // Show slideshow section immediately
             showSlideshow();
         }
         
-        // Handle individual slideshow drawing
+        // Handle individual slideshow drawing - IMPROVED: Show immediately
         function handleSlideshowDrawing(drawingData) {
             console.log('🎨 Received slideshow drawing for:', drawingData.playerName);
             
@@ -609,20 +595,20 @@
             
             console.log('🎨 Total drawings now:', slideshowDrawings.length);
             
-            // Create slides for all current drawings
+            // Create or update slides immediately
             createSlides();
             
-            // If this is the first drawing, start the slideshow
+            // If this is the first drawing, show it immediately
             if (slideshowDrawings.length === 1) {
-                console.log('🎬 Starting slideshow with first drawing');
+                console.log('🎬 Showing first drawing immediately');
                 showSlide(0);
                 
-                // Don't start auto-rotation yet, wait for more drawings or timeout
+                // Start auto-rotation after a short delay for the first drawing
                 setTimeout(() => {
                     if (slideshowDrawings.length > 1) {
                         startAutoRotation();
                     }
-                }, 2000);
+                }, 3000); // 3 seconds to view first drawing
             } else {
                 // Update progress dots
                 updateProgressDots();
@@ -641,23 +627,7 @@
             document.getElementById('cast-slideshow').classList.remove('hidden');
         }
         
-        // Start the slideshow rotation
-        function startSlideshow() {
-            console.log('🎬 Starting slideshow with', slideshowDrawings.length, 'drawings');
-            
-            if (slideshowDrawings.length === 0) {
-                showNoDrawingsMessage();
-                return;
-            }
-            
-            // Create slides
-            createSlides();
-            
-            // Show first slide
-            showSlide(0);
-        }
-        
-        // Start auto-rotation
+        // Start auto-rotation - IMPROVED: Faster transitions
         function startAutoRotation() {
             console.log('🎬 Starting auto-rotation with', slideshowDrawings.length, 'drawings');
             
@@ -672,14 +642,19 @@
                     const nextIndex = (currentSlideIndex + 1) % slideshowDrawings.length;
                     console.log('🎬 Auto-rotating to slide', nextIndex + 1, 'of', slideshowDrawings.length);
                     showSlide(nextIndex);
-                }, 5000); // 5 seconds per slide
+                }, 4000); // Faster rotation: 4 seconds per slide
             }
         }
         
-        // Create slide elements
+        // Create slide elements - IMPROVED: Better error handling
         function createSlides() {
             const container = document.getElementById('cast-slideshow-container');
             const progressContainer = document.getElementById('cast-slideshow-progress');
+            
+            if (!container || !progressContainer) {
+                console.error('Slideshow containers not found');
+                return;
+            }
             
             // Clear existing slides and progress dots
             container.innerHTML = '';
@@ -703,7 +678,7 @@
                 
                 container.appendChild(slide);
                 
-                // Load image
+                // Load image immediately
                 const img = slide.querySelector('.cast-drawing-image');
                 if (drawing.imageData) {
                     img.onload = () => {
@@ -712,8 +687,14 @@
                     };
                     img.onerror = () => {
                         console.error('❌ Failed to load drawing image for', drawing.playerName);
+                        // Show placeholder or error message
+                        img.alt = 'Failed to load drawing';
+                        img.style.background = '#f0f0f0';
+                        img.classList.add('loaded'); // Still show the slide
                     };
                     img.src = drawing.imageData;
+                } else {
+                    console.error('No image data for', drawing.playerName);
                 }
                 
                 // Create progress dot
@@ -726,9 +707,9 @@
             console.log('🎬 Created slides:', container.children.length);
         }
         
-        // Show specific slide - Simplified for smooth transitions
+        // Show specific slide - IMPROVED: Better error handling
         function showSlide(index) {
-            if (index >= slideshowDrawings.length) {
+            if (index >= slideshowDrawings.length || index < 0) {
                 console.error('Invalid slide index:', index, 'Max:', slideshowDrawings.length - 1);
                 return;
             }
@@ -746,7 +727,7 @@
             // Update current index
             currentSlideIndex = index;
             
-            // Simple opacity transition - remove active from all, add to target
+            // Simple opacity transition
             slides.forEach((slide, slideIndex) => {
                 if (slideIndex === index) {
                     slide.classList.add('active');
@@ -774,7 +755,9 @@
         // Show no drawings message
         function showNoDrawingsMessage() {
             const container = document.getElementById('cast-slideshow-container');
-            container.innerHTML = '<div class="cast-no-drawings">No drawings submitted</div>';
+            if (container) {
+                container.innerHTML = '<div class="cast-no-drawings">No drawings submitted yet...</div>';
+            }
         }
         
         // Clear slideshow
