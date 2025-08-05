@@ -1942,11 +1942,19 @@ class CustomCastManager {
         console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
         
         // Set canvas size (reduce if too large)
-        const maxSize = 100; // Reduce image size for cast
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+const maxSize = 100;
+const width = img.width;
+const height = img.height;
+const scale = Math.min(maxSize / width, maxSize / height, 1);
+
+// Debug actual scaling
+console.log(`Original: ${width}x${height}, Scale: ${scale}`);
+console.log(`🗜️ Final canvas size: ${canvas.width}x${canvas.height}`);
+
+
+canvas.width = Math.floor(width * scale);
+canvas.height = Math.floor(height * scale);
+
         
         console.log('🗜️ Canvas size for compression:', canvas.width, 'x', canvas.height);
         
