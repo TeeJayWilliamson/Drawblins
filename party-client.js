@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Custom Cast Integration
+// Enhanced Party Mode Client - Fixed Cast Integration
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -12,6 +12,8 @@ class PartyGameClient {
     this.audioInitialized = false;
     this.currentMusicPhase = null;
     this.castManager = null;
+    // Add storage for preventing accumulation
+    this.lastSentDrawings = null;
   }
 
   // Initialize party mode
@@ -118,6 +120,10 @@ class PartyGameClient {
     this.socket.on('phase-changed', (data) => {
       console.log('Phase changed:', data);
       this.currentRoom = data.room;
+      // Clear previous drawings when new phase starts
+      if (data.gameState.phase === 'studying') {
+        this.lastSentDrawings = null;
+      }
       this.handleGamePhase(data.gameState, data);
     });
 
@@ -156,7 +162,7 @@ class PartyGameClient {
     });
   }
 
-  // Audio functions
+  // Audio functions (unchanged)
   initializeAudio() {
     if (this.audioInitialized) return;
     
@@ -292,7 +298,7 @@ class PartyGameClient {
     this.buzzer.play().catch(() => {});
   }
 
-  // Create enhanced party mode UI
+  // Create enhanced party mode UI (unchanged)
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -699,10 +705,23 @@ class PartyGameClient {
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.remove('hidden');
     
-    // Send update to cast display
+    // Send update to cast display (lightweight)
     this.sendToCastDisplay('game-update', {
-      gameState: gameState,
-      room: this.currentRoom
+      gameState: {
+        phase: gameState.phase,
+        currentRound: gameState.currentRound,
+        maxRounds: gameState.maxRounds,
+        currentDrawer: gameState.currentDrawer,
+        currentDrawerIndex: gameState.currentDrawerIndex
+      },
+      room: {
+        code: this.currentRoom.code,
+        players: this.currentRoom.players.map(p => ({
+          id: p.id,
+          name: p.name,
+          isHost: p.isHost
+        }))
+      }
     });
     
     // Handle different phases
@@ -751,14 +770,10 @@ class PartyGameClient {
     console.log('🎭 === REVEAL PHASE DEBUG ===');
     console.log('gameState:', gameState);
     console.log('extraData:', extraData);
-    console.log('extraData.allDrawings:', extraData.allDrawings);
-    console.log('extraData.originalMonster:', extraData.originalMonster);
-    console.log('gameState.drawings:', gameState.drawings);
-    console.log('gameState.currentMonster:', gameState.currentMonster);
     
     this.stopAllMusicImmediate();
     
-    // Try multiple sources for drawings data
+    // Get drawings data
     let drawings = extraData.allDrawings || extraData.drawings || gameState.drawings || [];
     let originalMonster = extraData.originalMonster || gameState.currentMonster;
     
@@ -767,33 +782,20 @@ class PartyGameClient {
     console.log('- drawings length:', drawings?.length || 0);
     console.log('- originalMonster:', originalMonster);
     
-    // Send a lightweight game update first (without drawings to avoid size limit)
-    this.sendToCastDisplay('game-update', {
-      gameState: {
-        phase: gameState.phase,
-        currentRound: gameState.currentRound,
-        maxRounds: gameState.maxRounds,
-        currentDrawer: gameState.currentDrawer,
-        currentDrawerIndex: gameState.currentDrawerIndex
-        // Exclude drawings and other large data
-      },
-      room: {
-        code: this.currentRoom.code,
-        players: this.currentRoom.players.map(p => ({
-          id: p.id,
-          name: p.name,
-          isHost: p.isHost
-        }))
-        // Exclude gameState from room to avoid duplication
-      }
-    });
-    
-    // Then send drawings separately using the compression system
-    console.log('📤 About to call sendToCastDisplay for drawings...');
-    this.sendToCastDisplay('show-drawings', {
-      drawings: drawings,
-      originalMonster: originalMonster
-    });
+    // Only send if different from last sent (prevents accumulation)
+    const drawingsStringified = JSON.stringify(drawings);
+    if (this.lastSentDrawings !== drawingsStringified) {
+      console.log('📤 Sending new drawings to cast...');
+      this.lastSentDrawings = drawingsStringified;
+      
+      // Send drawings to cast display using slideshow format
+      this.sendToCastDisplay('show-drawings-slideshow', {
+        drawings: drawings,
+        originalMonster: originalMonster
+      });
+    } else {
+      console.log('📤 Skipping duplicate drawings send');
+    }
     
     this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
     
@@ -803,7 +805,6 @@ class PartyGameClient {
     }
   }
 
-  // Also add this method if it doesn't exist or update it:
   sendToCastDisplay(type, data) {
     console.log('🎬 === SEND TO CAST DISPLAY ===');
     console.log('Type:', type);
@@ -966,7 +967,7 @@ createDrawingOverlay() {
         .drawing-controls {
           background: rgba(0, 0, 0, 0.9);
           backdrop-filter: blur(10px);
-          padding: 1rem;
+          padding: 1.5rem 1rem; /* Increased top/bottom padding */
           flex-shrink: 0;
           display: flex;
           justify-content: center;
@@ -974,9 +975,9 @@ createDrawingOverlay() {
           flex-wrap: wrap;
           gap: 0.75rem;
           width: 100%;
-          /* Remove sticky positioning for mobile */
           position: relative;
           bottom: 0;
+          min-height: 120px; /* Ensure minimum height for button area */
         }
         
         .color-size-controls {
@@ -1040,13 +1041,14 @@ createDrawingOverlay() {
           background: white;
           color: #333;
           border: none;
-          padding: 0.75rem 1.25rem;
+          padding: 1rem 1.5rem; /* Increased padding for larger buttons */
           border-radius: 10px;
           cursor: pointer;
-          font-size: 1rem;
+          font-size: 1.1rem; /* Increased font size */
           font-weight: bold;
           transition: all 0.3s ease;
-          min-width: 120px;
+          min-width: 140px; /* Increased minimum width */
+          min-height: 50px; /* Added minimum height */
           box-shadow: 0 4px 20px rgba(0,0,0,0.3);
           text-align: center;
         }
@@ -1067,9 +1069,10 @@ createDrawingOverlay() {
         .control-btn.submit-btn {
           background: #27ae60;
           color: white;
-          font-size: 1.1rem;
-          min-width: 140px;
-          padding: 0.9rem 1.5rem;
+          font-size: 1.2rem; /* Larger submit button */
+          min-width: 160px;
+          min-height: 55px;
+          padding: 1.1rem 1.75rem;
         }
         
         .control-btn.submit-btn:hover:not(:disabled) {
@@ -1112,43 +1115,32 @@ createDrawingOverlay() {
           }
           
           .drawing-controls {
-            padding: 0.75rem;
-            gap: 0.5rem;
+            padding: 1.25rem 0.75rem; /* Increased mobile padding */
+            gap: 1rem; /* Increased gap on mobile */
+            min-height: 140px; /* Increased mobile control height */
           }
           
           .color-size-controls {
-            gap: 0.5rem;
+            gap: 0.75rem;
           }
           
           .action-controls {
-            gap: 0.5rem;
+            gap: 1rem; /* Increased button gap */
             width: 100%;
           }
           
           .control-btn {
-            padding: 0.65rem 1rem;
-            font-size: 0.95rem;
-            min-width: 100px;
+            padding: 1rem 1.25rem; /* Larger mobile buttons */
+            font-size: 1.05rem;
+            min-width: 120px;
+            min-height: 50px;
           }
           
           .control-btn.submit-btn {
-            font-size: 1rem;
-            min-width: 120px;
-            padding: 0.75rem 1.25rem;
-          }
-          
-          #brush-color {
-            width: 40px;
-            height: 40px;
-          }
-          
-          #brush-size {
-            width: 80px;
-          }
-          
-          #brush-preview {
-            width: 16px;
-            height: 16px;
+            font-size: 1.15rem;
+            min-width: 140px;
+            min-height: 55px;
+            padding: 1.1rem 1.5rem;
           }
         }
         
@@ -1162,20 +1154,11 @@ createDrawingOverlay() {
             min-height: auto;
           }
           
-          .drawing-title {
-            font-size: 1.2rem;
-          }
-          
-          .drawing-timer {
-            font-size: 1.2rem;
-            padding: 0.5rem 1rem;
-            min-width: 90px;
-          }
-          
           .drawing-controls {
-            padding: 0.5rem;
+            padding: 1.5rem 0.5rem; /* Even more padding for small screens */
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 1.25rem;
+            min-height: 160px; /* Increased for small screens */
           }
           
           .color-size-controls {
@@ -1188,38 +1171,38 @@ createDrawingOverlay() {
             order: 1;
             width: 100%;
             justify-content: center;
+            gap: 1.25rem; /* Larger gap between buttons */
           }
           
           .control-btn {
             flex: 1;
-            max-width: 150px;
+            max-width: 160px;
+            min-height: 55px; /* Taller buttons for easier tapping */
+            padding: 1.1rem 1rem;
+          }
+          
+          .control-btn.submit-btn {
+            min-height: 60px;
+            font-size: 1.2rem;
           }
         }
         
         /* Landscape mobile orientation */
         @media (max-height: 500px) and (orientation: landscape) {
-          .drawing-header {
-            padding: 0.5rem 1rem;
-            min-height: 50px;
-          }
-          
-          .drawing-title {
-            font-size: 1.1rem;
-          }
-          
-          .drawing-timer {
-            font-size: 1.1rem;
-            padding: 0.4rem 0.8rem;
-            min-width: 80px;
-          }
-          
           .drawing-controls {
-            padding: 0.5rem;
+            padding: 1rem 0.5rem;
+            min-height: 100px;
           }
           
           .control-btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            min-height: 45px;
+          }
+          
+          .control-btn.submit-btn {
+            min-height: 50px;
+            font-size: 1.1rem;
           }
         }
       </style>
