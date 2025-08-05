@@ -230,14 +230,23 @@
             height: auto;
             opacity: 0;
             transform: translateX(50px);
-            transition: all 0.5s ease-in-out;
+            transition: all 0.8s ease-in-out;
             position: absolute;
+            top: 0;
+            left: 0;
         }
         
         .cast-drawing-slide.active {
             opacity: 1;
             transform: translateX(0);
             position: relative;
+            z-index: 2;
+        }
+        
+        .cast-drawing-slide.fade-out {
+            opacity: 0;
+            transform: translateX(-50px);
+            z-index: 1;
         }
         
         .cast-drawing-slide h3 {
@@ -276,12 +285,13 @@
         
         .cast-slideshow-progress {
             position: absolute;
-            bottom: -3rem;
+            bottom: -4rem;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            z-index: 10;
         }
         
         .cast-progress-dot {
@@ -432,7 +442,6 @@
                     
                     <!-- Drawing slideshow (right side) -->
                     <div class="cast-drawing-display">
-                        <h2 class="cast-slideshow-title">Player Drawings</h2>
                         <div id="cast-slideshow-container">
                             <!-- Drawing slides will be inserted here -->
                         </div>
@@ -582,12 +591,30 @@
                 index: drawingData.index
             });
             
+            console.log('🎨 Total drawings now:', slideshowDrawings.length);
+            
+            // Create slides for all current drawings
+            createSlides();
+            
             // If this is the first drawing, start the slideshow
             if (slideshowDrawings.length === 1) {
-                startSlideshow();
+                console.log('🎬 Starting slideshow with first drawing');
+                showSlide(0);
+                
+                // Don't start auto-rotation yet, wait for more drawings or timeout
+                setTimeout(() => {
+                    if (slideshowDrawings.length > 1) {
+                        startAutoRotation();
+                    }
+                }, 2000);
             } else {
                 // Update progress dots
                 updateProgressDots();
+                
+                // Start auto-rotation if we have multiple drawings and it's not running
+                if (slideshowDrawings.length > 1 && !slideshowInterval) {
+                    startAutoRotation();
+                }
             }
         }
         
@@ -612,12 +639,23 @@
             
             // Show first slide
             showSlide(0);
+        }
+        
+        // Start auto-rotation
+        function startAutoRotation() {
+            console.log('🎬 Starting auto-rotation with', slideshowDrawings.length, 'drawings');
             
-            // Start rotation if more than one drawing
+            // Clear any existing interval
+            if (slideshowInterval) {
+                clearInterval(slideshowInterval);
+            }
+            
+            // Only start rotation if we have more than one drawing
             if (slideshowDrawings.length > 1) {
                 slideshowInterval = setInterval(() => {
-                    currentSlideIndex = (currentSlideIndex + 1) % slideshowDrawings.length;
-                    showSlide(currentSlideIndex);
+                    const nextIndex = (currentSlideIndex + 1) % slideshowDrawings.length;
+                    console.log('🎬 Auto-rotating to slide', nextIndex + 1, 'of', slideshowDrawings.length);
+                    showSlide(nextIndex);
                 }, 5000); // 5 seconds per slide
             }
         }
@@ -627,9 +665,11 @@
             const container = document.getElementById('cast-slideshow-container');
             const progressContainer = document.getElementById('cast-slideshow-progress');
             
-            // Clear existing slides
+            // Clear existing slides and progress dots
             container.innerHTML = '';
             progressContainer.innerHTML = '';
+            
+            console.log('🎬 Creating', slideshowDrawings.length, 'slides');
             
             slideshowDrawings.forEach((drawing, index) => {
                 // Create slide
@@ -652,9 +692,10 @@
                 if (drawing.imageData) {
                     img.onload = () => {
                         img.classList.add('loaded');
+                        console.log('✅ Loaded image for', drawing.playerName);
                     };
                     img.onerror = () => {
-                        console.error('Failed to load drawing image for', drawing.playerName);
+                        console.error('❌ Failed to load drawing image for', drawing.playerName);
                     };
                     img.src = drawing.imageData;
                 }
@@ -665,28 +706,55 @@
                 dot.id = `dot-${index}`;
                 progressContainer.appendChild(dot);
             });
+            
+            console.log('🎬 Created slides:', container.children.length);
         }
         
         // Show specific slide
         function showSlide(index) {
-            console.log('🎬 Showing slide', index + 1, 'of', slideshowDrawings.length);
-            
-            // Hide all slides
-            const slides = document.querySelectorAll('.cast-drawing-slide');
-            slides.forEach(slide => {
-                slide.classList.remove('active');
-            });
-            
-            // Show current slide
-            const currentSlide = document.getElementById(`slide-${index}`);
-            if (currentSlide) {
-                setTimeout(() => {
-                    currentSlide.classList.add('active');
-                }, 100); // Small delay for smooth transition
+            if (index >= slideshowDrawings.length) {
+                console.error('Invalid slide index:', index, 'Max:', slideshowDrawings.length - 1);
+                return;
             }
             
-            // Update progress dots
-            updateProgressDots();
+            console.log('🎬 Showing slide', index + 1, 'of', slideshowDrawings.length, '- Player:', slideshowDrawings[index]?.playerName);
+            
+            // Get all slides
+            const slides = document.querySelectorAll('.cast-drawing-slide');
+            
+            if (slides.length === 0) {
+                console.error('No slides found to display');
+                return;
+            }
+            
+            // First, fade out current active slide
+            const currentActive = document.querySelector('.cast-drawing-slide.active');
+            if (currentActive) {
+                currentActive.classList.remove('active');
+                currentActive.classList.add('fade-out');
+            }
+            
+            // Update current index
+            currentSlideIndex = index;
+            
+            // After fade out transition, show new slide
+            setTimeout(() => {
+                // Remove all classes from all slides
+                slides.forEach(slide => {
+                    slide.classList.remove('active', 'fade-out');
+                });
+                
+                // Show the target slide
+                const targetSlide = document.getElementById(`slide-${index}`);
+                if (targetSlide) {
+                    targetSlide.classList.add('active');
+                } else {
+                    console.error('Could not find slide with ID:', `slide-${index}`);
+                }
+                
+                // Update progress dots
+                updateProgressDots();
+            }, 400); // Half of the transition time
         }
         
         // Update progress dots
@@ -709,6 +777,8 @@
         
         // Clear slideshow
         function clearSlideshow() {
+            console.log('🎬 Clearing slideshow');
+            
             if (slideshowInterval) {
                 clearInterval(slideshowInterval);
                 slideshowInterval = null;
