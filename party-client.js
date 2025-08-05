@@ -1928,7 +1928,7 @@ class CustomCastManager {
   }
 
   // Enhanced image compression with debugging
-  async compressImageData(imageData, quality = 0.2) {
+  async compressImageData(imageData, quality = 0.1) {
     return new Promise((resolve) => {
       console.log('🗜️ Starting image compression...');
       console.log('🗜️ Original data length:', imageData.length);
@@ -1942,7 +1942,7 @@ class CustomCastManager {
         console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
         
         // Set canvas size (reduce if too large)
-        const maxSize = 400; // Reduce image size for cast
+        const maxSize = 200; // Reduce image size for cast
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
         
         canvas.width = img.width * scale;
@@ -1992,7 +1992,7 @@ class CustomCastManager {
       
       if (drawing.imageData) {
         try {
-          const compressedImage = await this.compressImageData(drawing.imageData, 0.6);
+          const compressedImage = await this.compressImageData(drawing.imageData, 0.1);
           processedDrawings.push({
             ...drawing,
             imageData: compressedImage
