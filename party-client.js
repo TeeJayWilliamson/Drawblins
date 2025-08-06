@@ -97,7 +97,9 @@ class PartyGameClient {
       }
     });
 
-    // Add this to your server's socket event handlers
+    
+  // Add this to your server's socket event handlers
+  /*
 socket.on('spectate-room', ({ roomCode }) => {
   const room = rooms.get(roomCode);
   
@@ -120,6 +122,7 @@ socket.on('spectate-room', ({ roomCode }) => {
   
   console.log(`Spectator joined room ${roomCode}`);
 });
+*/
 
     this.socket.on('player-joined', (data) => {
       console.log('Player joined:', data);
