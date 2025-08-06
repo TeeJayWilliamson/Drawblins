@@ -97,6 +97,30 @@ class PartyGameClient {
       }
     });
 
+    // Add this to your server's socket event handlers
+socket.on('spectate-room', ({ roomCode }) => {
+  const room = rooms.get(roomCode);
+  
+  if (!room) {
+    socket.emit('spectate-error', { error: 'Room not found' });
+    return;
+  }
+  
+  // Join the socket room for updates but don't add as player
+  socket.join(roomCode);
+  
+  // Send current room state
+  socket.emit('spectate-success', { 
+    room: {
+      code: room.code,
+      players: room.players,
+      gameState: room.gameState
+    }
+  });
+  
+  console.log(`Spectator joined room ${roomCode}`);
+});
+
     this.socket.on('player-joined', (data) => {
       console.log('Player joined:', data);
       this.currentRoom = data.room;

@@ -502,11 +502,9 @@
                     this.isConnected = true;
                     this.showStatus('Connected! Joining room...', '');
                     
-                    // Join as viewer
-                    this.socket.emit('join-room', {
-                        roomCode: this.roomCode,
-                        playerName: 'Web Viewer',
-                        isViewer: true
+                    // Connect as spectator (doesn't join as player)
+                    this.socket.emit('spectate-room', {
+                        roomCode: this.roomCode
                     });
                 });
                 
@@ -517,7 +515,24 @@
                     this.showRoomConnection();
                 });
                 
+                this.socket.on('spectate-success', (data) => {
+                    this.room = data.room;
+                    this.showStatus('Connected as spectator!', 'connected');
+                    this.showGameContent();
+                    this.updateRoomCode(this.roomCode);
+                    
+                    // If game is in progress, update display
+                    if (this.room.gameState) {
+                        this.handleGameUpdate(this.room.gameState);
+                    }
+                });
+                
+                this.socket.on('spectate-error', (data) => {
+                    this.showStatus(data.error || 'Room not found', 'error');
+                });
+                
                 this.socket.on('room-joined', (data) => {
+                    // Fallback if spectate not supported
                     if (data.success) {
                         this.room = data.room;
                         this.showStatus('Connected to room!', 'connected');
