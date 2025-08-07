@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawblins Cast Receiver</title>
+    <title>Drawblins Web Viewer</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +20,7 @@
             width: 100vw;
         }
         
-        .cast-display {
+        .viewer-display {
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -28,7 +28,7 @@
         }
         
         /* Header with room code and timer */
-        .cast-header {
+        .viewer-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -38,13 +38,13 @@
             flex-shrink: 0;
         }
         
-        .cast-title {
+        .viewer-title {
             font-size: 2.5rem;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .cast-timer {
+        .viewer-timer {
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 1rem 2rem;
@@ -56,21 +56,21 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         
-        .cast-timer.timer-urgent {
+        .viewer-timer.timer-urgent {
             background: #e74c3c;
         }
         
-        .cast-room-info {
+        .viewer-room-info {
             text-align: right;
         }
         
-        .cast-room-code {
+        .viewer-room-code {
             font-size: 1rem;
             opacity: 0.8;
             margin: 0;
         }
         
-        .cast-room-code-value {
+        .viewer-room-code-value {
             font-family: 'Courier New', monospace;
             font-size: 1.5rem;
             font-weight: bold;
@@ -79,36 +79,36 @@
         }
         
         /* Main content area */
-        .cast-content {
+        .viewer-content {
             flex: 1;
             padding: 2rem 3rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
             overflow-y: auto;
-            min-height: 0; /* Important for flex child */
+            min-height: 0;
         }
         
-        .cast-phase-info {
+        .viewer-phase-info {
             text-align: center;
             margin-bottom: 2rem;
         }
         
-        .cast-phase-title {
+        .viewer-phase-title {
             font-size: 3rem;
             margin: 0 0 1rem 0;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
             font-weight: bold;
         }
         
-        .cast-phase-subtitle {
+        .viewer-phase-subtitle {
             font-size: 1.5rem;
             margin: 0;
             opacity: 0.9;
             font-weight: 300;
         }
         
-        .cast-current-player {
+        .viewer-current-player {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 20px;
             padding: 1.5rem 2rem;
@@ -118,7 +118,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .cast-player-name {
+        .viewer-player-name {
             font-size: 2rem;
             margin: 0 0 0.5rem 0;
             color: #FFD700;
@@ -126,13 +126,13 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .cast-player-action {
+        .viewer-player-action {
             font-size: 1.2rem;
             margin: 0;
             opacity: 0.9;
         }
         
-        .cast-progress-info {
+        .viewer-progress-info {
             background: rgba(255, 152, 0, 0.2);
             border-radius: 15px;
             padding: 1rem 1.5rem;
@@ -141,14 +141,77 @@
             border: 1px solid rgba(255, 152, 0, 0.3);
         }
         
-        .cast-progress-text {
+        .viewer-progress-text {
             font-size: 1.4rem;
             margin: 0;
             font-weight: bold;
         }
+
+        /* Room input section */
+        .room-input-section {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+        }
+
+        .room-input-section h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .room-input {
+            padding: 1rem;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 10px;
+            text-align: center;
+            margin: 1rem;
+            width: 200px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .connect-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-left: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .connect-btn:hover:not(:disabled) {
+            background: #229954;
+        }
+
+        .connect-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .status-indicator {
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .status-indicator.connected {
+            color: #27ae60;
+        }
+
+        .status-indicator.error {
+            color: #e74c3c;
+        }
         
-        /* Slideshow section - Fixed layout */
-        .cast-slideshow-section {
+        /* Slideshow section */
+        .viewer-slideshow-section {
             flex: 1;
             display: flex;
             align-items: stretch;
@@ -158,7 +221,7 @@
             padding: 1rem 0;
         }
         
-        .cast-original-display {
+        .viewer-original-display {
             flex: 0 0 35%;
             display: flex;
             flex-direction: column;
@@ -166,7 +229,7 @@
             justify-content: center;
         }
         
-        .cast-original-monster {
+        .viewer-original-monster {
             background: linear-gradient(135deg, #FFD700, #FFA500);
             border: 3px solid #FF8C00;
             border-radius: 15px;
@@ -179,7 +242,7 @@
             flex-direction: column;
         }
         
-        .cast-original-monster h3 {
+        .viewer-original-monster h3 {
             color: #8B4513;
             margin: 0 0 1rem 0;
             font-weight: bold;
@@ -187,7 +250,7 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
         
-        .cast-original-image {
+        .viewer-original-image {
             width: 100%;
             height: 250px;
             object-fit: contain;
@@ -197,7 +260,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
-        .cast-drawing-display {
+        .viewer-drawing-display {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -207,25 +270,24 @@
             position: relative;
         }
         
-        .cast-slideshow-title {
+        .viewer-slideshow-title {
             font-size: 2rem;
             text-align: center;
             margin: 0 0 1.5rem 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        /* Fixed slideshow container - better positioning */
-        #cast-slideshow-container {
+        #viewer-slideshow-container {
             position: relative;
             width: 100%;
             max-width: 500px;
-            height: 350px; /* Fixed height instead of auto */
+            height: 350px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
-        .cast-drawing-slide {
+        .viewer-drawing-slide {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 1.5rem;
@@ -242,11 +304,11 @@
             transition: opacity 0.5s ease-in-out;
         }
         
-        .cast-drawing-slide.active {
+        .viewer-drawing-slide.active {
             opacity: 1;
         }
         
-        .cast-drawing-slide h3 {
+        .viewer-drawing-slide h3 {
             color: #333;
             margin: 0 0 1rem 0;
             font-size: 1.4rem;
@@ -254,7 +316,7 @@
             flex-shrink: 0;
         }
         
-        .cast-drawing-image {
+        .viewer-drawing-image {
             width: 100%;
             flex: 1;
             object-fit: contain;
@@ -262,16 +324,10 @@
             border: 2px solid rgba(0,0,0,0.1);
             background: white;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            opacity: 0;
-            transition: opacity 0.3s ease;
             min-height: 200px;
         }
         
-        .cast-drawing-image.loaded {
-            opacity: 1;
-        }
-        
-        .cast-auto-submitted-badge {
+        .viewer-auto-submitted-badge {
             display: inline-block;
             background: #95a5a6;
             color: white;
@@ -282,7 +338,7 @@
             margin-left: 0.5rem;
         }
         
-        .cast-slideshow-progress {
+        .viewer-slideshow-progress {
             position: absolute;
             bottom: -3rem;
             left: 50%;
@@ -293,7 +349,7 @@
             z-index: 10;
         }
         
-        .cast-progress-dot {
+        .viewer-progress-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
@@ -301,154 +357,76 @@
             transition: all 0.3s ease;
         }
         
-        .cast-progress-dot.active {
+        .viewer-progress-dot.active {
             background: #FFD700;
             transform: scale(1.3);
-        }
-        
-        .cast-no-drawings {
-            text-align: center;
-            font-size: 1.8rem;
-            color: #f39c12;
-            opacity: 0.8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-        
-        /* Connection states */
-        .cast-connecting {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
-        }
-        
-        .cast-connecting h2 {
-            font-size: 2.5rem;
-            margin: 0 0 1rem 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .cast-connecting p {
-            font-size: 1.3rem;
-            opacity: 0.8;
-            margin: 0;
-        }
-        
-        .cast-loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255,255,255,0.3);
-            border-top: 5px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 2rem 0;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         
         .hidden { 
             display: none !important; 
         }
-        
-        /* Responsive for different TV sizes */
-        @media (max-width: 1200px) {
-            .cast-header {
-                padding: 1rem 2rem;
-            }
-            
-            .cast-timer {
-                font-size: 1.8rem;
-                padding: 0.8rem 1.5rem;
-                min-width: 120px;
-            }
-            
-            .cast-phase-title {
-                font-size: 2.5rem;
-            }
-            
-            .cast-player-name {
-                font-size: 1.8rem;
-            }
-            
-            .cast-slideshow-section {
-                gap: 1.5rem;
-            }
-            
-            .cast-original-image {
-                height: 200px;
-            }
-            
-            #cast-slideshow-container {
-                height: 300px;
-                max-width: 400px;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="cast-display">
+    <div class="viewer-display">
         <!-- Header -->
-        <div class="cast-header">
-            <div class="cast-title">Drawblins</div>
-            <div class="cast-timer" id="cast-timer">00:00</div>
-            <div class="cast-room-info">
-                <p class="cast-room-code">Room Code:</p>
-                <p class="cast-room-code-value" id="cast-room-code">----</p>
+        <div class="viewer-header">
+            <div class="viewer-title">Drawblins Web Viewer</div>
+            <div class="viewer-timer" id="viewer-timer">00:00</div>
+            <div class="viewer-room-info">
+                <p class="viewer-room-code">Room Code:</p>
+                <p class="viewer-room-code-value" id="viewer-room-code">----</p>
             </div>
         </div>
         
         <!-- Main content -->
-        <div class="cast-content">
-            <!-- Connecting state -->
-            <div id="cast-connecting" class="cast-connecting">
-                <div class="cast-loading-spinner"></div>
-                <h2>Connecting to Game...</h2>
-                <p>Waiting for players to join</p>
+        <div class="viewer-content">
+            <!-- Room connection -->
+            <div id="room-connection" class="room-input-section">
+                <h2>Connect to Game Room</h2>
+                <div>
+                    <input type="text" id="room-code-input" class="room-input" placeholder="ABCD" maxlength="4">
+                    <button id="connect-btn" class="connect-btn">Connect</button>
+                </div>
+                <div id="connection-status" class="status-indicator">Enter room code to watch the game</div>
             </div>
             
             <!-- Game content -->
-            <div id="cast-game-content" class="hidden">
-                <div class="cast-phase-info">
-                    <h1 class="cast-phase-title" id="cast-phase-title">Welcome to Drawblins!</h1>
-                    <p class="cast-phase-subtitle" id="cast-phase-subtitle">Get ready to play</p>
+            <div id="viewer-game-content" class="hidden">
+                <div class="viewer-phase-info">
+                    <h1 class="viewer-phase-title" id="viewer-phase-title">Welcome to Drawblins!</h1>
+                    <p class="viewer-phase-subtitle" id="viewer-phase-subtitle">Get ready to play</p>
                 </div>
                 
-                <div id="cast-current-player" class="cast-current-player hidden">
-                    <h2 class="cast-player-name" id="cast-player-name">Player Name</h2>
-                    <p class="cast-player-action" id="cast-player-action">is getting ready</p>
+                <div id="viewer-current-player" class="viewer-current-player hidden">
+                    <h2 class="viewer-player-name" id="viewer-player-name">Player Name</h2>
+                    <p class="viewer-player-action" id="viewer-player-action">is getting ready</p>
                 </div>
                 
-                <div id="cast-progress" class="cast-progress-info hidden">
-                    <p class="cast-progress-text">
-                        Drawings submitted: <span id="cast-progress-count">0</span> / <span id="cast-progress-total">0</span>
+                <div id="viewer-progress" class="viewer-progress-info hidden">
+                    <p class="viewer-progress-text">
+                        Drawings submitted: <span id="viewer-progress-count">0</span> / <span id="viewer-progress-total">0</span>
                     </p>
                 </div>
             </div>
             
             <!-- Slideshow display -->
-            <div id="cast-slideshow" class="cast-slideshow-section hidden">
+            <div id="viewer-slideshow" class="viewer-slideshow-section hidden">
                 <!-- Original monster (left side) -->
-                <div class="cast-original-display">
-                    <div class="cast-original-monster">
+                <div class="viewer-original-display">
+                    <div class="viewer-original-monster">
                         <h3>Original Monster</h3>
-                        <img id="cast-original-image" class="cast-original-image" src="" alt="Original Monster">
+                        <img id="viewer-original-image" class="viewer-original-image" src="" alt="Original Monster">
                     </div>
                 </div>
                 
                 <!-- Drawing slideshow (right side) -->
-                <div class="cast-drawing-display">
-                    <div id="cast-slideshow-container">
+                <div class="viewer-drawing-display">
+                    <div class="viewer-slideshow-title">Player Drawings</div>
+                    <div id="viewer-slideshow-container">
                         <!-- Drawing slides will be inserted here -->
                     </div>
-                    <div id="cast-slideshow-progress" class="cast-slideshow-progress">
+                    <div id="viewer-slideshow-progress" class="viewer-slideshow-progress">
                         <!-- Progress dots will be inserted here -->
                     </div>
                 </div>
@@ -456,472 +434,382 @@
         </div>
     </div>
     
-    <!-- Cast SDK -->
-    <script src="//www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+    <!-- Socket.IO for WebSocket connection -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     
     <script>
-        // Cast Application Framework setup
-        const context = cast.framework.CastReceiverContext.getInstance();
-        const playerManager = context.getPlayerManager();
-        
-        // Game state
-        let gameState = null;
-        let room = null;
-        let roomCode = null;
-        
-        // Slideshow state
-        let slideshowDrawings = [];
-        let currentSlideIndex = 0;
-        let slideshowInterval = null;
-        let originalMonsterUrl = null;
-        
-        // Image handling
-        const imageCache = new Map();
-        const IMAGE_BASE_URLS = [
-            'https://teejaywilliamson.github.io/Drawblins/images/',
-            './images/',
-            '../images/',
-            'images/'
-        ];
-        
-        // Custom message bus for game data
-        const CUSTOM_CHANNEL = 'urn:x-cast:com.drawblins.gamedata';
-        
-        context.addCustomMessageListener(CUSTOM_CHANNEL, (customEvent) => {
-            const message = customEvent.data;
-            console.log('🎬 Received cast message:', message.type);
-            
-            switch (message.type) {
-                case 'game-update':
-                    handleGameUpdate(message.gameState, message.room);
-                    break;
-                case 'timer-update':
-                    updateTimer(message.timeString, message.timeLeft);
-                    break;
-                case 'slideshow-start':
-                    handleSlideshowStart(message.originalMonster, message.totalDrawings);
-                    break;
-                case 'slideshow-drawing':
-                    handleSlideshowDrawing(message);
-                    break;
-                case 'room-code':
-                    setRoomCode(message.roomCode);
-                    break;
-                case 'drawing-progress':
-                    updateDrawingProgress(message);
-                    break;
-                case 'game-finished':
-                    handleGameFinished(message);
-                    break;
-            }
-        });
-        
-        // Image loading utility
-        function loadImageWithFallbacks(imageName, callback) {
-            if (imageCache.has(imageName)) {
-                callback(imageCache.get(imageName), null);
-                return;
+        class DrawblinsWebViewer {
+            constructor() {
+                this.socket = null;
+                this.isConnected = false;
+                this.roomCode = null;
+                this.gameState = null;
+                this.room = null;
+                this.serverUrl = 'https://drawblins-production.up.railway.app';
+                
+                // Slideshow state
+                this.slideshowDrawings = [];
+                this.currentSlideIndex = 0;
+                this.slideshowInterval = null;
+                
+                this.init();
             }
             
-            let currentUrlIndex = 0;
-            
-            function tryNextUrl() {
-                if (currentUrlIndex >= IMAGE_BASE_URLS.length) {
-                    console.error('Failed to load image after trying all URLs:', imageName);
-                    callback(null, 'Failed to load image');
-                    return;
-                }
-                
-                const url = IMAGE_BASE_URLS[currentUrlIndex] + imageName;
-                
-                const img = new Image();
-                
-                img.onload = function() {
-                    imageCache.set(imageName, url);
-                    callback(url, null);
-                };
-                
-                img.onerror = function() {
-                    currentUrlIndex++;
-                    tryNextUrl();
-                };
-                
-                img.src = url;
+            init() {
+                this.setupEventListeners();
             }
             
-            tryNextUrl();
-        }
-        
-        // Handle slideshow start
-        function handleSlideshowStart(originalMonster, totalDrawings) {
-            console.log('🎬 Starting slideshow with original monster:', originalMonster);
-            
-            // Clear previous slideshow
-            clearSlideshow();
-            slideshowDrawings = [];
-            currentSlideIndex = 0;
-            
-            // Load and display original monster
-            if (originalMonster) {
-                loadImageWithFallbacks(originalMonster, (imageUrl, error) => {
-                    const originalImage = document.getElementById('cast-original-image');
-                    if (imageUrl && originalImage) {
-                        originalImage.onload = () => {
-                            originalImage.classList.add('loaded');
-                        };
-                        originalImage.src = imageUrl;
-                        originalMonsterUrl = imageUrl;
-                    } else {
-                        console.error('Failed to load original monster image');
+            setupEventListeners() {
+                const connectBtn = document.getElementById('connect-btn');
+                const roomInput = document.getElementById('room-code-input');
+                
+                connectBtn.addEventListener('click', () => this.connectToRoom());
+                
+                roomInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.connectToRoom();
                     }
                 });
             }
             
-            // Show slideshow section immediately
-            showSlideshow();
-        }
-        
-        // Handle individual slideshow drawing - IMPROVED: Show immediately
-        function handleSlideshowDrawing(drawingData) {
-            console.log('🎨 Received slideshow drawing for:', drawingData.playerName);
-            
-            // Add to slideshow drawings
-            slideshowDrawings.push({
-                playerName: drawingData.playerName,
-                imageData: drawingData.imageData,
-                autoSubmitted: drawingData.autoSubmitted,
-                index: drawingData.index
-            });
-            
-            console.log('🎨 Total drawings now:', slideshowDrawings.length);
-            
-            // Create or update slides immediately
-            createSlides();
-            
-            // If this is the first drawing, show it immediately
-            if (slideshowDrawings.length === 1) {
-                console.log('🎬 Showing first drawing immediately');
-                showSlide(0);
+            connectToRoom() {
+                const roomInput = document.getElementById('room-code-input');
+                const roomCode = roomInput.value.trim().toUpperCase();
                 
-                // Start auto-rotation after a short delay for the first drawing
-                setTimeout(() => {
-                    if (slideshowDrawings.length > 1) {
-                        startAutoRotation();
+                if (!roomCode || roomCode.length !== 4) {
+                    this.showStatus('Please enter a valid 4-letter room code', 'error');
+                    return;
+                }
+                
+                this.roomCode = roomCode;
+                this.showStatus('Connecting...', '');
+                
+                this.connect();
+            }
+            
+            connect() {
+                if (this.socket && this.isConnected) {
+                    this.socket.disconnect();
+                }
+                
+                this.socket = io(this.serverUrl, {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000
+                });
+                
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.isConnected = true;
+                    this.showStatus('Connected! Joining room...', '');
+                    
+                    // Connect as spectator (doesn't join as player)
+                    this.socket.emit('spectate-room', {
+                        roomCode: this.roomCode
+                    });
+                });
+                
+                this.socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    this.isConnected = false;
+                    this.showStatus('Disconnected from server', 'error');
+                    this.showRoomConnection();
+                });
+                
+                this.socket.on('spectate-success', (data) => {
+                    this.room = data.room;
+                    this.showStatus('Connected as spectator!', 'connected');
+                    this.showGameContent();
+                    this.updateRoomCode(this.roomCode);
+                    
+                    // If game is in progress, update display
+                    if (this.room.gameState) {
+                        this.handleGameUpdate(this.room.gameState);
                     }
-                }, 3000); // 3 seconds to view first drawing
-            } else {
-                // Update progress dots
-                updateProgressDots();
+                });
                 
-                // Start auto-rotation if we have multiple drawings and it's not running
-                if (slideshowDrawings.length > 1 && !slideshowInterval) {
-                    startAutoRotation();
-                }
-            }
-        }
-        
-        // Show slideshow section
-        function showSlideshow() {
-            document.getElementById('cast-connecting').classList.add('hidden');
-            document.getElementById('cast-game-content').classList.add('hidden');
-            document.getElementById('cast-slideshow').classList.remove('hidden');
-        }
-        
-        // Start auto-rotation - IMPROVED: Faster transitions
-        function startAutoRotation() {
-            console.log('🎬 Starting auto-rotation with', slideshowDrawings.length, 'drawings');
-            
-            // Clear any existing interval
-            if (slideshowInterval) {
-                clearInterval(slideshowInterval);
-            }
-            
-            // Only start rotation if we have more than one drawing
-            if (slideshowDrawings.length > 1) {
-                slideshowInterval = setInterval(() => {
-                    const nextIndex = (currentSlideIndex + 1) % slideshowDrawings.length;
-                    console.log('🎬 Auto-rotating to slide', nextIndex + 1, 'of', slideshowDrawings.length);
-                    showSlide(nextIndex);
-                }, 4000); // Faster rotation: 4 seconds per slide
-            }
-        }
-        
-        // Create slide elements - IMPROVED: Better error handling
-        function createSlides() {
-            const container = document.getElementById('cast-slideshow-container');
-            const progressContainer = document.getElementById('cast-slideshow-progress');
-            
-            if (!container || !progressContainer) {
-                console.error('Slideshow containers not found');
-                return;
-            }
-            
-            // Clear existing slides and progress dots
-            container.innerHTML = '';
-            progressContainer.innerHTML = '';
-            
-            console.log('🎬 Creating', slideshowDrawings.length, 'slides');
-            
-            slideshowDrawings.forEach((drawing, index) => {
-                // Create slide
-                const slide = document.createElement('div');
-                slide.className = 'cast-drawing-slide';
-                slide.id = `slide-${index}`;
+                this.socket.on('spectate-error', (data) => {
+                    this.showStatus(data.error || 'Room not found', 'error');
+                });
                 
-                slide.innerHTML = `
-                    <h3>
-                        ${drawing.playerName}
-                        ${drawing.autoSubmitted ? '<span class="cast-auto-submitted-badge">Auto</span>' : ''}
-                    </h3>
-                    <img class="cast-drawing-image" alt="${drawing.playerName}'s drawing">
-                `;
-                
-                container.appendChild(slide);
-                
-                // Load image immediately
-                const img = slide.querySelector('.cast-drawing-image');
-                if (drawing.imageData) {
-                    img.onload = () => {
-                        img.classList.add('loaded');
-                        console.log('✅ Loaded image for', drawing.playerName);
-                    };
-                    img.onerror = () => {
-                        console.error('❌ Failed to load drawing image for', drawing.playerName);
-                        // Show placeholder or error message
-                        img.alt = 'Failed to load drawing';
-                        img.style.background = '#f0f0f0';
-                        img.classList.add('loaded'); // Still show the slide
-                    };
-                    img.src = drawing.imageData;
-                } else {
-                    console.error('No image data for', drawing.playerName);
-                }
-                
-                // Create progress dot
-                const dot = document.createElement('div');
-                dot.className = 'cast-progress-dot';
-                dot.id = `dot-${index}`;
-                progressContainer.appendChild(dot);
-            });
-            
-            console.log('🎬 Created slides:', container.children.length);
-        }
-        
-        // Show specific slide - IMPROVED: Better error handling
-        function showSlide(index) {
-            if (index >= slideshowDrawings.length || index < 0) {
-                console.error('Invalid slide index:', index, 'Max:', slideshowDrawings.length - 1);
-                return;
-            }
-            
-            console.log('🎬 Showing slide', index + 1, 'of', slideshowDrawings.length, '- Player:', slideshowDrawings[index]?.playerName);
-            
-            // Get all slides
-            const slides = document.querySelectorAll('.cast-drawing-slide');
-            
-            if (slides.length === 0) {
-                console.error('No slides found to display');
-                return;
-            }
-            
-            // Update current index
-            currentSlideIndex = index;
-            
-            // Simple opacity transition
-            slides.forEach((slide, slideIndex) => {
-                if (slideIndex === index) {
-                    slide.classList.add('active');
-                } else {
-                    slide.classList.remove('active');
-                }
-            });
-            
-            // Update progress dots
-            updateProgressDots();
-        }
-        
-        // Update progress dots
-        function updateProgressDots() {
-            const dots = document.querySelectorAll('.cast-progress-dot');
-            dots.forEach((dot, index) => {
-                if (index === currentSlideIndex) {
-                    dot.classList.add('active');
-                } else {
-                    dot.classList.remove('active');
-                }
-            });
-        }
-        
-        // Show no drawings message
-        function showNoDrawingsMessage() {
-            const container = document.getElementById('cast-slideshow-container');
-            if (container) {
-                container.innerHTML = '<div class="cast-no-drawings">No drawings submitted yet...</div>';
-            }
-        }
-        
-        // Clear slideshow
-        function clearSlideshow() {
-            console.log('🎬 Clearing slideshow');
-            
-            if (slideshowInterval) {
-                clearInterval(slideshowInterval);
-                slideshowInterval = null;
-            }
-            
-            const container = document.getElementById('cast-slideshow-container');
-            const progressContainer = document.getElementById('cast-slideshow-progress');
-            
-            if (container) container.innerHTML = '';
-            if (progressContainer) progressContainer.innerHTML = '';
-            
-            slideshowDrawings = [];
-            currentSlideIndex = 0;
-        }
-        
-        // Handle game updates
-        function handleGameUpdate(newGameState, newRoom) {
-            gameState = newGameState;
-            room = newRoom;
-            
-            if (room && room.code) {
-                setRoomCode(room.code);
-            }
-            
-            // Clear slideshow when game updates (new phase)
-            if (gameState && gameState.phase !== 'reveal') {
-                clearSlideshow();
-            }
-            
-            updateCastDisplay();
-        }
-        
-        function setRoomCode(code) {
-            roomCode = code;
-            document.getElementById('cast-room-code').textContent = code || '----';
-        }
-        
-        function showConnecting() {
-            document.getElementById('cast-connecting').classList.remove('hidden');
-            document.getElementById('cast-game-content').classList.add('hidden');
-            document.getElementById('cast-slideshow').classList.add('hidden');
-        }
-        
-        function showGameContent() {
-            document.getElementById('cast-connecting').classList.add('hidden');
-            document.getElementById('cast-game-content').classList.remove('hidden');
-            document.getElementById('cast-slideshow').classList.add('hidden');
-        }
-        
-        function updateCastDisplay() {
-            if (!gameState || !room) {
-                showConnecting();
-                return;
-            }
-            
-            // Don't override slideshow display during reveal phase
-            if (gameState.phase === 'reveal' && slideshowDrawings.length > 0) {
-                return;
-            }
-            
-            showGameContent();
-            
-            const currentPlayer = room.players.find(p => p.id === gameState.currentDrawer);
-            
-            // Update phase info
-            const phaseTitle = document.getElementById('cast-phase-title');
-            const phaseSubtitle = document.getElementById('cast-phase-subtitle');
-            const currentPlayerDiv = document.getElementById('cast-current-player');
-            const progressDiv = document.getElementById('cast-progress');
-            
-            switch (gameState.phase) {
-                case 'studying':
-                    phaseTitle.textContent = `Round ${gameState.currentRound} - Study Phase`;
-                    phaseSubtitle.textContent = 'Player is memorizing the monster';
-                    
-                    if (currentPlayer) {
-                        document.getElementById('cast-player-name').textContent = currentPlayer.name;
-                        document.getElementById('cast-player-action').textContent = 'is studying the monster';
-                        currentPlayerDiv.classList.remove('hidden');
+                this.socket.on('room-joined', (data) => {
+                    // Fallback if spectate not supported
+                    if (data.success) {
+                        this.room = data.room;
+                        this.showStatus('Connected to room!', 'connected');
+                        this.showGameContent();
+                        this.updateRoomCode(this.roomCode);
+                        
+                        // If game is in progress, update display
+                        if (this.room.gameState) {
+                            this.handleGameUpdate(this.room.gameState);
+                        }
+                    } else {
+                        this.showStatus(data.error || 'Failed to join room', 'error');
                     }
-                    
-                    progressDiv.classList.add('hidden');
-                    break;
-                    
-                case 'drawing':
-                    phaseTitle.textContent = `Round ${gameState.currentRound} - Drawing Phase`;
-                    phaseSubtitle.textContent = 'Draw what you hear!';
-                    
-                    if (currentPlayer) {
-                        document.getElementById('cast-player-name').textContent = currentPlayer.name;
-                        document.getElementById('cast-player-action').textContent = 'is describing the monster';
-                        currentPlayerDiv.classList.remove('hidden');
-                    }
-                    
-                    // Update progress
-                    const expectedSubmissions = room.players.filter(p => p.id !== gameState.currentDrawer).length;
-                    document.getElementById('cast-progress-count').textContent = gameState.drawings?.length || 0;
-                    document.getElementById('cast-progress-total').textContent = expectedSubmissions;
-                    progressDiv.classList.remove('hidden');
-                    break;
-                    
-                default:
-                    phaseTitle.textContent = 'Drawblins Party Mode';
-                    phaseSubtitle.textContent = 'Waiting for game to start...';
-                    currentPlayerDiv.classList.add('hidden');
-                    progressDiv.classList.add('hidden');
-            }
-        }
-        
-        function updateTimer(timeString, timeLeft) {
-            const timerElement = document.getElementById('cast-timer');
-            if (timerElement) {
-                timerElement.textContent = timeString;
+                });
                 
-                // Add urgent class for last 10 seconds
-                if (timeLeft <= 10 && timeLeft > 0) {
-                    timerElement.classList.add('timer-urgent');
-                } else {
-                    timerElement.classList.remove('timer-urgent');
+                this.socket.on('game-started', (data) => {
+                    this.room = data.room;
+                    this.handleGameUpdate(data.gameState);
+                });
+                
+                this.socket.on('phase-changed', (data) => {
+                    this.room = data.room;
+                    this.handleGameUpdate(data.gameState);
+                });
+                
+                this.socket.on('timer-update', (data) => {
+                    this.updateTimer(data.timeLeft);
+                });
+                
+                this.socket.on('drawing-submitted', (data) => {
+                    this.updateDrawingProgress(data);
+                });
+                
+                this.socket.on('game-finished', (data) => {
+                    this.handleGameFinished(data);
+                });
+                
+                // Handle reveal phase with drawings
+                this.socket.on('phase-changed', (data) => {
+                    this.room = data.room;
+                    
+                    if (data.gameState.phase === 'reveal' && data.allDrawings) {
+                        this.showDrawingsSlideshow(data.allDrawings, data.originalMonster);
+                    } else {
+                        this.handleGameUpdate(data.gameState);
+                    }
+                });
+            }
+            
+            showStatus(message, type = '') {
+                const status = document.getElementById('connection-status');
+                status.textContent = message;
+                status.className = `status-indicator ${type}`;
+            }
+            
+            showRoomConnection() {
+                document.getElementById('room-connection').classList.remove('hidden');
+                document.getElementById('viewer-game-content').classList.add('hidden');
+                document.getElementById('viewer-slideshow').classList.add('hidden');
+            }
+            
+            showGameContent() {
+                document.getElementById('room-connection').classList.add('hidden');
+                document.getElementById('viewer-game-content').classList.remove('hidden');
+                document.getElementById('viewer-slideshow').classList.add('hidden');
+            }
+            
+            showSlideshow() {
+                document.getElementById('room-connection').classList.add('hidden');
+                document.getElementById('viewer-game-content').classList.add('hidden');
+                document.getElementById('viewer-slideshow').classList.remove('hidden');
+            }
+            
+            updateRoomCode(code) {
+                document.getElementById('viewer-room-code').textContent = code || '----';
+            }
+            
+            handleGameUpdate(gameState) {
+                this.gameState = gameState;
+                
+                if (gameState.phase === 'reveal') {
+                    return; // Let slideshow handle reveal phase
+                }
+                
+                this.showGameContent();
+                
+                const currentPlayer = this.room.players.find(p => p.id === gameState.currentDrawer);
+                
+                // Update phase info
+                const phaseTitle = document.getElementById('viewer-phase-title');
+                const phaseSubtitle = document.getElementById('viewer-phase-subtitle');
+                const currentPlayerDiv = document.getElementById('viewer-current-player');
+                const progressDiv = document.getElementById('viewer-progress');
+                
+                switch (gameState.phase) {
+                    case 'studying':
+                        phaseTitle.textContent = `Round ${gameState.currentRound} - Study Phase`;
+                        phaseSubtitle.textContent = 'Player is memorizing the monster';
+                        
+                        if (currentPlayer) {
+                            document.getElementById('viewer-player-name').textContent = currentPlayer.name;
+                            document.getElementById('viewer-player-action').textContent = 'is studying the monster';
+                            currentPlayerDiv.classList.remove('hidden');
+                        }
+                        
+                        progressDiv.classList.add('hidden');
+                        break;
+                        
+                    case 'drawing':
+                        phaseTitle.textContent = `Round ${gameState.currentRound} - Drawing Phase`;
+                        phaseSubtitle.textContent = 'Draw what you hear!';
+                        
+                        if (currentPlayer) {
+                            document.getElementById('viewer-player-name').textContent = currentPlayer.name;
+                            document.getElementById('viewer-player-action').textContent = 'is describing the monster';
+                            currentPlayerDiv.classList.remove('hidden');
+                        }
+                        
+                        // Update progress
+                        const expectedSubmissions = this.room.players.filter(p => p.id !== gameState.currentDrawer).length;
+                        document.getElementById('viewer-progress-count').textContent = gameState.drawings?.length || 0;
+                        document.getElementById('viewer-progress-total').textContent = expectedSubmissions;
+                        progressDiv.classList.remove('hidden');
+                        break;
+                        
+                    default:
+                        phaseTitle.textContent = 'Drawblins Party Mode';
+                        phaseSubtitle.textContent = 'Waiting for game to start...';
+                        currentPlayerDiv.classList.add('hidden');
+                        progressDiv.classList.add('hidden');
                 }
             }
+            
+            updateTimer(timeLeft) {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                const timerElement = document.getElementById('viewer-timer');
+                if (timerElement) {
+                    timerElement.textContent = timeString;
+                    
+                    if (timeLeft <= 10 && timeLeft > 0) {
+                        timerElement.classList.add('timer-urgent');
+                    } else {
+                        timerElement.classList.remove('timer-urgent');
+                    }
+                }
+            }
+            
+            updateDrawingProgress(data) {
+                const progressCount = document.getElementById('viewer-progress-count');
+                const progressTotal = document.getElementById('viewer-progress-total');
+                
+                if (progressCount) progressCount.textContent = data.totalSubmitted || 0;
+                if (progressTotal) progressTotal.textContent = data.totalExpected || 0;
+            }
+            
+            showDrawingsSlideshow(drawings, originalMonster) {
+                this.showSlideshow();
+                
+                // Clear previous slideshow
+                this.clearSlideshow();
+                this.slideshowDrawings = drawings || [];
+                
+                // Show original monster
+                if (originalMonster) {
+                    const originalImage = document.getElementById('viewer-original-image');
+                    originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${originalMonster}`;
+                }
+                
+                // Create slides
+                if (this.slideshowDrawings.length > 0) {
+                    this.createSlides();
+                    this.showSlide(0);
+                    
+                    if (this.slideshowDrawings.length > 1) {
+                        this.startAutoRotation();
+                    }
+                }
+            }
+            
+            createSlides() {
+                const container = document.getElementById('viewer-slideshow-container');
+                const progressContainer = document.getElementById('viewer-slideshow-progress');
+                
+                container.innerHTML = '';
+                progressContainer.innerHTML = '';
+                
+                this.slideshowDrawings.forEach((drawing, index) => {
+                    // Create slide
+                    const slide = document.createElement('div');
+                    slide.className = 'viewer-drawing-slide';
+                    slide.innerHTML = `
+                        <h3>
+                            ${drawing.playerName}
+                            ${drawing.autoSubmitted ? '<span class="viewer-auto-submitted-badge">Auto</span>' : ''}
+                        </h3>
+                        <img class="viewer-drawing-image" src="${drawing.imageData}" alt="${drawing.playerName}'s drawing">
+                    `;
+                    container.appendChild(slide);
+                    
+                    // Create progress dot
+                    const dot = document.createElement('div');
+                    dot.className = 'viewer-progress-dot';
+                    progressContainer.appendChild(dot);
+                });
+            }
+            
+            showSlide(index) {
+                if (index >= this.slideshowDrawings.length || index < 0) return;
+                
+                this.currentSlideIndex = index;
+                
+                const slides = document.querySelectorAll('.viewer-drawing-slide');
+                const dots = document.querySelectorAll('.viewer-progress-dot');
+                
+                slides.forEach((slide, slideIndex) => {
+                    if (slideIndex === index) {
+                        slide.classList.add('active');
+                    } else {
+                        slide.classList.remove('active');
+                    }
+                });
+                
+                dots.forEach((dot, dotIndex) => {
+                    if (dotIndex === index) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
+            }
+            
+            startAutoRotation() {
+                if (this.slideshowInterval) {
+                    clearInterval(this.slideshowInterval);
+                }
+                
+                this.slideshowInterval = setInterval(() => {
+                    const nextIndex = (this.currentSlideIndex + 1) % this.slideshowDrawings.length;
+                    this.showSlide(nextIndex);
+                }, 4000);
+            }
+            
+            clearSlideshow() {
+                if (this.slideshowInterval) {
+                    clearInterval(this.slideshowInterval);
+                    this.slideshowInterval = null;
+                }
+                
+                const container = document.getElementById('viewer-slideshow-container');
+                const progressContainer = document.getElementById('viewer-slideshow-progress');
+                
+                if (container) container.innerHTML = '';
+                if (progressContainer) progressContainer.innerHTML = '';
+                
+                this.slideshowDrawings = [];
+                this.currentSlideIndex = 0;
+            }
+            
+            handleGameFinished(data) {
+                this.clearSlideshow();
+                this.showGameContent();
+                
+                const phaseTitle = document.getElementById('viewer-phase-title');
+                const phaseSubtitle = document.getElementById('viewer-phase-subtitle');
+                
+                if (phaseTitle) phaseTitle.textContent = 'Game Complete!';
+                if (phaseSubtitle) phaseSubtitle.textContent = 'Thanks for playing Drawblins!';
+            }
         }
         
-        function updateDrawingProgress(data) {
-            const progressCount = document.getElementById('cast-progress-count');
-            const progressTotal = document.getElementById('cast-progress-total');
-            
-            if (progressCount) progressCount.textContent = data.totalSubmitted || 0;
-            if (progressTotal) progressTotal.textContent = data.totalExpected || 0;
-        }
-        
-        function handleGameFinished(data) {
-            console.log('Game finished');
-            clearSlideshow();
-            
-            const phaseTitle = document.getElementById('cast-phase-title');
-            const phaseSubtitle = document.getElementById('cast-phase-subtitle');
-            const currentPlayerDiv = document.getElementById('cast-current-player');
-            const progressDiv = document.getElementById('cast-progress');
-            
-            if (phaseTitle) phaseTitle.textContent = 'Game Complete!';
-            if (phaseSubtitle) phaseSubtitle.textContent = 'Thanks for playing Drawblins!';
-            if (currentPlayerDiv) currentPlayerDiv.classList.add('hidden');
-            if (progressDiv) progressDiv.classList.add('hidden');
-            
-            showGameContent();
-        }
-        
-        // Start the receiver
-        context.start({
-            // Disable idle timeout for long games
-            maxInactivity: 3600 // 1 hour
+        // Initialize the web viewer
+        document.addEventListener('DOMContentLoaded', () => {
+            new DrawblinsWebViewer();
         });
-        
-        // Show connecting state initially
-        showConnecting();
-        
-        console.log('Drawblins Cast Receiver with Slideshow initialized');
     </script>
 </body>
 </html>
