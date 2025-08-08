@@ -373,7 +373,6 @@
                 
                 <!-- Drawing slideshow (right side) -->
                 <div class="cast-drawing-display">
-                    <div class="cast-slideshow-title">Player Drawings</div>
                     <div id="cast-slideshow-container">
                         <!-- Drawing slides will be inserted here -->
                     </div>
@@ -452,7 +451,8 @@
             }
             
             handleCastMessage(event) {
-                console.log('📨 Received cast message:', event.data);
+                console.log('📨 Received cast message type:', event.data.type);
+                console.log('📊 Message size:', JSON.stringify(event.data).length, 'characters');
                 
                 try {
                     const message = event.data;
@@ -483,6 +483,7 @@
                             break;
                             
                         case 'show-drawings-slideshow':
+                            console.log('⚠️ Using legacy slideshow method');
                             this.handleShowDrawingsSlideshow(message);
                             break;
                             
@@ -491,11 +492,12 @@
                             break;
                             
                         default:
-                            console.log('Unknown message type:', message.type);
+                            console.log('❓ Unknown message type:', message.type);
                     }
                     
                 } catch (error) {
-                    console.error('Error handling cast message:', error);
+                    console.error('❌ Error handling cast message:', error);
+                    console.error('❌ Message data:', event.data);
                 }
             }
             
@@ -544,6 +546,7 @@
             
             handleSlideshowDrawing(message) {
                 console.log(`🖼️ Adding slideshow drawing ${message.index + 1}:`, message.playerName);
+                console.log(`🗜️ Drawing data size: ${message.imageData?.length || 0} characters`);
                 
                 this.addDrawingSlide(message);
                 
