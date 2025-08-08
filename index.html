@@ -4,1210 +4,254 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Drawblins</title>
-  <style>
-    /* Base Styles */
-    html, body {
-      overscroll-behavior-y: contain;
-      -webkit-overflow-scrolling: touch;
-      overflow-x: hidden;
-      max-width: 100vw;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      box-sizing: border-box;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      height: 100vh;
-      width: 100vw;
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-      background: linear-gradient(to bottom right, #e6f0fa, #ffffff);
-      overflow-y: auto;
-      overflow-x: hidden;
-      position: fixed;
-      text-align: center;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* Mode Select Screen */
-    #mode-select {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-align: center;
-      padding: 2rem;
-      width: 100%;
-    }
-
-    #mode-select h1 {
-      font-size: 3rem;
-      margin-bottom: 2rem;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.4);
-    }
-
-    .mode-btn-main {
-      padding: 1.2rem 2rem;
-      margin: 0.5rem;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      min-width: 240px;
-      transition: all 0.3s ease;
-    }
-
-    .pass-play-btn { 
-      background: linear-gradient(45deg, #FF6B6B, #FF5252); 
-      color: white; 
-    }
-    .local-party-btn { 
-      background: linear-gradient(45deg, #4ECDC4, #44A08D); 
-      color: white; 
-    }
-    .online-party-btn { 
-      background: linear-gradient(45deg, #A8EDEA, #5F72BD); 
-      color: white; 
-    }
-
-    .mode-btn-main:hover { 
-      transform: translateY(-3px); 
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2); 
-    }
-
-    .back-btn {
-      position: fixed;
-      top: 1rem;
-      left: 1rem;
-      margin: 0;
-      padding: 0.6rem 1.2rem;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    .back-btn:hover {
-      background: rgba(0,0,0,0.9);
-    }
-
-    /* Main Game Container */
-    .container {
-      flex: 1;
-      width: 100%;
-      max-width: min(900px, 100vw);
-      background: #ffffff;
-      padding: 2rem 1rem;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      transition: box-shadow 0.3s ease;
-      overflow-y: auto;
-      overflow-x: hidden;
-      box-sizing: border-box;
-      margin: 0 auto;
-    }
-
-    /* Logo and Header */
-    .sticky-header {
-      position: sticky;
-      top: 0;
-      width: 100%;
-      left: 0;
-      background-color: white;
-      z-index: 100;
-      box-sizing: border-box;
-      padding: 8px 0;
-      display: block;
-      overflow: hidden;
-    }
-
-    .logo-wrapper {
-      position: relative;
-      background: #fff;
-      z-index: 100;
-      padding: 1rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    .corner-buttons {
-      position: absolute;
-      top: 0.5rem;
-      right: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      z-index: 101;
-      align-items: center;
-    }
-
-    .logo-img {
-      max-width: min(250px, 60vw);
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .icon-button {
-      position: relative;
-      background: #3498db;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      outline: none;
-      flex-shrink: 0;
-    }
-
-    .icon-button:hover,
-    .icon-button:focus {
-      background: #217dbb;
-    }
-
-    .icon-button__icon {
-      display: block;
-      width: 24px;
-      height: 24px;
-    }
-
-    /* Game Elements */
-    h1 {
-      color: #2c3e50;
-      font-size: clamp(1.8rem, 5vw, 2.5rem);
-      margin-bottom: 1.5rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-      word-wrap: break-word;
-    }
-
-    button {
-      padding: 0.8rem 1.8rem;
-      font-size: 1rem;
-      margin-top: 1rem;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      box-sizing: border-box;
-      max-width: 100%;
-    }
-
-    button:hover {
-      background-color: #388e3c;
-      transform: scale(1.03);
-    }
-
-    #monster-image {
-      max-width: 100%;
-      max-height: min(400px, 50vh);
-      width: auto;
-      height: auto;
-      border-radius: 16px;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-      margin: 1.5rem 0;
-      transition: transform 0.3s ease;
-      border: 3px solid #4CAF50;
-      box-sizing: border-box;
-    }
-
-    #monster-image:hover {
-      transform: scale(1.02);
-    }
-
-    /* Settings and Modal Styles */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 1000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-
-    .modal-content {
-      background: linear-gradient(135deg, white 0%, #f2f2f2 100%);
-      border-radius: 20px;
-      padding: 2rem 1rem;
-      max-width: min(500px, 90vw);
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      position: relative;
-      box-sizing: border-box;
-    }
-
-    /* Settings Groups */
-    .settings-group {
-      border-radius: 12px;
-      padding: 1rem;
-      margin: 1rem 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-      position: relative;
-      overflow: hidden;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    .time-setting-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 10px;
-      padding: 0.75rem;
-      margin: 0.75rem 0;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      position: relative;
-      z-index: 2;
-      transform: translateY(0);
-      transition: all 0.3s ease;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    .time-setting-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-
-    .time-setting-card label {
-      font-weight: 600;
-      margin: 0 0 0.5rem 0;
-      display: block;
-      color: #2c3e50;
-      font-size: clamp(0.85rem, 3vw, 0.95rem);
-      position: relative;
-    }
-
-    .rules-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .rule-btn {
-      padding: 0.5rem 0.25rem;
-      font-size: clamp(0.6rem, 2vw, 0.8rem);
-      font-weight: 500;
-      background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-      color: #495057;
-      border: 2px solid transparent;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-      text-transform: uppercase;
-      letter-spacing: 0.2px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      min-height: 60px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      box-sizing: border-box;
-      width: 100%;
-      margin: 0;
-    }
-
-    .rule-btn:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    }
-
-    .rule-btn.active {
-      transform: scale(1.05);
-      box-shadow: 0 0 20px rgba(0, 123, 255, 0.6);
-    }
-
-    .rule-btn[data-view="30"].active,
-    .rule-btn[data-draw="3"].active {
-      background: linear-gradient(145deg, #28a745, #34ce57);
-      color: white;
-      border-color: #1e7e34;
-    }
-
-    .rule-btn[data-view="20"].active,
-    .rule-btn[data-draw="2"].active {
-      background: linear-gradient(145deg, #007bff, #0056b3);
-      color: white;
-      border-color: #0056b3;
-    }
-
-    .rule-btn[data-view="10"].active,
-    .rule-btn[data-draw="1"].active {
-      background: linear-gradient(145deg, #dc3545, #c82333);
-      color: white;
-      border-color: #bd2130;
-    }
-
-    /* Timer and Progress Bar */
-    #timer-container {
-      margin: 2rem 0;
-    }
-
-    #timer-container p {
-      font-size: clamp(1.8rem, 6vw, 2.5rem);
-      color: #d32f2f;
-      margin: 1rem 0;
-      font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-      word-wrap: break-word;
-    }
-
-    #progress-bar-container {
-      width: 100%;
-      background-color: #ddd;
-      border-radius: 10px;
-      overflow: hidden;
-      height: 20px;
-      margin: 1rem 0;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-      box-sizing: border-box;
-    }
-
-    #progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #4CAF50, #8BC34A);
-      transition: width 1s linear;
-      border-radius: 10px;
-      max-width: 100%;
-    }
-
-    #phase-indicator {
-      font-size: clamp(1rem, 4vw, 1.3rem);
-      color: #34495e;
-      margin: 1rem 0;
-      font-weight: bold;
-      padding: 0.5rem 1rem;
-      background-color: #ecf0f1;
-      border-radius: 10px;
-      display: inline-block;
-      max-width: 100%;
-      box-sizing: border-box;
-      word-wrap: break-word;
-    }
-
-    #thinking-screen {
-      padding: 2rem 1rem;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 20px;
-      color: white;
-      margin: 2rem 0;
-      animation: pulse 15s infinite;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    #thinking-screen h2 {
-      font-size: clamp(1.5rem, 5vw, 2rem);
-      margin-bottom: 1rem;
-      word-wrap: break-word;
-    }
-
-    #thinking-screen p {
-      font-size: clamp(1rem, 3vw, 1.2rem);
-      margin-bottom: 1.5rem;
-      word-wrap: break-word;
-    }
-
-    .thinking-tips {
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 1rem;
-      border-radius: 10px;
-      margin-top: 1rem;
-      text-align: left;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    .thinking-tips ul {
-      padding-left: 1rem;
-      margin: 0;
-    }
-
-    .thinking-tips li {
-      padding: 0.3rem 0;
-      font-size: clamp(0.9rem, 3vw, 1rem);
-      line-height: 1.4;
-      word-wrap: break-word;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-      100% { transform: scale(1); }
-    }
-
-    /* Button Groups */
-    #start-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1rem;
-    }
-
-    #start-buttons button {
-      flex: 1;
-      max-width: 200px;
-    }
-
-    #end-buttons {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1.5rem;
-      flex-wrap: wrap;
-    }
-
-    #end-buttons button {
-      flex: 1;
-      max-width: 200px;
-    }
-
-    #round-info {
-      background-color: #3498db;
-      color: white;
-      padding: 1rem;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
-      font-weight: bold;
-    }
-
-    /* Party Mode Styles */
-    .party-mode-section {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-align: center;
-      padding: 2rem;
-      width: 100%;
-    }
-
-    .party-mode-card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 2rem;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      color: #2c3e50;
-    }
-
-    .party-mode-card h3 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-      color: #2c3e50;
-    }
-
-    .party-setup {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-
-    .party-setup input {
-      padding: 1rem;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      font-size: 1rem;
-      text-align: center;
-    }
-
-    .party-btn {
-      padding: 1rem 2rem;
-      font-size: 1.1rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .create-btn {
-      background: linear-gradient(45deg, #4ECDC4, #44A08D);
-      color: white;
-    }
-
-    .join-btn {
-      background: linear-gradient(45deg, #A8EDEA, #5F72BD);
-      color: white;
-    }
-
-    .cast-btn {
-      background: linear-gradient(45deg, #FF6B6B, #FF5252);
-      color: white;
-    }
-
-    .party-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    }
-
-    .join-room-section {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-
-    /* Mobile Responsiveness */
-    @media (max-width: 768px) {
-      #mode-select h1 {
-        font-size: 2.5rem;
-      }
-      
-      .mode-btn-main {
-        min-width: 200px;
-        font-size: 1rem;
-      }
-
-      .party-mode-card {
-        margin: 0 1rem;
-        padding: 1.5rem;
-      }
-    }
-
-    @media (max-width: 600px) {
-      body {
-        height: 100vh;
-        max-height: 100vh;
-        overflow: hidden;
-      }
-      
-      .container {
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-        max-height: 100vh;
-        padding: 1rem;
-      }
-
-      #start-buttons {
-        flex-direction: column;
-      }
-      
-      #start-buttons button {
-        max-width: none;
-        width: 100%;
-      }
-
-      #end-buttons {
-        flex-direction: column;
-      }
-
-      #end-buttons button {
-        max-width: none;
-        width: 100%;
-      }
-
-      .rules-grid {
-        gap: 0.4rem;
-      }
-      
-      .rule-btn {
-        font-size: 0.6rem;
-        padding: 0.4rem 0.15rem;
-        min-height: 50px;
-        letter-spacing: 0.1px;
-      }
-
-      .time-setting-card {
-        padding: 0.5rem;
-        margin: 0.5rem 0;
-      }
-
-      .corner-buttons {
-        right: 0.5rem;
-      }
-
-      .back-btn {
-        top: 0.5rem;
-        left: 0.5rem;
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Party Mode CSS -->
+  <link rel="stylesheet" href="party-mode.css" />
 </head>
 <body>
+  <div class="container">
 
-  <!-- Mode Select -->
-  <div id="mode-select">
-    <h1>🎨 Drawblins</h1>
-    <button class="mode-btn-main pass-play-btn" onclick="showMode('local-mode')">Pass & Play</button>
-    <button class="mode-btn-main local-party-btn" onclick="showMode('local-party')">Local Party</button>
-    <button class="mode-btn-main online-party-btn" onclick="showMode('online-party')">Online Party</button>
-  </div>
-
-  <!-- Local Mode (Pass & Play) -->
-  <div id="local-mode" class="hidden">
-    <button class="back-btn" onclick="goBack()">← Back</button>
+    <!--TEST-->
     
-    <div class="container">
-      <!-- Logo + Info + Settings Buttons -->
-      <div class="sticky-header">
-        <div class="logo-wrapper" id="logo-click">
-          <svg class="logo-img" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
-            <text x="150" y="45" font-family="Arial Black, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#2c3e50">Drawblins</text>
-            <text x="150" y="65" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#7f8c8d">Monster Drawing Game</text>
-          </svg>
-          <div class="corner-buttons">
-            <!-- Info Button -->
-            <button id="info-btn" class="icon-button" aria-label="How to Play">
-              <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                <path d="M11 9h2V7h-2v2zm0 8h2v-6h-2v6zm1-16C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-              </svg>
-            </button>
-            <!-- Settings Button -->
-            <button id="settings-btn" class="icon-button" aria-label="Settings">
-              <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65c.18-.14.23-.41.12-.61l-2-3.46c-.11-.2-.36-.27-.57-.2l-2.49 1a8.027 8.027 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4c-.25 0-.46.18-.5.42l-.37 2.65a8.16 8.16 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.57.2l-2 3.46a.5.5 0 0 0 .12.61L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 0 0-.12.61l2 3.46c.11.2.36.27.57.2l2.49-1c.52.39 1.08.72 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.61-.26 1.17-.59 1.69-.98l2.49 1c.21.07.46 0 .57-.2l2-3.46a.5.5 0 0 0-.12-.61l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+<!-- Logo + Info + Settings Buttons -->
+<div class="sticky-header">
+<div class="logo-wrapper" id="logo-click">
+  <img src="images/logo.png" alt="Drawblins" class="logo-img" />
 
-      <!-- Start Screen -->
-      <div id="start-screen">
-        <div id="round-info" class="hidden">
-          <span id="round-display">Round 1</span>
-        </div>
-        <div class="settings-group">
-          <div class="time-setting-card">
-            <label>View Time (sec):</label>
-            <div class="rules-grid">
-              <button class="rule-btn" data-view="30">Easy<br><strong>30s</strong></button>
-              <button class="rule-btn active" data-view="20">Standard<br><strong>20s</strong></button>
-              <button class="rule-btn" data-view="10">Hard<br><strong>10s</strong></button>
-            </div>
-          </div>
-          <div class="time-setting-card">
-            <label>Drawing Time (min):</label>
-            <div class="rules-grid">
-              <button class="rule-btn" data-draw="3">Easy<br><strong>3min</strong></button>
-              <button class="rule-btn active" data-draw="2">Standard<br><strong>2min</strong></button>
-              <button class="rule-btn" data-draw="1">Hard<br><strong>1min</strong></button>
-            </div>
-          </div>
-        </div>
-        <div id="start-buttons">
-          <button id="start-btn">Start Round</button>
-          <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
-          <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
-        </div>
-      </div>
+    
+    <div class="corner-buttons">
+      <!-- Info Button -->
+      <button id="info-btn" class="icon-button" aria-label="How to Play">
+        <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+          <path d="M11 9h2V7h-2v2zm0 8h2v-6h-2v6zm1-16C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 
+          8-8 8 3.59 8 8-3.59 8-8 8z"/>
+        </svg>
+      </button>
 
-      <!-- Phase Indicator -->
-      <div id="phase-indicator" class="hidden">Study the Monster!</div>
+      <!-- Settings Button -->
+      <button id="settings-btn" class="icon-button" aria-label="Settings">
+        <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+          <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65c.18-.14.23-.41.12-.61l-2-3.46c-.11-.2-.36-.27-.57-.2l-2.49 1a8.027 
+          8.027 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4c-.25 0-.46.18-.5.42l-.37 2.65a8.16 8.16 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.57.2l-2 
+          3.46a.5.5 0 0 0 .12.61L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 0 0-.12.61l2 3.46c.11.2.36.27.57.2l2.49-1c.52.39 
+          1.08.72 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.61-.26 1.17-.59 1.69-.98l2.49 1c.21.07.46 0 .57-.2l2-3.46a.5.5 
+          0 0 0-.12-.61l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
 
-      <!-- Monster Image -->
-      <div id="image-container" class="hidden">
-        <img id="monster-image" src="" alt="Monster" />
-      </div>
 
-      <!-- Thinking Screen -->
-      <div id="thinking-screen" class="hidden">
-        <h2>Time to Draw!</h2>
-        <p>Now describe what you saw to your team while they draw!</p>
-        <div class="thinking-tips">
+    <!-- Info Modal -->
+<div id="info-modal" class="hidden">
+  <div class="info-modal-content">
+    <!-- Header with title and close button -->
+    <div class="info-modal-header">
+      <h3 class="info-modal-title">How to Play Drawblins</h3>
+      <button id="close-info" class="info-modal-close-x">×</button>
+    </div>
+    
+    <!-- Modal body content -->
+    <div class="info-modal-body">
+      <div class="info-modal-columns">
+        <!-- Left Column -->
+        <div class="info-modal-section">
+          <h4>Objective</h4>
+          <p>One player sees a monster for x seconds, then describes it while others draw!</p>
+          
+          <h4>Setup</h4>
           <ul>
-            <li>Start with the basic shapes and how it looks</li>
-            <li>Describe features clearly</li>
-            <li>Use easy to understand descriptions</li>
-            <li>Guide your team step by step</li>
+            <li>Use "Who Goes First?" to pick first player</li>
+            <li>Adjust difficulty in Settings</li>
+            <li>Get paper and drawing materials ready</li>
+          </ul>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="info-modal-section">
+          <h4>Gameplay</h4>
+          <ol>
+            <li><strong>Study:</strong> Active player memorizes monster</li>
+            <li><strong>Describe:</strong> Player describes, others draw</li>
+            <li><strong>Judge:</strong> Active player picks best drawing</li>
+            <li><strong>Reveal:</strong> Show original and compare!</li>
+            <li><strong>Rotate:</strong> Next player's turn</li>
+          </ol>
+          
+          <h4>Tips</h4>
+          <ul>
+            <li>Start with overall shape</li>
+            <li>Describe distinctive features</li>
+            <li>Use clear, simple language</li>
+            <li>Guide step-by-step</li>
           </ul>
         </div>
       </div>
-
-      <!-- Timer Section -->
-      <div id="timer-container" class="hidden">
-        <div id="progress-bar-container">
-          <div id="progress-bar"></div>
-        </div>
-        <p id="timer">00:00</p>
-      </div>
-
-      <!-- Reveal Button -->
-      <div id="reveal-container" class="hidden">
-        <button id="reveal-btn">Reveal the Monster!</button>
-      </div>
-
-      <!-- End Screen -->
-      <div id="end-screen" class="hidden">
-        <h2>Round Complete!</h2>
-        <p>How did your team do?</p>
-        <div id="end-buttons">
-          <button id="next-round-btn">Next Round</button>
-          <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
-        </div>
-      </div>
+    </div>
+    
+    <!-- Footer with close button -->
+    <div class="info-modal-footer">
+      <button id="close-info-bottom" class="info-modal-close-bottom">Got It!</button>
     </div>
   </div>
+</div>
 
-  <!-- Local Party Mode -->
-  <div id="local-party" class="hidden">
-    <button class="back-btn" onclick="goBack()">← Back</button>
-    <div class="party-mode-section">
-      <div class="party-mode-card">
-        <h3>Local Party Mode</h3>
-        <p>Everyone uses their own device — no casting required.</p>
-        <div class="party-setup">
-          <input type="text" id="local-name" placeholder="Enter your name" />
-          <button class="party-btn create-btn" onclick="createLocalRoom()">Create Room</button>
-          <div class="join-room-section">
-            <input type="text" id="local-room-code" placeholder="Room Code" />
-            <button class="party-btn join-btn" onclick="joinLocalRoom()">Join Room</button>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Game Settings</h3>
+        
+        <div class="setting-group">
+          <h2>Sound</h2>
+          <div class="toggle-container">
+            <input type="checkbox" id="sound-toggle" checked>
+            <label for="sound-toggle" class="toggle-label">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Online Party Mode -->
-  <div id="online-party" class="hidden">
-    <button class="back-btn" onclick="goBack()">← Back</button>
-    <div class="party-mode-section">
-      <div class="party-mode-card">
-        <h3>Online Party Mode</h3>
-        <p>Use the receiver page to share your game with remote players.</p>
-        <div class="party-setup">
-          <input type="text" id="online-name" placeholder="Enter your name" />
-          <button class="party-btn create-btn" onclick="createOnlineRoom()">Create Room</button>
-          <div class="join-room-section">
-            <input type="text" id="online-room-code" placeholder="Room Code" />
-            <button class="party-btn join-btn" onclick="joinOnlineRoom()">Join Room</button>
-          </div>
-          <button class="party-btn cast-btn" onclick="launchReceiver()">Launch Receiver</button>
+        <div class="setting-group">
+          <h2>Volume</h2>
+          <input type="range" id="volume-slider" min="0" max="100" value="60">
+          <span id="volume-display">60%</span>
         </div>
+
+<div class="setting-group">
+  <h2>Goblin Difficulty</h2>
+  <div class="custom-select-wrapper">
+    <select id="difficulty-select" class="custom-select">
+      <option value="easy">Easy</option>
+      <option value="all">All</option>
+      <option value="standard" selected>Standard</option>
+    </select>
+  </div>
+</div>
+
+
+        <button id="close-settings" class="close-btn">Save Settings</button>
+      </div>
+    </div>
+
+    <!-- Start Screen -->
+<div id="start-screen">
+  <div id="round-info" class="hidden">
+    <span id="round-display">Round 1</span>
+  </div>
+
+<div class="settings-group">
+  
+  <div class="time-setting-card">
+    <label>View Time (sec):</label>
+    <div class="rules-grid">
+      <button class="rule-btn" data-view="30">
+        Easy
+        <br><strong>30s</strong>
+      </button>
+      <button class="rule-btn active" data-view="20">
+        Standard
+        <br><strong>20s</strong>
+      </button>
+      <button class="rule-btn" data-view="10">
+        Hard
+        <br><strong>10s</strong>
+      </button>
+    </div>
+  </div>
+
+  <div class="time-setting-card">
+    <label>Drawing Time (min):</label>
+    <div class="rules-grid">
+      <button class="rule-btn" data-draw="3">
+        Easy
+        <br><strong>3min</strong>
+      </button>
+      <button class="rule-btn active" data-draw="2">
+        Standard
+        <br><strong>2min</strong>
+      </button>
+      <button class="rule-btn" data-draw="1">
+        Hard
+        <br><strong>1min</strong>
+      </button>
+    </div>
+  </div>
+</div>
+
+  <div id="start-buttons">
+    <button id="start-btn">Start Round</button>
+    <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
+    <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
+  </div>
+</div>
+
+    <!-- Turn Picker -->
+    <div id="mobile-turn-picker" class="picker-modal hidden">
+      <div class="picker-content">
+        <h3>Touch to Decide Who Goes First</h3>
+        <p>Have each player place one finger on the screen, then wait:</p>
+        <div id="touch-area"></div>
+        <div id="picker-status">Place fingers on the screen...</div>
+      </div>
+    </div>
+
+    <!-- Phase Indicator -->
+    <div id="phase-indicator" class="hidden">Study the Monster!</div>
+
+    <!-- Monster Image -->
+    <div id="image-container" class="hidden">
+      <img id="monster-image" src="" alt="Monster" />
+    </div>
+
+    <!-- Thinking Screen -->
+    <div id="thinking-screen" class="hidden">
+      <h2>Time to Draw!</h2>
+      <p>Now describe what you saw to your team while they draw!</p>
+      <div class="thinking-tips">
+        <ul>
+          <li>Start with the basic shapes and how it looks</li>
+          <li>Describe features clearly</li>
+          <li>Use easy to understand descriptions</li>
+          <li>Guide your team step by step</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Timer Section -->
+    <div id="timer-container" class="hidden">
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+      </div>
+      <p id="timer">00:00</p>
+    </div>
+
+    <!-- Reveal Button -->
+    <div id="reveal-container" class="hidden">
+      <button id="reveal-btn">Reveal the Monster!</button>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="hidden">
+      <h2>Round Complete!</h2>
+      <p>How did your team do?</p>
+      <div id="end-buttons">
+        <button id="next-round-btn">Next Round</button>
+        <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
       </div>
     </div>
   </div>
 
+  <!-- Audio -->
+  <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
+  <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
+  <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
+
+  <!-- Party Mode Dependencies -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <!-- Scripts -->
-  <script>
-    // Global game state
-    let currentMode = 'local';
-    let gameState = {
-      currentRound: 1,
-      viewTime: 20,
-      drawTime: 2,
-      isGameActive: false,
-      currentPhase: 'setup'
-    };
-
-    // Mode switching functions
-    function showMode(modeId) {
-      document.getElementById('mode-select').classList.add('hidden');
-      document.getElementById(modeId).classList.remove('hidden');
-      currentMode = modeId.replace('-mode', '').replace('-', '-');
-      
-      // Initialize the selected mode
-      if (modeId === 'local-mode') {
-        initializeLocalMode();
-      } else if (modeId === 'local-party') {
-        initializeLocalParty();
-      } else if (modeId === 'online-party') {
-        initializeOnlineParty();
-      }
-    }
-
-    function goBack() {
-      document.querySelectorAll('#local-mode, #local-party, #online-party').forEach(el => el.classList.add('hidden'));
-      document.getElementById('mode-select').classList.remove('hidden');
-      currentMode = 'select';
-      
-      // Reset any active games
-      resetGame();
-    }
-
-    // Local Mode (Pass & Play) Functions
-    function initializeLocalMode() {
-      console.log('Initializing Local Mode');
-      setupLocalGameEvents();
-    }
-
-    function setupLocalGameEvents() {
-      // Rule button selections
-      document.querySelectorAll('.rule-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const type = this.dataset.view ? 'view' : 'draw';
-          const value = this.dataset.view || this.dataset.draw;
-          
-          // Update active state
-          document.querySelectorAll(`[data-${type}]`).forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-          
-          // Update game state
-          if (type === 'view') {
-            gameState.viewTime = parseInt(value);
-          } else {
-            gameState.drawTime = parseInt(value);
-          }
-          
-          console.log(`Updated ${type} time to ${value}`);
-        });
-      });
-
-      // Start button
-      document.getElementById('start-btn').addEventListener('click', startLocalGame);
-      
-      // Turn picker button
-      document.getElementById('turn-picker-btn').addEventListener('click', showTurnPicker);
-      
-      // Reset button
-      document.getElementById('reset-rounds-btn').addEventListener('click', resetGame);
-      
-      // Next round and restart buttons
-      document.getElementById('next-round-btn').addEventListener('click', nextRound);
-      document.getElementById('restart-btn').addEventListener('click', resetGame);
-      
-      // Reveal button
-      document.getElementById('reveal-btn').addEventListener('click', revealMonster);
-    }
-
-    function startLocalGame() {
-      console.log('Starting local game...');
-      gameState.isGameActive = true;
-      gameState.currentPhase = 'study';
-      
-      // Hide start screen
-      document.getElementById('start-screen').classList.add('hidden');
-      
-      // Show round info
-      document.getElementById('round-info').classList.remove('hidden');
-      document.getElementById('round-display').textContent = `Round ${gameState.currentRound}`;
-      
-      // Show phase indicator
-      document.getElementById('phase-indicator').classList.remove('hidden');
-      document.getElementById('phase-indicator').textContent = 'Study the Monster!';
-      
-      // Show monster image (placeholder)
-      showMonsterImage();
-      
-      // Start study timer
-      startStudyPhase();
-    }
-
-    function showMonsterImage() {
-      const imageContainer = document.getElementById('image-container');
-      const monsterImage = document.getElementById('monster-image');
-      
-      // Use a placeholder image or random monster
-      const monsterImages = [
-        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect fill="%23ff6b6b" width="200" height="200" rx="20"/><circle fill="%23fff" cx="60" cy="80" r="15"/><circle fill="%23fff" cx="140" cy="80" r="15"/><circle fill="%23000" cx="60" cy="80" r="5"/><circle fill="%23000" cx="140" cy="80" r="5"/><path fill="%23fff" d="M70 120 Q100 140 130 120 Q100 150 70 120"/><text x="100" y="40" text-anchor="middle" fill="%23fff" font-family="Arial" font-size="16">Monster 1</text></svg>',
-        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect fill="%234ecdc4" width="200" height="200" rx="20"/><ellipse fill="%23fff" cx="70" cy="70" rx="20" ry="15"/><ellipse fill="%23fff" cx="130" cy="70" rx="20" ry="15"/><circle fill="%23000" cx="70" cy="70" r="8"/><circle fill="%23000" cx="130" cy="70" r="8"/><rect fill="%23fff" x="80" y="110" width="40" height="20" rx="10"/><text x="100" y="40" text-anchor="middle" fill="%23fff" font-family="Arial" font-size="16">Monster 2</text></svg>',
-        'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect fill="%23a8edea" width="200" height="200" rx="20"/><polygon fill="%23fff" points="50,90 90,60 90,120"/><polygon fill="%23fff" points="150,90 110,60 110,120"/><circle fill="%23000" cx="70" cy="90" r="6"/><circle fill="%23000" cx="130" cy="90" r="6"/><ellipse fill="%23fff" cx="100" cy="130" rx="30" ry="15"/><text x="100" y="40" text-anchor="middle" fill="%23fff" font-family="Arial" font-size="16">Monster 3</text></svg>'
-      ];
-      
-      const randomMonster = monsterImages[Math.floor(Math.random() * monsterImages.length)];
-      monsterImage.src = randomMonster;
-      imageContainer.classList.remove('hidden');
-    }
-
-    function startStudyPhase() {
-      const studyTime = gameState.viewTime;
-      let timeLeft = studyTime;
-      
-      // Show timer
-      const timerContainer = document.getElementById('timer-container');
-      const timerDisplay = document.getElementById('timer');
-      const progressBar = document.getElementById('progress-bar');
-      
-      timerContainer.classList.remove('hidden');
-      progressBar.style.width = '100%';
-      
-      const studyTimer = setInterval(() => {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        const progress = (timeLeft / studyTime) * 100;
-        progressBar.style.width = progress + '%';
-        
-        if (timeLeft <= 0) {
-          clearInterval(studyTimer);
-          endStudyPhase();
-        }
-        
-        timeLeft--;
-      }, 1000);
-    }
-
-    function endStudyPhase() {
-      // Hide monster image
-      document.getElementById('image-container').classList.add('hidden');
-      
-      // Show thinking screen
-      document.getElementById('thinking-screen').classList.remove('hidden');
-      
-      // Update phase indicator
-      document.getElementById('phase-indicator').textContent = 'Drawing Phase!';
-      
-      // Start drawing phase
-      startDrawingPhase();
-    }
-
-    function startDrawingPhase() {
-      const drawTime = gameState.drawTime * 60; // Convert minutes to seconds
-      let timeLeft = drawTime;
-      
-      const timerDisplay = document.getElementById('timer');
-      const progressBar = document.getElementById('progress-bar');
-      
-      progressBar.style.width = '100%';
-      
-      const drawTimer = setInterval(() => {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        
-        const progress = (timeLeft / drawTime) * 100;
-        progressBar.style.width = progress + '%';
-        
-        if (timeLeft <= 5 && timeLeft > 0) {
-          timerDisplay.classList.add('timer-warning');
-        }
-        
-        if (timeLeft <= 0) {
-          clearInterval(drawTimer);
-          endDrawingPhase();
-        }
-        
-        timeLeft--;
-      }, 1000);
-    }
-
-    function endDrawingPhase() {
-      // Hide thinking screen and timer
-      document.getElementById('thinking-screen').classList.add('hidden');
-      document.getElementById('timer-container').classList.add('hidden');
-      document.getElementById('phase-indicator').classList.add('hidden');
-      
-      // Show reveal button
-      document.getElementById('reveal-container').classList.remove('hidden');
-    }
-
-    function revealMonster() {
-      // Hide reveal button
-      document.getElementById('reveal-container').classList.add('hidden');
-      
-      // Show monster image again
-      document.getElementById('image-container').classList.remove('hidden');
-      
-      // Show end screen
-      setTimeout(() => {
-        document.getElementById('image-container').classList.add('hidden');
-        document.getElementById('end-screen').classList.remove('hidden');
-      }, 3000);
-    }
-
-    function nextRound() {
-      gameState.currentRound++;
-      
-      // Hide end screen
-      document.getElementById('end-screen').classList.add('hidden');
-      
-      // Show start screen with reset rounds button
-      document.getElementById('start-screen').classList.remove('hidden');
-      document.getElementById('reset-rounds-btn').classList.remove('hidden');
-      
-      // Update round display
-      document.getElementById('round-display').textContent = `Round ${gameState.currentRound}`;
-    }
-
-    function resetGame() {
-      gameState.currentRound = 1;
-      gameState.isGameActive = false;
-      gameState.currentPhase = 'setup';
-      
-      // Hide all game screens
-      document.querySelectorAll('#round-info, #phase-indicator, #image-container, #thinking-screen, #timer-container, #reveal-container, #end-screen').forEach(el => {
-        el.classList.add('hidden');
-      });
-      
-      // Show start screen
-      document.getElementById('start-screen').classList.remove('hidden');
-      document.getElementById('reset-rounds-btn').classList.add('hidden');
-      
-      // Reset timer display
-      document.getElementById('timer').classList.remove('timer-warning');
-      document.getElementById('progress-bar').style.width = '100%';
-      
-      console.log('Game reset');
-    }
-
-    function showTurnPicker() {
-      alert('Turn picker feature coming soon! For now, decide amongst yourselves who goes first.');
-    }
-
-    // Party Mode Functions
-    function initializeLocalParty() {
-      console.log('Initializing Local Party Mode');
-    }
-
-    function initializeOnlineParty() {
-      console.log('Initializing Online Party Mode');
-    }
-
-    function createLocalRoom() {
-      const name = document.getElementById('local-name').value.trim();
-      if (!name) {
-        alert('Please enter your name first.');
-        return;
-      }
-      
-      // Generate a random room code
-      const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      alert(`Room created! Code: ${roomCode}\n\nThis feature is coming soon - party mode functionality will be added in a future update.`);
-      console.log('Local room created:', roomCode, 'by', name);
-    }
-
-    function joinLocalRoom() {
-      const name = document.getElementById('local-name').value.trim();
-      const roomCode = document.getElementById('local-room-code').value.trim();
-      
-      if (!name) {
-        alert('Please enter your name first.');
-        return;
-      }
-      
-      if (!roomCode) {
-        alert('Please enter a room code.');
-        return;
-      }
-      
-      alert(`Attempting to join room: ${roomCode}\n\nThis feature is coming soon - party mode functionality will be added in a future update.`);
-      console.log('Attempting to join local room:', roomCode, 'as', name);
-    }
-
-    function createOnlineRoom() {
-      const name = document.getElementById('online-name').value.trim();
-      if (!name) {
-        alert('Please enter your name first.');
-        return;
-      }
-      
-      // Generate a random room code
-      const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      alert(`Online room created! Code: ${roomCode}\n\nThis feature is coming soon - online party mode functionality will be added in a future update.`);
-      console.log('Online room created:', roomCode, 'by', name);
-    }
-
-    function joinOnlineRoom() {
-      const name = document.getElementById('online-name').value.trim();
-      const roomCode = document.getElementById('online-room-code').value.trim();
-      
-      if (!name) {
-        alert('Please enter your name first.');
-        return;
-      }
-      
-      if (!roomCode) {
-        alert('Please enter a room code.');
-        return;
-      }
-      
-      alert(`Attempting to join online room: ${roomCode}\n\nThis feature is coming soon - online party mode functionality will be added in a future update.`);
-      console.log('Attempting to join online room:', roomCode, 'as', name);
-    }
-
-    function launchReceiver() {
-      const code = document.getElementById('online-room-code').value.trim();
-      if (code) {
-        alert(`Would launch receiver for room: ${code}\n\nThis feature is coming soon - the receiver page will be created in a future update.`);
-        console.log('Would launch receiver for room:', code);
-      } else {
-        alert('Enter a room code first.');
-      }
-    }
-
-    // Initialize the app
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('Drawblins loaded successfully!');
-      
-      // Set up any global event listeners here
-      document.addEventListener('click', function(e) {
-        // Prevent default behavior on buttons to avoid double-clicks
-        if (e.target.tagName === 'BUTTON') {
-          e.preventDefault();
-        }
-      });
-    });
-
-    // Add CSS animation classes
-    const style = document.createElement('style');
-    style.textContent = `
-      .timer-warning {
-        animation: flash 1s infinite;
-        color: #e74c3c !important;
-      }
-
-      @keyframes flash {
-        0%, 50% { opacity: 1; }
-        51%, 100% { opacity: 0.5; }
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-
-      #start-screen, #end-screen, #reveal-container {
-        animation: fadeIn 0.5s ease-in-out;
-      }
-    `;
-    document.head.appendChild(style);
-  </script>
-
+  <script src="script.js"></script>
+  <script src="party-client.js"></script>
 </body>
 </html>
