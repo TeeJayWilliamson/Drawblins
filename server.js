@@ -230,76 +230,92 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Join existing room
-  socket.on('join-room', (data) => {
-    const { roomCode, playerName } = data;
+// Join existing room
+socket.on('join-room', (data) => {
+  const { roomCode, playerName, isViewer } = data;
+  
+  try {
+    const room = getRoom(roomCode);
     
-    try {
-      const room = getRoom(roomCode);
-      
-      if (!room) {
-        socket.emit('room-joined', {
-          success: false,
-          error: 'Room not found'
-        });
-        return;
-      }
-
-      // Check if player name already exists
-      if (room.players.find(p => p.name === playerName)) {
-        socket.emit('room-joined', {
-          success: false,
-          error: 'Player name already taken'
-        });
-        return;
-      }
-
-      // Check room capacity (max 8 players)
-      if (room.players.length >= 8) {
-        socket.emit('room-joined', {
-          success: false,
-          error: 'Room is full'
-        });
-        return;
-      }
-
-      // Add player to room
-      const newPlayer = {
-        id: socket.id,
-        name: playerName,
-        isHost: false,
-        isReady: false
-      };
-
-      room.players.push(newPlayer);
-      
-      players.set(socket.id, {
-        id: socket.id,
-        name: playerName,
-        roomCode: roomCode
-      });
-
-      socket.join(roomCode);
-
-      // Notify everyone in the room
-      socket.emit('room-joined', {
-        success: true,
-        room: room
-      });
-
-      socket.to(roomCode).emit('player-joined', {
-        player: newPlayer,
-        room: room
-      });
-
-      console.log(`${playerName} joined room ${roomCode}`);
-    } catch (error) {
+    if (!room) {
       socket.emit('room-joined', {
         success: false,
-        error: 'Failed to join room'
+        error: 'Room not found'
       });
+      return;
     }
-  });
+
+    // NEW: Handle viewers differently
+    if (isViewer || playerName.includes('Web Viewer')) {
+      socket.join(roomCode);
+      socket.isViewer = true;
+      socket.emit('room-joined', { 
+        success: true, 
+        room: {
+          code: room.code,
+          players: room.players,
+          gameState: room.gameState
+        }
+      });
+      console.log(`Viewer "${playerName}" joined room ${roomCode} (not counted as player)`);
+      return; // Don't add to players array
+    }
+
+    // Check if player name already exists (regular players only)
+    if (room.players.find(p => p.name === playerName)) {
+      socket.emit('room-joined', {
+        success: false,
+        error: 'Player name already taken'
+      });
+      return;
+    }
+
+    // Check room capacity (max 8 players, viewers don't count)
+    if (room.players.length >= 8) {
+      socket.emit('room-joined', {
+        success: false,
+        error: 'Room is full'
+      });
+      return;
+    }
+
+    // Add player to room (regular players only)
+    const newPlayer = {
+      id: socket.id,
+      name: playerName,
+      isHost: false,
+      isReady: false
+    };
+
+    room.players.push(newPlayer);
+    
+    players.set(socket.id, {
+      id: socket.id,
+      name: playerName,
+      roomCode: roomCode
+    });
+
+    socket.join(roomCode);
+
+    // Notify everyone in the room
+    socket.emit('room-joined', {
+      success: true,
+      room: room
+    });
+
+    socket.to(roomCode).emit('player-joined', {
+      player: newPlayer,
+      room: room
+    });
+
+    console.log(`${playerName} joined room ${roomCode}`);
+  } catch (error) {
+    socket.emit('room-joined', {
+      success: false,
+      error: 'Failed to join room'
+    });
+  }
+});
 
   // Start game (only host can do this)
   socket.on('start-game', (data) => {

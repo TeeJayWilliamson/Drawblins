@@ -500,11 +500,13 @@
                 this.socket.on('connect', () => {
                     console.log('Connected to server');
                     this.isConnected = true;
-                    this.showStatus('Connected! Joining room...', '');
+                    this.showStatus('Connected! Joining as viewer...', '');
                     
-                    // Connect as spectator (doesn't join as player)
-                    this.socket.emit('spectate-room', {
-                        roomCode: this.roomCode
+                    // Join using existing room-joined event but with a special viewer name
+                    this.socket.emit('join-room', {
+                        roomCode: this.roomCode,
+                        playerName: '📺 Web Viewer (Observer)',
+                        isViewer: true  // Flag for potential future server support
                     });
                 });
                 
@@ -515,27 +517,10 @@
                     this.showRoomConnection();
                 });
                 
-                this.socket.on('spectate-success', (data) => {
-                    this.room = data.room;
-                    this.showStatus('Connected as spectator!', 'connected');
-                    this.showGameContent();
-                    this.updateRoomCode(this.roomCode);
-                    
-                    // If game is in progress, update display
-                    if (this.room.gameState) {
-                        this.handleGameUpdate(this.room.gameState);
-                    }
-                });
-                
-                this.socket.on('spectate-error', (data) => {
-                    this.showStatus(data.error || 'Room not found', 'error');
-                });
-                
                 this.socket.on('room-joined', (data) => {
-                    // Fallback if spectate not supported
                     if (data.success) {
                         this.room = data.room;
-                        this.showStatus('Connected to room!', 'connected');
+                        this.showStatus('Watching room! (You appear as a viewer in player list)', 'connected');
                         this.showGameContent();
                         this.updateRoomCode(this.roomCode);
                         
@@ -544,10 +529,11 @@
                             this.handleGameUpdate(this.room.gameState);
                         }
                     } else {
-                        this.showStatus(data.error || 'Failed to join room', 'error');
+                        this.showStatus(data.error || 'Room not found', 'error');
                     }
                 });
                 
+                // Listen for all the same events that players get
                 this.socket.on('game-started', (data) => {
                     this.room = data.room;
                     this.handleGameUpdate(data.gameState);
@@ -555,7 +541,12 @@
                 
                 this.socket.on('phase-changed', (data) => {
                     this.room = data.room;
-                    this.handleGameUpdate(data.gameState);
+                    
+                    if (data.gameState.phase === 'reveal' && data.allDrawings) {
+                        this.showDrawingsSlideshow(data.allDrawings, data.originalMonster || data.gameState.currentMonster);
+                    } else {
+                        this.handleGameUpdate(data.gameState);
+                    }
                 });
                 
                 this.socket.on('timer-update', (data) => {
@@ -570,14 +561,17 @@
                     this.handleGameFinished(data);
                 });
                 
-                // Handle reveal phase with drawings
-                this.socket.on('phase-changed', (data) => {
-                    this.room = data.room;
-                    
-                    if (data.gameState.phase === 'reveal' && data.allDrawings) {
-                        this.showDrawingsSlideshow(data.allDrawings, data.originalMonster);
-                    } else {
-                        this.handleGameUpdate(data.gameState);
+                this.socket.on('player-joined', (data) => {
+                    // Update room data when other players join
+                    if (data.room) {
+                        this.room = data.room;
+                    }
+                });
+                
+                this.socket.on('player-left', (data) => {
+                    // Update room data when players leave
+                    if (data.room) {
+                        this.room = data.room;
                     }
                 });
             }
