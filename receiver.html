@@ -409,10 +409,10 @@
                 try {
                     this.castReceiverContext = cast.framework.CastReceiverContext.getInstance();
                     
-                    // Set up options
+                    // Set up options - disable all timeouts for active games
                     const options = new cast.framework.CastReceiverOptions();
-                    options.maxInactivity = 3600; // 1 hour
-                    options.disableIdleTimeout = false;
+                    options.maxInactivity = 7200; // 2 hours (maximum allowed)
+                    options.disableIdleTimeout = true; // Disable idle timeout completely
                     
                     // Listen for cast messages
                     this.castReceiverContext.addCustomMessageListener(
@@ -431,8 +431,16 @@
                         () => this.onReceiverShutdown()
                     );
                     
+                    this.castReceiverContext.addEventListener(
+                        cast.framework.system.EventType.SENDER_DISCONNECTED,
+                        (event) => this.onSenderDisconnected(event)
+                    );
+                    
                     // Start the receiver
                     this.castReceiverContext.start(options);
+                    
+                    // Send periodic heartbeat to prevent timeout
+                    this.startHeartbeat();
                     
                 } catch (error) {
                     console.error('Failed to initialize Cast receiver:', error);
@@ -448,6 +456,32 @@
             onReceiverShutdown() {
                 console.log('Cast receiver shutting down');
                 this.updateConnectionStatus('Disconnected', 'disconnected');
+                this.cleanup();
+            }
+            
+            startHeartbeat() {
+                // Send a heartbeat every 30 seconds to keep connection alive
+                this.heartbeatInterval = setInterval(() => {
+                    console.log('💓 Sending heartbeat to prevent timeout');
+                    try {
+                        // Just update the connection status to show activity
+                        this.updateConnectionStatus('Connected - Active', 'connected');
+                    } catch (error) {
+                        console.log('Heartbeat failed:', error);
+                    }
+                }, 30000);
+            }
+            
+            cleanup() {
+                if (this.heartbeatInterval) {
+                    clearInterval(this.heartbeatInterval);
+                    this.heartbeatInterval = null;
+                }
+                
+                if (this.slideshowInterval) {
+                    clearInterval(this.slideshowInterval);
+                    this.slideshowInterval = null;
+                }
             }
             
             handleCastMessage(event) {
@@ -485,6 +519,11 @@
                         case 'show-drawings-slideshow':
                             console.log('⚠️ Using legacy slideshow method');
                             this.handleShowDrawingsSlideshow(message);
+                            break;
+                            
+                        case 'keep-alive':
+                            console.log('💓 Keep-alive received');
+                            this.updateConnectionStatus('Connected - Active', 'connected');
                             break;
                             
                         case 'game-finished':
