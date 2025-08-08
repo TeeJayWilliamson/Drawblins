@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drawblins - Choose Your Game Mode</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .main-menu {
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .game-title {
+            font-size: 4rem;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            margin-bottom: 1rem;
+        }
+        
+        .game-subtitle {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+            font-weight: 300;
+        }
+        
+        .game-modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .game-mode-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-mode-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .game-mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s;
+        }
+        
+        .game-mode-card:hover::before {
+            left: 100%;
+        }
+        
+        .mode-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .mode-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .mode-description {
+            font-size: 1rem;
+            opacity: 0.9;
+            line-height: 1.4;
+            margin-bottom: 1.5rem;
+        }
+        
+        .mode-features {
+            list-style: none;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .mode-features li {
+            margin: 0.3rem 0;
+        }
+        
+        .mode-features li::before {
+            content: '✓ ';
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .mode-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .mode-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        .mode-button:active {
+            transform: translateY(0);
+        }
+        
+        .pass-play .mode-button {
+            background: linear-gradient(45deg, #FF6B6B, #FF5252);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .pass-play .mode-button:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .party-mode .mode-button {
+            background: linear-gradient(45deg, #4ECDC4, #44A08D);
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+        }
+        
+        .party-mode .mode-button:hover {
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+        }
+        
+        .online-party .mode-button {
+            background: linear-gradient(45deg, #A8EDEA, #5F72BD);
+            box-shadow: 0 4px 15px rgba(168, 237, 234, 0.3);
+        }
+        
+        .online-party .mode-button:hover {
+            box-shadow: 0 6px 20px rgba(168, 237, 234, 0.4);
+        }
+        
+        .footer-info {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 3rem;
+            }
+            
+            .game-subtitle {
+                font-size: 1.3rem;
+            }
+            
+            .game-modes {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .game-mode-card {
+                padding: 1.5rem;
+            }
+            
+            .mode-title {
+                font-size: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .game-title {
+                font-size: 2.5rem;
+            }
+            
+            .game-subtitle {
+                font-size: 1.1rem;
+                margin-bottom: 2rem;
+            }
+            
+            .game-mode-card {
+                padding: 1.25rem;
+            }
+            
+            .mode-icon {
+                font-size: 2.5rem;
+            }
+            
+            .mode-title {
+                font-size: 1.3rem;
+            }
+            
+            .mode-description {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-menu">
+        <h1 class="game-title">🎨 Drawblins</h1>
+        <p class="game-subtitle">Choose your drawing adventure!</p>
+        
+        <div class="game-modes">
+            <!-- Pass & Play Mode -->
+            <div class="game-mode-card pass-play" onclick="selectMode('pass-play')">
+                <div class="mode-icon">📱</div>
+                <h2 class="mode-title">Pass & Play</h2>
+                <p class="mode-description">Classic local gameplay - perfect for intimate gatherings</p>
+                <ul class="mode-features">
+                    <li>One device, multiple players</li>
+                    <li>Pass phone around for turns</li>
+                    <li>No network required</li>
+                    <li>2-8 players</li>
+                </ul>
+                <button class="mode-button">Start Local Game</button>
+            </div>
+            
+            <!-- Party Mode -->
+            <div class="game-mode-card party-mode" onclick="selectMode('party-mode')">
+                <div class="mode-icon">🎉</div>
+                <h2 class="mode-title">Party Mode</h2>
+                <p class="mode-description">Everyone uses their own device + cast to TV</p>
+                <ul class="mode-features">
+                    <li>Each player uses their phone</li>
+                    <li>Cast game display to TV</li>
+                    <li>Room codes to join</li>
+                    <li>Perfect for living room parties</li>
+                </ul>
+                <button class="mode-button">Create Room</button>
+            </div>
+            
+            <!-- Online Party Mode -->
+            <div class="game-mode-card online-party" onclick="selectMode('online-party')">
+                <div class="mode-icon">🌐</div>
+                <h2 class="mode-title">Online Party</h2>
+                <p class="mode-description">Stream-friendly mode for online friends</p>
+                <ul class="mode-features">
+                    <li>Web viewer for streaming</li>
+                    <li>Perfect for Discord/Zoom</li>
+                    <li>Share screen with remote friends</li>
+                    <li>Same room code system</li>
+                </ul>
+                <button class="mode-button">Join Online Game</button>
+            </div>
+        </div>
+        
+        <div class="footer-info">
+            <p>All modes support the same core gameplay - study the monster, describe it, and draw what you hear!</p>
+        </div>
+    </div>
+    
+    <script>
+        function selectMode(mode) {
+            switch(mode) {
+                case 'pass-play':
+                    // Redirect to your existing local game
+                    window.location.href = 'index.html'; // or whatever your local game file is
+                    break;
+                    
+                case 'party-mode':
+                    // Redirect to your party mode (with casting)
+                    window.location.href = 'party.html'; // your existing party client
+                    break;
+                    
+                case 'online-party':
+                    // Redirect to viewer for online streaming
+                    window.location.href = 'viewer.html';
+                    break;
+                    
+                default:
+                    console.log('Unknown mode:', mode);
+            }
+        }
+        
+        // Add some visual flair
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate cards in sequence
+            const cards = document.querySelectorAll('.game-mode-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(50px)';
+                card.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 200);
+            });
+        });
+    </script>
+</body>
+</html>

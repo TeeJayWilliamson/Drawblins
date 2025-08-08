@@ -20,6 +20,8 @@
 
     
     <div class="corner-buttons">
+      <!-- Back to Menu Button (will be added dynamically) -->
+      
       <!-- Info Button -->
       <button id="info-btn" class="icon-button" aria-label="How to Play">
         <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
@@ -253,8 +255,97 @@
   <!-- Scripts -->
   <script src="script.js"></script>
   <script src="party-client.js"></script>
+  
+  <!-- Menu Integration Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check for URL parameters to auto-select mode from menu
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      
+      if (mode === 'party') {
+        // Auto-select party mode if coming from menu
+        setTimeout(() => {
+          const partyBtn = document.getElementById('party-mode-btn');
+          if (partyBtn) {
+            partyBtn.click();
+          }
+        }, 500);
+      }
+      
+      // Add a "Back to Menu" button
+      addBackToMenuButton();
+    });
+
+    function addBackToMenuButton() {
+      // Check if menu.html exists by trying to fetch it
+      fetch('menu.html', { method: 'HEAD' })
+        .then(response => {
+          if (response.ok) {
+            createBackButton();
+          }
+        })
+        .catch(() => {
+          // Menu doesn't exist, don't add button
+        });
+    }
+
+    function createBackButton() {
+      const backButton = document.createElement('button');
+      backButton.innerHTML = '← Menu';
+      backButton.id = 'back-to-menu-btn';
+      backButton.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        z-index: 9999;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        backdrop-filter: blur(5px);
+      `;
+      
+      backButton.addEventListener('click', () => {
+        window.location.href = 'menu.html';
+      });
+      
+      backButton.addEventListener('mouseenter', () => {
+        backButton.style.background = 'rgba(0, 0, 0, 0.9)';
+        backButton.style.transform = 'translateY(-2px)';
+        backButton.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
+      });
+      
+      backButton.addEventListener('mouseleave', () => {
+        backButton.style.background = 'rgba(0, 0, 0, 0.7)';
+        backButton.style.transform = 'translateY(0)';
+        backButton.style.boxShadow = 'none';
+      });
+      
+      document.body.appendChild(backButton);
+    }
+
+    // Hide back button when in party mode to avoid conflicts
+    document.addEventListener('click', (e) => {
+      if (e.target.id === 'party-mode-btn') {
+        const backBtn = document.getElementById('back-to-menu-btn');
+        if (backBtn) {
+          backBtn.style.display = 'none';
+        }
+      }
+      
+      if (e.target.id === 'local-mode-btn') {
+        const backBtn = document.getElementById('back-to-menu-btn');
+        if (backBtn) {
+          backBtn.style.display = 'block';
+        }
+      }
+    });
+  </script>
 </body>
 </html>
-
-
-  <!-- test -->
