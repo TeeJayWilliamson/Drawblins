@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawblins Web Viewer</title>
+    <title>Drawblins Spectator View</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +20,7 @@
             width: 100vw;
         }
         
-        .viewer-display {
+        .spectator-display {
             display: flex;
             flex-direction: column;
             height: 100vh;
@@ -28,7 +28,7 @@
         }
         
         /* Header with room code and timer */
-        .viewer-header {
+        .spectator-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -38,13 +38,13 @@
             flex-shrink: 0;
         }
         
-        .viewer-title {
+        .spectator-title {
             font-size: 2.5rem;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .viewer-timer {
+        .spectator-timer {
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 1rem 2rem;
@@ -56,21 +56,27 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         
-        .viewer-timer.timer-urgent {
+        .spectator-timer.timer-urgent {
             background: #e74c3c;
+            animation: pulse-urgent 1s infinite;
         }
         
-        .viewer-room-info {
+        @keyframes pulse-urgent {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .spectator-room-info {
             text-align: right;
         }
         
-        .viewer-room-code {
+        .spectator-room-code {
             font-size: 1rem;
             opacity: 0.8;
             margin: 0;
         }
         
-        .viewer-room-code-value {
+        .spectator-room-code-value {
             font-family: 'Courier New', monospace;
             font-size: 1.5rem;
             font-weight: bold;
@@ -79,36 +85,36 @@
         }
         
         /* Main content area */
-        .viewer-content {
+        .spectator-content {
             flex: 1;
             padding: 2rem 3rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            overflow-y: auto;
+            overflow: hidden;
             min-height: 0;
         }
         
-        .viewer-phase-info {
+        .spectator-phase-info {
             text-align: center;
             margin-bottom: 2rem;
         }
         
-        .viewer-phase-title {
+        .spectator-phase-title {
             font-size: 3rem;
             margin: 0 0 1rem 0;
             text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
             font-weight: bold;
         }
         
-        .viewer-phase-subtitle {
+        .spectator-phase-subtitle {
             font-size: 1.5rem;
             margin: 0;
             opacity: 0.9;
             font-weight: 300;
         }
         
-        .viewer-current-player {
+        .spectator-current-player {
             background: rgba(255, 255, 255, 0.15);
             border-radius: 20px;
             padding: 1.5rem 2rem;
@@ -118,7 +124,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .viewer-player-name {
+        .spectator-player-name {
             font-size: 2rem;
             margin: 0 0 0.5rem 0;
             color: #FFD700;
@@ -126,13 +132,13 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        .viewer-player-action {
+        .spectator-player-action {
             font-size: 1.2rem;
             margin: 0;
             opacity: 0.9;
         }
         
-        .viewer-progress-info {
+        .spectator-progress-info {
             background: rgba(255, 152, 0, 0.2);
             border-radius: 15px;
             padding: 1rem 1.5rem;
@@ -141,77 +147,14 @@
             border: 1px solid rgba(255, 152, 0, 0.3);
         }
         
-        .viewer-progress-text {
+        .spectator-progress-text {
             font-size: 1.4rem;
             margin: 0;
             font-weight: bold;
         }
-
-        /* Room input section */
-        .room-input-section {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 2rem;
-            margin: 2rem auto;
-            max-width: 500px;
-            backdrop-filter: blur(10px);
-        }
-
-        .room-input-section h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .room-input {
-            padding: 1rem;
-            font-size: 1.2rem;
-            border: none;
-            border-radius: 10px;
-            text-align: center;
-            margin: 1rem;
-            width: 200px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .connect-btn {
-            background: #27ae60;
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-left: 1rem;
-            transition: background 0.3s ease;
-        }
-
-        .connect-btn:hover:not(:disabled) {
-            background: #229954;
-        }
-
-        .connect-btn:disabled {
-            background: #7f8c8d;
-            cursor: not-allowed;
-        }
-
-        .status-indicator {
-            margin-top: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .status-indicator.connected {
-            color: #27ae60;
-        }
-
-        .status-indicator.error {
-            color: #e74c3c;
-        }
         
         /* Slideshow section */
-        .viewer-slideshow-section {
+        .spectator-slideshow-section {
             flex: 1;
             display: flex;
             align-items: stretch;
@@ -221,7 +164,7 @@
             padding: 1rem 0;
         }
         
-        .viewer-original-display {
+        .spectator-original-display {
             flex: 0 0 35%;
             display: flex;
             flex-direction: column;
@@ -229,7 +172,7 @@
             justify-content: center;
         }
         
-        .viewer-original-monster {
+        .spectator-original-monster {
             background: linear-gradient(135deg, #FFD700, #FFA500);
             border: 3px solid #FF8C00;
             border-radius: 15px;
@@ -242,7 +185,7 @@
             flex-direction: column;
         }
         
-        .viewer-original-monster h3 {
+        .spectator-original-monster h3 {
             color: #8B4513;
             margin: 0 0 1rem 0;
             font-weight: bold;
@@ -250,7 +193,7 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
         
-        .viewer-original-image {
+        .spectator-original-image {
             width: 100%;
             height: 250px;
             object-fit: contain;
@@ -260,7 +203,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
-        .viewer-drawing-display {
+        .spectator-drawing-display {
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -270,14 +213,14 @@
             position: relative;
         }
         
-        .viewer-slideshow-title {
+        .spectator-slideshow-title {
             font-size: 2rem;
             text-align: center;
             margin: 0 0 1.5rem 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
-        #viewer-slideshow-container {
+        #spectator-slideshow-container {
             position: relative;
             width: 100%;
             max-width: 500px;
@@ -287,7 +230,7 @@
             justify-content: center;
         }
         
-        .viewer-drawing-slide {
+        .spectator-drawing-slide {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 1.5rem;
@@ -304,11 +247,11 @@
             transition: opacity 0.5s ease-in-out;
         }
         
-        .viewer-drawing-slide.active {
+        .spectator-drawing-slide.active {
             opacity: 1;
         }
         
-        .viewer-drawing-slide h3 {
+        .spectator-drawing-slide h3 {
             color: #333;
             margin: 0 0 1rem 0;
             font-size: 1.4rem;
@@ -316,7 +259,7 @@
             flex-shrink: 0;
         }
         
-        .viewer-drawing-image {
+        .spectator-drawing-image {
             width: 100%;
             flex: 1;
             object-fit: contain;
@@ -327,7 +270,7 @@
             min-height: 200px;
         }
         
-        .viewer-auto-submitted-badge {
+        .spectator-auto-submitted-badge {
             display: inline-block;
             background: #95a5a6;
             color: white;
@@ -338,7 +281,7 @@
             margin-left: 0.5rem;
         }
         
-        .viewer-slideshow-progress {
+        .spectator-slideshow-progress {
             position: absolute;
             bottom: -3rem;
             left: 50%;
@@ -349,7 +292,7 @@
             z-index: 10;
         }
         
-        .viewer-progress-dot {
+        .spectator-progress-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
@@ -357,7 +300,7 @@
             transition: all 0.3s ease;
         }
         
-        .viewer-progress-dot.active {
+        .spectator-progress-dot.active {
             background: #FFD700;
             transform: scale(1.3);
         }
@@ -365,68 +308,133 @@
         .hidden { 
             display: none !important; 
         }
+
+        /* Connection status */
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: rgba(39, 174, 96, 0.8);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(231, 76, 60, 0.8);
+        }
+
+        .connection-status.waiting {
+            background: rgba(52, 152, 219, 0.8);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .spectator-header {
+                padding: 1rem 1.5rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .spectator-title {
+                font-size: 2rem;
+            }
+            
+            .spectator-timer {
+                font-size: 1.5rem;
+                padding: 0.75rem 1.5rem;
+            }
+            
+            .spectator-content {
+                padding: 1rem 1.5rem;
+            }
+            
+            .spectator-phase-title {
+                font-size: 2rem;
+            }
+            
+            .spectator-slideshow-section {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .spectator-original-display {
+                flex: 0 0 auto;
+            }
+            
+            .spectator-original-monster {
+                max-width: 100%;
+            }
+            
+            .spectator-original-image {
+                height: 200px;
+            }
+            
+            #spectator-slideshow-container {
+                height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="viewer-display">
+    <div class="spectator-display">
+        <!-- Connection status -->
+        <div id="connection-status" class="connection-status waiting">Connecting to game...</div>
+
         <!-- Header -->
-        <div class="viewer-header">
-            <div class="viewer-title">Drawblins Web Viewer</div>
-            <div class="viewer-timer" id="viewer-timer">00:00</div>
-            <div class="viewer-room-info">
-                <p class="viewer-room-code">Room Code:</p>
-                <p class="viewer-room-code-value" id="viewer-room-code">----</p>
+        <div class="spectator-header">
+            <div class="spectator-title">Drawblins</div>
+            <div class="spectator-timer" id="spectator-timer">00:00</div>
+            <div class="spectator-room-info">
+                <p class="spectator-room-code">Room Code:</p>
+                <p class="spectator-room-code-value" id="spectator-room-code">----</p>
             </div>
         </div>
         
         <!-- Main content -->
-        <div class="viewer-content">
-            <!-- Room connection -->
-            <div id="room-connection" class="room-input-section">
-                <h2>Connect to Game Room</h2>
-                <div>
-                    <input type="text" id="room-code-input" class="room-input" placeholder="ABCD" maxlength="4">
-                    <button id="connect-btn" class="connect-btn">Connect</button>
-                </div>
-                <div id="connection-status" class="status-indicator">Enter room code to watch the game</div>
-            </div>
-            
+        <div class="spectator-content">
             <!-- Game content -->
-            <div id="viewer-game-content" class="hidden">
-                <div class="viewer-phase-info">
-                    <h1 class="viewer-phase-title" id="viewer-phase-title">Welcome to Drawblins!</h1>
-                    <p class="viewer-phase-subtitle" id="viewer-phase-subtitle">Get ready to play</p>
+            <div id="spectator-game-content">
+                <div class="spectator-phase-info">
+                    <h1 class="spectator-phase-title" id="spectator-phase-title">Welcome to Drawblins!</h1>
+                    <p class="spectator-phase-subtitle" id="spectator-phase-subtitle">Waiting for game to start...</p>
                 </div>
                 
-                <div id="viewer-current-player" class="viewer-current-player hidden">
-                    <h2 class="viewer-player-name" id="viewer-player-name">Player Name</h2>
-                    <p class="viewer-player-action" id="viewer-player-action">is getting ready</p>
+                <div id="spectator-current-player" class="spectator-current-player hidden">
+                    <h2 class="spectator-player-name" id="spectator-player-name">Player Name</h2>
+                    <p class="spectator-player-action" id="spectator-player-action">is getting ready</p>
                 </div>
                 
-                <div id="viewer-progress" class="viewer-progress-info hidden">
-                    <p class="viewer-progress-text">
-                        Drawings submitted: <span id="viewer-progress-count">0</span> / <span id="viewer-progress-total">0</span>
+                <div id="spectator-progress" class="spectator-progress-info hidden">
+                    <p class="spectator-progress-text">
+                        Drawings submitted: <span id="spectator-progress-count">0</span> / <span id="spectator-progress-total">0</span>
                     </p>
                 </div>
             </div>
             
             <!-- Slideshow display -->
-            <div id="viewer-slideshow" class="viewer-slideshow-section hidden">
+            <div id="spectator-slideshow" class="spectator-slideshow-section hidden">
                 <!-- Original monster (left side) -->
-                <div class="viewer-original-display">
-                    <div class="viewer-original-monster">
+                <div class="spectator-original-display">
+                    <div class="spectator-original-monster">
                         <h3>Original Monster</h3>
-                        <img id="viewer-original-image" class="viewer-original-image" src="" alt="Original Monster">
+                        <img id="spectator-original-image" class="spectator-original-image" src="" alt="Original Monster">
                     </div>
                 </div>
                 
                 <!-- Drawing slideshow (right side) -->
-                <div class="viewer-drawing-display">
-                    <div class="viewer-slideshow-title">Player Drawings</div>
-                    <div id="viewer-slideshow-container">
+                <div class="spectator-drawing-display">
+                    <div id="spectator-slideshow-container">
                         <!-- Drawing slides will be inserted here -->
                     </div>
-                    <div id="viewer-slideshow-progress" class="viewer-slideshow-progress">
+                    <div id="spectator-slideshow-progress" class="spectator-slideshow-progress">
                         <!-- Progress dots will be inserted here -->
                     </div>
                 </div>
@@ -434,20 +442,11 @@
         </div>
     </div>
     
-    <!-- Socket.IO for WebSocket connection -->
-    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
-    
     <script>
-        class DrawblinsWebViewer {
+        class DrawblinsSpectatorView {
             constructor() {
-                this.socket = null;
-                this.isConnected = false;
-                this.roomCode = null;
                 this.gameState = null;
-                this.room = null;
-                this.serverUrl = 'https://drawblins-production.up.railway.app';
-                
-                // Slideshow state
+                this.roomCode = null;
                 this.slideshowDrawings = [];
                 this.currentSlideIndex = 0;
                 this.slideshowInterval = null;
@@ -456,218 +455,184 @@
             }
             
             init() {
-                this.setupEventListeners();
+                console.log('🎭 Spectator view initializing...');
+                this.updateConnectionStatus('Connecting to game...', 'waiting');
+                this.setupMessageListener();
             }
             
-            setupEventListeners() {
-                const connectBtn = document.getElementById('connect-btn');
-                const roomInput = document.getElementById('room-code-input');
-                
-                connectBtn.addEventListener('click', () => this.connectToRoom());
-                
-                roomInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        this.connectToRoom();
+            setupMessageListener() {
+                // Listen for messages from the parent window (main game)
+                window.addEventListener('message', (event) => {
+                    // Basic security check - ensure message comes from same origin
+                    if (event.origin !== window.location.origin) {
+                        console.warn('🚫 Ignoring message from different origin:', event.origin);
+                        return;
                     }
+                    
+                    this.handleMessage(event.data);
                 });
+                
+                // Let parent know we're ready
+                if (window.opener) {
+                    window.opener.postMessage({ type: 'spectator-ready' }, window.location.origin);
+                    this.updateConnectionStatus('Connected to game', 'connected');
+                } else {
+                    console.warn('⚠️ No parent window found - spectator view may not work properly');
+                    this.updateConnectionStatus('No game connection', 'disconnected');
+                }
             }
             
-            connectToRoom() {
-                const roomInput = document.getElementById('room-code-input');
-                const roomCode = roomInput.value.trim().toUpperCase();
-                
-                if (!roomCode || roomCode.length !== 4) {
-                    this.showStatus('Please enter a valid 4-letter room code', 'error');
+            handleMessage(message) {
+                if (!message || !message.type) {
+                    console.warn('📨 Invalid message received:', message);
                     return;
                 }
                 
-                this.roomCode = roomCode;
-                this.showStatus('Connecting...', '');
+                console.log('📨 Spectator received message:', message.type);
                 
-                this.connect();
+                try {
+                    switch (message.type) {
+                        case 'room-code':
+                            this.handleRoomCode(message);
+                            break;
+                            
+                        case 'game-update':
+                            this.handleGameUpdate(message);
+                            break;
+                            
+                        case 'timer-update':
+                            this.handleTimerUpdate(message);
+                            break;
+                            
+                        case 'drawing-progress':
+                            this.handleDrawingProgress(message);
+                            break;
+                            
+                        case 'slideshow-start':
+                            this.handleSlideshowStart(message);
+                            break;
+                            
+                        case 'slideshow-drawing':
+                            this.handleSlideshowDrawing(message);
+                            break;
+                            
+                        case 'show-drawings-slideshow':
+                            this.handleShowDrawingsSlideshow(message);
+                            break;
+                            
+                        case 'game-finished':
+                            this.handleGameFinished(message);
+                            break;
+                            
+                        case 'connection-check':
+                            // Respond to keep-alive
+                            if (window.opener) {
+                                window.opener.postMessage({ type: 'spectator-alive' }, window.location.origin);
+                            }
+                            break;
+                            
+                        default:
+                            console.log('❓ Unknown message type:', message.type);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error handling spectator message:', error);
+                    this.updateConnectionStatus('Error processing game data', 'disconnected');
+                }
             }
             
-            connect() {
-                if (this.socket && this.isConnected) {
-                    this.socket.disconnect();
+            handleRoomCode(message) {
+                console.log('🏠 Room code received:', message.roomCode);
+                this.roomCode = message.roomCode;
+                this.updateRoomCode(message.roomCode);
+                this.updateConnectionStatus('Connected to room ' + message.roomCode, 'connected');
+            }
+            
+            handleGameUpdate(message) {
+                console.log('🎮 Game update received:', message.gameState?.phase);
+                
+                this.gameState = message.gameState;
+                this.showGameContent();
+                
+                if (message.room && message.room.players) {
+                    const currentPlayer = message.room.players.find(p => p.id === message.gameState.currentDrawer);
+                    this.updateGameDisplay(message.gameState, currentPlayer);
+                }
+            }
+            
+            handleTimerUpdate(message) {
+                this.updateTimer(message.timeString, message.timeLeft);
+            }
+            
+            handleDrawingProgress(message) {
+                const progressCount = document.getElementById('spectator-progress-count');
+                const progressTotal = document.getElementById('spectator-progress-total');
+                
+                if (progressCount) progressCount.textContent = message.totalSubmitted || 0;
+                if (progressTotal) progressTotal.textContent = message.totalExpected || 0;
+                
+                console.log(`📊 Drawing progress: ${message.totalSubmitted}/${message.totalExpected}`);
+            }
+            
+            handleSlideshowStart(message) {
+                console.log('🎬 Starting slideshow with original:', message.originalMonster);
+                this.clearSlideshow();
+                
+                if (message.originalMonster) {
+                    const originalImage = document.getElementById('spectator-original-image');
+                    // Use GitHub Pages URL for images
+                    originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${message.originalMonster}`;
                 }
                 
-                this.socket = io(this.serverUrl, {
-                    transports: ['websocket', 'polling'],
-                    timeout: 10000
-                });
-                
-                this.socket.on('connect', () => {
-                    console.log('Connected to server');
-                    this.isConnected = true;
-                    this.showStatus('Connected! Joining as viewer...', '');
-                    
-                    // Join using existing room-joined event but with a special viewer name
-                    this.socket.emit('join-room', {
-                        roomCode: this.roomCode,
-                        playerName: '📺 Web Viewer (Observer)',
-                        isViewer: true  // Flag for potential future server support
-                    });
-                });
-                
-                this.socket.on('disconnect', () => {
-                    console.log('Disconnected from server');
-                    this.isConnected = false;
-                    this.showStatus('Disconnected from server', 'error');
-                    this.showRoomConnection();
-                });
-                
-                this.socket.on('room-joined', (data) => {
-                    if (data.success) {
-                        this.room = data.room;
-                        this.showStatus('Watching room! (You appear as a viewer in player list)', 'connected');
-                        this.showGameContent();
-                        this.updateRoomCode(this.roomCode);
-                        
-                        // If game is in progress, update display
-                        if (this.room.gameState) {
-                            this.handleGameUpdate(this.room.gameState);
-                        }
-                    } else {
-                        this.showStatus(data.error || 'Room not found', 'error');
-                    }
-                });
-                
-                // Listen for all the same events that players get
-                this.socket.on('game-started', (data) => {
-                    this.room = data.room;
-                    this.handleGameUpdate(data.gameState);
-                });
-                
-                this.socket.on('phase-changed', (data) => {
-                    this.room = data.room;
-                    
-                    if (data.gameState.phase === 'reveal' && data.allDrawings) {
-                        this.showDrawingsSlideshow(data.allDrawings, data.originalMonster || data.gameState.currentMonster);
-                    } else {
-                        this.handleGameUpdate(data.gameState);
-                    }
-                });
-                
-                this.socket.on('timer-update', (data) => {
-                    this.updateTimer(data.timeLeft);
-                });
-                
-                this.socket.on('drawing-submitted', (data) => {
-                    this.updateDrawingProgress(data);
-                });
-                
-                this.socket.on('game-finished', (data) => {
-                    this.handleGameFinished(data);
-                });
-                
-                this.socket.on('player-joined', (data) => {
-                    // Update room data when other players join
-                    if (data.room) {
-                        this.room = data.room;
-                    }
-                });
-                
-                this.socket.on('player-left', (data) => {
-                    // Update room data when players leave
-                    if (data.room) {
-                        this.room = data.room;
-                    }
-                });
+                this.showSlideshow();
             }
             
-            showStatus(message, type = '') {
-                const status = document.getElementById('connection-status');
-                status.textContent = message;
-                status.className = `status-indicator ${type}`;
+            handleSlideshowDrawing(message) {
+                console.log(`🖼️ Adding drawing ${message.index + 1}: ${message.playerName}`);
+                this.addDrawingSlide(message);
+                
+                if (message.isLast) {
+                    console.log('🎬 All drawings loaded, starting slideshow');
+                    this.startSlideshow();
+                }
             }
             
-            showRoomConnection() {
-                document.getElementById('room-connection').classList.remove('hidden');
-                document.getElementById('viewer-game-content').classList.add('hidden');
-                document.getElementById('viewer-slideshow').classList.add('hidden');
+            handleShowDrawingsSlideshow(message) {
+                console.log('🎨 Show drawings slideshow with', message.drawings?.length, 'drawings');
+                this.showDrawingsSlideshow(message.drawings, message.originalMonster);
             }
             
-            showGameContent() {
-                document.getElementById('room-connection').classList.add('hidden');
-                document.getElementById('viewer-game-content').classList.remove('hidden');
-                document.getElementById('viewer-slideshow').classList.add('hidden');
+            handleGameFinished(message) {
+                console.log('🏁 Game finished');
+                this.clearSlideshow();
+                this.showGameContent();
+                
+                const phaseTitle = document.getElementById('spectator-phase-title');
+                const phaseSubtitle = document.getElementById('spectator-phase-subtitle');
+                
+                if (phaseTitle) phaseTitle.textContent = 'Game Complete!';
+                if (phaseSubtitle) phaseSubtitle.textContent = 'Thanks for playing Drawblins!';
             }
             
-            showSlideshow() {
-                document.getElementById('room-connection').classList.add('hidden');
-                document.getElementById('viewer-game-content').classList.add('hidden');
-                document.getElementById('viewer-slideshow').classList.remove('hidden');
+            updateConnectionStatus(message, type) {
+                const statusElement = document.getElementById('connection-status');
+                if (statusElement) {
+                    statusElement.textContent = message;
+                    statusElement.className = `connection-status ${type}`;
+                }
             }
             
             updateRoomCode(code) {
-                document.getElementById('viewer-room-code').textContent = code || '----';
-            }
-            
-            handleGameUpdate(gameState) {
-                this.gameState = gameState;
-                
-                if (gameState.phase === 'reveal') {
-                    return; // Let slideshow handle reveal phase
-                }
-                
-                this.showGameContent();
-                
-                const currentPlayer = this.room.players.find(p => p.id === gameState.currentDrawer);
-                
-                // Update phase info
-                const phaseTitle = document.getElementById('viewer-phase-title');
-                const phaseSubtitle = document.getElementById('viewer-phase-subtitle');
-                const currentPlayerDiv = document.getElementById('viewer-current-player');
-                const progressDiv = document.getElementById('viewer-progress');
-                
-                switch (gameState.phase) {
-                    case 'studying':
-                        phaseTitle.textContent = `Round ${gameState.currentRound} - Study Phase`;
-                        phaseSubtitle.textContent = 'Player is memorizing the monster';
-                        
-                        if (currentPlayer) {
-                            document.getElementById('viewer-player-name').textContent = currentPlayer.name;
-                            document.getElementById('viewer-player-action').textContent = 'is studying the monster';
-                            currentPlayerDiv.classList.remove('hidden');
-                        }
-                        
-                        progressDiv.classList.add('hidden');
-                        break;
-                        
-                    case 'drawing':
-                        phaseTitle.textContent = `Round ${gameState.currentRound} - Drawing Phase`;
-                        phaseSubtitle.textContent = 'Draw what you hear!';
-                        
-                        if (currentPlayer) {
-                            document.getElementById('viewer-player-name').textContent = currentPlayer.name;
-                            document.getElementById('viewer-player-action').textContent = 'is describing the monster';
-                            currentPlayerDiv.classList.remove('hidden');
-                        }
-                        
-                        // Update progress
-                        const expectedSubmissions = this.room.players.filter(p => p.id !== gameState.currentDrawer).length;
-                        document.getElementById('viewer-progress-count').textContent = gameState.drawings?.length || 0;
-                        document.getElementById('viewer-progress-total').textContent = expectedSubmissions;
-                        progressDiv.classList.remove('hidden');
-                        break;
-                        
-                    default:
-                        phaseTitle.textContent = 'Drawblins Party Mode';
-                        phaseSubtitle.textContent = 'Waiting for game to start...';
-                        currentPlayerDiv.classList.add('hidden');
-                        progressDiv.classList.add('hidden');
+                const roomCodeElement = document.getElementById('spectator-room-code');
+                if (roomCodeElement) {
+                    roomCodeElement.textContent = code || '----';
                 }
             }
             
-            updateTimer(timeLeft) {
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                const timerElement = document.getElementById('viewer-timer');
+            updateTimer(timeString, timeLeft) {
+                const timerElement = document.getElementById('spectator-timer');
                 if (timerElement) {
-                    timerElement.textContent = timeString;
+                    timerElement.textContent = timeString || '00:00';
                     
                     if (timeLeft <= 10 && timeLeft > 0) {
                         timerElement.classList.add('timer-urgent');
@@ -677,12 +642,96 @@
                 }
             }
             
-            updateDrawingProgress(data) {
-                const progressCount = document.getElementById('viewer-progress-count');
-                const progressTotal = document.getElementById('viewer-progress-total');
+            showGameContent() {
+                document.getElementById('spectator-game-content').classList.remove('hidden');
+                document.getElementById('spectator-slideshow').classList.add('hidden');
+            }
+            
+            showSlideshow() {
+                document.getElementById('spectator-game-content').classList.add('hidden');
+                document.getElementById('spectator-slideshow').classList.remove('hidden');
+            }
+            
+            updateGameDisplay(gameState, currentPlayer) {
+                const phaseTitle = document.getElementById('spectator-phase-title');
+                const phaseSubtitle = document.getElementById('spectator-phase-subtitle');
+                const currentPlayerDiv = document.getElementById('spectator-current-player');
+                const progressDiv = document.getElementById('spectator-progress');
                 
-                if (progressCount) progressCount.textContent = data.totalSubmitted || 0;
-                if (progressTotal) progressTotal.textContent = data.totalExpected || 0;
+                switch (gameState.phase) {
+                    case 'studying':
+                        phaseTitle.textContent = `Round ${gameState.currentRound || 1} - Study Phase`;
+                        phaseSubtitle.textContent = 'Player is memorizing the monster';
+                        
+                        if (currentPlayer) {
+                            document.getElementById('spectator-player-name').textContent = currentPlayer.name;
+                            document.getElementById('spectator-player-action').textContent = 'is studying the monster';
+                            currentPlayerDiv.classList.remove('hidden');
+                        }
+                        
+                        progressDiv.classList.add('hidden');
+                        break;
+                        
+                    case 'drawing':
+                        phaseTitle.textContent = `Round ${gameState.currentRound || 1} - Drawing Phase`;
+                        phaseSubtitle.textContent = 'Draw what you hear!';
+                        
+                        if (currentPlayer) {
+                            document.getElementById('spectator-player-name').textContent = currentPlayer.name;
+                            document.getElementById('spectator-player-action').textContent = 'is describing the monster';
+                            currentPlayerDiv.classList.remove('hidden');
+                        }
+                        
+                        progressDiv.classList.remove('hidden');
+                        break;
+                        
+                    case 'reveal':
+                        phaseTitle.textContent = `Round ${gameState.currentRound || 1} - Results`;
+                        phaseSubtitle.textContent = 'Here are the drawings!';
+                        currentPlayerDiv.classList.add('hidden');
+                        progressDiv.classList.add('hidden');
+                        break;
+                        
+                    default:
+                        phaseTitle.textContent = 'Drawblins Online Party';
+                        phaseSubtitle.textContent = 'Ready to play!';
+                        currentPlayerDiv.classList.add('hidden');
+                        progressDiv.classList.add('hidden');
+                }
+            }
+            
+            addDrawingSlide(drawingData) {
+                const container = document.getElementById('spectator-slideshow-container');
+                const progressContainer = document.getElementById('spectator-slideshow-progress');
+                
+                // Create slide
+                const slide = document.createElement('div');
+                slide.className = 'spectator-drawing-slide';
+                slide.innerHTML = `
+                    <h3>
+                        ${drawingData.playerName}
+                        ${drawingData.autoSubmitted ? '<span class="spectator-auto-submitted-badge">Auto</span>' : ''}
+                    </h3>
+                    <img class="spectator-drawing-image" src="${drawingData.imageData}" alt="${drawingData.playerName}'s drawing">
+                `;
+                container.appendChild(slide);
+                
+                // Create progress dot
+                const dot = document.createElement('div');
+                dot.className = 'spectator-progress-dot';
+                progressContainer.appendChild(dot);
+                
+                this.slideshowDrawings.push(drawingData);
+            }
+            
+            startSlideshow() {
+                if (this.slideshowDrawings.length === 0) return;
+                
+                this.showSlide(0);
+                
+                if (this.slideshowDrawings.length > 1) {
+                    this.startAutoRotation();
+                }
             }
             
             showDrawingsSlideshow(drawings, originalMonster) {
@@ -694,7 +743,7 @@
                 
                 // Show original monster
                 if (originalMonster) {
-                    const originalImage = document.getElementById('viewer-original-image');
+                    const originalImage = document.getElementById('spectator-original-image');
                     originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${originalMonster}`;
                 }
                 
@@ -710,8 +759,8 @@
             }
             
             createSlides() {
-                const container = document.getElementById('viewer-slideshow-container');
-                const progressContainer = document.getElementById('viewer-slideshow-progress');
+                const container = document.getElementById('spectator-slideshow-container');
+                const progressContainer = document.getElementById('spectator-slideshow-progress');
                 
                 container.innerHTML = '';
                 progressContainer.innerHTML = '';
@@ -719,19 +768,19 @@
                 this.slideshowDrawings.forEach((drawing, index) => {
                     // Create slide
                     const slide = document.createElement('div');
-                    slide.className = 'viewer-drawing-slide';
+                    slide.className = 'spectator-drawing-slide';
                     slide.innerHTML = `
                         <h3>
                             ${drawing.playerName}
-                            ${drawing.autoSubmitted ? '<span class="viewer-auto-submitted-badge">Auto</span>' : ''}
+                            ${drawing.autoSubmitted ? '<span class="spectator-auto-submitted-badge">Auto</span>' : ''}
                         </h3>
-                        <img class="viewer-drawing-image" src="${drawing.imageData}" alt="${drawing.playerName}'s drawing">
+                        <img class="spectator-drawing-image" src="${drawing.imageData}" alt="${drawing.playerName}'s drawing">
                     `;
                     container.appendChild(slide);
                     
                     // Create progress dot
                     const dot = document.createElement('div');
-                    dot.className = 'viewer-progress-dot';
+                    dot.className = 'spectator-progress-dot';
                     progressContainer.appendChild(dot);
                 });
             }
@@ -741,8 +790,8 @@
                 
                 this.currentSlideIndex = index;
                 
-                const slides = document.querySelectorAll('.viewer-drawing-slide');
-                const dots = document.querySelectorAll('.viewer-progress-dot');
+                const slides = document.querySelectorAll('.spectator-drawing-slide');
+                const dots = document.querySelectorAll('.spectator-progress-dot');
                 
                 slides.forEach((slide, slideIndex) => {
                     if (slideIndex === index) {
@@ -778,8 +827,8 @@
                     this.slideshowInterval = null;
                 }
                 
-                const container = document.getElementById('viewer-slideshow-container');
-                const progressContainer = document.getElementById('viewer-slideshow-progress');
+                const container = document.getElementById('spectator-slideshow-container');
+                const progressContainer = document.getElementById('spectator-slideshow-progress');
                 
                 if (container) container.innerHTML = '';
                 if (progressContainer) progressContainer.innerHTML = '';
@@ -788,21 +837,42 @@
                 this.currentSlideIndex = 0;
             }
             
-            handleGameFinished(data) {
+            // Handle window close
+            cleanup() {
                 this.clearSlideshow();
-                this.showGameContent();
                 
-                const phaseTitle = document.getElementById('viewer-phase-title');
-                const phaseSubtitle = document.getElementById('viewer-phase-subtitle');
-                
-                if (phaseTitle) phaseTitle.textContent = 'Game Complete!';
-                if (phaseSubtitle) phaseSubtitle.textContent = 'Thanks for playing Drawblins!';
+                // Notify parent that we're closing
+                if (window.opener) {
+                    window.opener.postMessage({ type: 'spectator-closing' }, window.location.origin);
+                }
             }
         }
         
-        // Initialize the web viewer
-        document.addEventListener('DOMContentLoaded', () => {
-            new DrawblinsWebViewer();
+        // Initialize the spectator view
+        let spectatorView;
+        
+        window.addEventListener('load', () => {
+            spectatorView = new DrawblinsSpectatorView();
+        });
+        
+        // Cleanup when window closes
+        window.addEventListener('beforeunload', () => {
+            if (spectatorView) {
+                spectatorView.cleanup();
+            }
+        });
+        
+        // Handle window focus/blur for connection status
+        window.addEventListener('focus', () => {
+            if (spectatorView) {
+                spectatorView.updateConnectionStatus('Connected and active', 'connected');
+            }
+        });
+        
+        window.addEventListener('blur', () => {
+            if (spectatorView) {
+                spectatorView.updateConnectionStatus('Connected (background)', 'connected');
+            }
         });
     </script>
 </body>

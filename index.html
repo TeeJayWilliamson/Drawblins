@@ -902,11 +902,11 @@
       if (window.getCurrentGameMode() === 'online-party') {
         console.log('Opening spectator view...');
         
-        // Open receiver.html in a new window/tab
+        // Open viewer.html in a new window/tab
         const spectatorWindow = window.open(
-          'receiver.html', 
+          'viewer.html', 
           'DrawblinsSpectator',
-          'width=1200,height=800,scrollbars=yes,resizable=yes'
+          'width=1200,height=800,scrollbars=yes,resizable=yes,location=no,menubar=no,toolbar=no'
         );
         
         if (spectatorWindow) {
@@ -915,18 +915,36 @@
           // Store reference for communication
           window.spectatorWindow = spectatorWindow;
           
-          // Listen for when the spectator window loads
-          spectatorWindow.addEventListener('load', function() {
-            console.log('Spectator window loaded, ready for data');
-            // The party-client.js should handle sending game data to the spectator window
-            // instead of to Chromecast when onlinePartyMode is true
+          // Set up message listener for spectator window communication
+          window.addEventListener('message', function(event) {
+            if (event.source === spectatorWindow && event.origin === window.location.origin) {
+              console.log('Message from spectator window:', event.data.type);
+              
+              if (event.data.type === 'spectator-ready') {
+                console.log('Spectator window is ready for data');
+                
+                // Send initial room code if we have one
+                if (window.partyClient && window.partyClient.roomCode) {
+                  spectatorWindow.postMessage({
+                    type: 'room-code',
+                    roomCode: window.partyClient.roomCode
+                  }, window.location.origin);
+                }
+              } else if (event.data.type === 'spectator-closing') {
+                console.log('Spectator window is closing');
+                window.spectatorWindow = null;
+              }
+            }
           });
           
-          // Handle window close
-          spectatorWindow.addEventListener('beforeunload', function() {
-            console.log('Spectator window closing');
-            window.spectatorWindow = null;
-          });
+          // Handle window close detection
+          const checkClosed = setInterval(() => {
+            if (spectatorWindow.closed) {
+              console.log('Spectator window closed');
+              clearInterval(checkClosed);
+              window.spectatorWindow = null;
+            }
+          }, 1000);
           
         } else {
           alert('Unable to open spectator view. Please check if pop-ups are blocked.');
@@ -934,9 +952,22 @@
       }
     };
     
+    // Function to send data to spectator window
+    window.sendToSpectator = function(data) {
+      if (window.spectatorWindow && !window.spectatorWindow.closed) {
+        try {
+          window.spectatorWindow.postMessage(data, window.location.origin);
+          console.log('📤 Sent to spectator:', data.type);
+        } catch (error) {
+          console.error('❌ Failed to send to spectator:', error);
+        }
+      }
+    };
+    
     // Auto-open spectator view when online party mode starts a game
     document.addEventListener('game-started', function(event) {
       if (window.getCurrentGameMode() === 'online-party' && !window.spectatorWindow) {
+        console.log('🎮 Game started in online party mode, opening spectator view');
         window.openSpectatorView();
       }
     });
