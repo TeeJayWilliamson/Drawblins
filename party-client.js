@@ -38,6 +38,19 @@ class PartyGameClient {
   // Initialize Online Party Mode
   initializeOnlinePartyMode() {
     console.log('🌐 Setting up Online Party Mode...');
+    
+    // Update the header text for Online Party Mode
+    const partyModeCard = document.querySelector('.party-mode-card h3');
+    if (partyModeCard) {
+      partyModeCard.textContent = 'Online Party Mode';
+    }
+    
+    // Update the description
+    const partyModeDescription = document.querySelector('.party-mode-card p');
+    if (partyModeDescription) {
+      partyModeDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
+    }
+    
     // Update cast button for online mode
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
@@ -401,7 +414,7 @@ class PartyGameClient {
     this.buzzer.play().catch(() => {});
   }
 
-  // Create enhanced party mode UI (unchanged)
+  // Create enhanced party mode UI
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -414,15 +427,21 @@ class PartyGameClient {
     
     const startScreen = document.getElementById('start-screen');
     
-    // Add party mode section
+    // Add party mode section with conditional header
     const partyModeSection = document.createElement('div');
     partyModeSection.id = 'party-mode-section';
     partyModeSection.className = 'party-mode-section hidden';
     
+    // The header will be updated in initializeOnlinePartyMode() if needed
+    const modeTitle = this.isOnlinePartyMode ? 'Online Party Mode' : 'Party Mode';
+    const modeDescription = this.isOnlinePartyMode ? 
+      'Play together with web spectator view - everyone uses their own device!' :
+      'Play together - everyone uses their own device!';
+    
     partyModeSection.innerHTML = `
       <div class="party-mode-card">
-        <h3>Party Mode</h3>
-        <p>Play together - everyone uses their own device!</p>
+        <h3>${modeTitle}</h3>
+        <p>${modeDescription}</p>
         
         <div id="party-connection-status" class="connection-status">
           <span class="status-indicator"></span>
@@ -479,7 +498,7 @@ class PartyGameClient {
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
               <button id="cast-to-tv-btn" class="party-btn cast-btn">
-                📺 Cast to TV
+                ${this.isOnlinePartyMode ? '🖥️ Open Spectator View' : '📺 Cast to TV'}
               </button>
             </div>
           </div>
@@ -2265,3 +2284,6 @@ window.addEventListener('beforeunload', () => {
     partyClient.cleanup();
   }
 });
+
+// Make partyClient available globally
+window.partyClient = partyClient;
