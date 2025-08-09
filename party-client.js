@@ -431,9 +431,7 @@ socket.on('spectate-room', ({ roomCode }) => {
             <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
           </div>
         </div>
-        
-        <button id="back-to-local" class="party-btn back-btn">← Back to Local Mode</button>
-      </div>
+              </div>
     `;
     
     startScreen.appendChild(partyModeSection);
