@@ -452,6 +452,9 @@
   <script src="party-client.js"></script>
   
   <script>
+    // Global game mode state
+    let currentGameMode = null; // 'local', 'party', 'online'
+    
     // Menu functionality
     document.addEventListener('DOMContentLoaded', () => {
       const mainMenu = document.getElementById('main-menu');
@@ -461,6 +464,7 @@
       function showMainMenu() {
         mainMenu.classList.remove('hidden');
         backToMenuBtn.classList.add('hidden');
+        currentGameMode = null;
         
         // Hide all game screens
         document.getElementById('start-screen').classList.add('hidden');
@@ -471,9 +475,22 @@
         document.getElementById('end-screen').classList.add('hidden');
         document.getElementById('phase-indicator').classList.add('hidden');
         
+        // Hide any party mode screens if they exist
+        const partyElements = document.querySelectorAll('[id*="party"], [class*="party"]');
+        partyElements.forEach(el => {
+          if (el.id !== 'party-mode-card' && el.id !== 'online-party-card') {
+            el.classList.add('hidden');
+          }
+        });
+        
         // Reset any game state if needed
         if (typeof resetGameUI === 'function') {
           resetGameUI();
+        }
+        
+        // Reset party mode if it has cleanup functions
+        if (typeof disconnectFromParty === 'function') {
+          disconnectFromParty();
         }
       }
       
@@ -483,29 +500,53 @@
         backToMenuBtn.classList.remove('hidden');
       }
       
-      // Pass & Play Mode (your original local game)
+      // Pass & Play Mode (LOCAL ONLY - no party mode selector)
       document.getElementById('pass-play-card').addEventListener('click', () => {
+        currentGameMode = 'local';
         hideMainMenu();
+        
+        // Show ONLY the local game interface
         document.getElementById('start-screen').classList.remove('hidden');
         document.getElementById('round-info').classList.remove('hidden');
+        
+        // Make sure any party mode functionality is disabled
+        if (typeof setGameMode === 'function') {
+          setGameMode('local');
+        }
       });
 
-      // Party Mode 
+      // Party Mode (PARTY ONLY - no local mode selector)
       document.getElementById('party-mode-card').addEventListener('click', () => {
+        currentGameMode = 'party';
         hideMainMenu();
-        // Initialize party mode - you'll need to add party mode UI here
-        // For now, let's show the same as pass & play
-        document.getElementById('start-screen').classList.remove('hidden');
-        document.getElementById('round-info').classList.remove('hidden');
-        alert('Party Mode selected! Connect multiple devices to play together.');
+        
+        // Initialize party mode directly - no mode selector
+        if (typeof initializePartyMode === 'function') {
+          initializePartyMode();
+        } else if (typeof showPartyInterface === 'function') {
+          showPartyInterface();
+        } else {
+          // Fallback: show basic party interface
+          // You'll need to create/show your party mode UI here
+          // This might involve room creation, joining, etc.
+          console.log('Party mode selected - implement party interface');
+          
+          // For now, create a simple party interface
+          createPartyInterface();
+        }
       });
 
       // Online Party Mode (same as party mode for now)
       document.getElementById('online-party-card').addEventListener('click', () => {
+        currentGameMode = 'online';
         hideMainMenu();
-        document.getElementById('start-screen').classList.remove('hidden');
-        document.getElementById('round-info').classList.remove('hidden');
-        alert('Online Party Mode! Currently same as Party Mode.');
+        
+        // Same as party mode for now
+        if (typeof initializePartyMode === 'function') {
+          initializePartyMode();
+        } else {
+          createPartyInterface();
+        }
       });
       
       // Back to menu button
@@ -531,12 +572,69 @@
       // Also intercept the restart button to go back to menu instead
       const restartBtn = document.getElementById('restart-btn');
       if (restartBtn) {
-        restartBtn.addEventListener('click', (e) => {
+        const newRestartBtn = restartBtn.cloneNode(true);
+        restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
+        
+        newRestartBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           showMainMenu();
         });
       }
     });
+    
+    // Create a basic party interface (you'll customize this based on your party-client.js)
+    function createPartyInterface() {
+      // Hide the regular start screen
+      document.getElementById('start-screen').classList.add('hidden');
+      
+      // Create or show party-specific interface
+      let partyInterface = document.getElementById('party-interface');
+      if (!partyInterface) {
+        partyInterface = document.createElement('div');
+        partyInterface.id = 'party-interface';
+        partyInterface.innerHTML = `
+          <div style="text-align: center; padding: 2rem;">
+            <h2>🎉 Party Mode</h2>
+            <p>Connect multiple devices to play together!</p>
+            
+            <div style="margin: 2rem 0;">
+              <button id="create-room-btn" style="background: #27ae60; margin: 0.5rem;">Create Room</button>
+              <button id="join-room-btn" style="background: #3498db; margin: 0.5rem;">Join Room</button>
+            </div>
+            
+            <div id="room-interface" class="hidden">
+              <!-- Room interface will be populated by party-client.js -->
+            </div>
+          </div>
+        `;
+        document.querySelector('.container').appendChild(partyInterface);
+        
+        // Add event listeners for party mode buttons
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+          if (typeof createPartyRoom === 'function') {
+            createPartyRoom();
+          } else {
+            alert('Create Room functionality - connect this to your party-client.js');
+          }
+        });
+        
+        document.getElementById('join-room-btn').addEventListener('click', () => {
+          if (typeof joinPartyRoom === 'function') {
+            joinPartyRoom();
+          } else {
+            const roomCode = prompt('Enter room code:');
+            if (roomCode) {
+              alert(`Joining room ${roomCode} - connect this to your party-client.js`);
+            }
+          }
+        });
+      }
+      
+      partyInterface.classList.remove('hidden');
+    }
+    
+    // Expose game mode for other scripts to check
+    window.getCurrentGameMode = () => currentGameMode;
   </script>
 </body>
 </html>
