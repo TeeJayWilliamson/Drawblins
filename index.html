@@ -613,13 +613,20 @@
         });
       }
       
-      // Party Mode Selection  
+// Party Mode Selection  
       const partyModeCard = document.getElementById('party-mode-card');
       if (partyModeCard) {
         partyModeCard.addEventListener('click', function() {
           console.log('Party mode selected');
+          window.onlinePartyMode = false; // Explicitly set to false
           currentGameMode = 'party';
           hideMenu();
+          
+          // Set the party client to regular party mode
+          if (window.partyClient) {
+            window.partyClient.setOnlinePartyMode(false);
+          }
+          
           activatePartyMode();
         });
       }
@@ -629,9 +636,15 @@
       if (onlinePartyModeCard) {
         onlinePartyModeCard.addEventListener('click', function() {
           console.log('Online party mode selected');
-          window.onlinePartyMode = true; // Set flag for viewer.html
+          window.onlinePartyMode = true; // Set flag for viewer.html AND party client
           currentGameMode = 'online-party';
           hideMenu();
+          
+          // Set the party client to online party mode
+          if (window.partyClient) {
+            window.partyClient.setOnlinePartyMode(true);
+          }
+          
           activatePartyMode();
         });
       }

@@ -22,41 +22,63 @@ class PartyGameClient {
   // Initialize party mode
   init() {
     console.log('Initializing Enhanced Party Mode...');
-    this.createPartyModeUI();
     this.setupAudio();
-    // Check if this is online party mode
-    this.isOnlinePartyMode = window.onlinePartyMode || false;
+    // Check if this is online party mode - check both current and global flags
+    this.isOnlinePartyMode = window.onlinePartyMode || window.getCurrentGameMode?.() === 'online-party' || false;
+    
+    console.log('🔍 Mode detection:', {
+      windowOnlinePartyMode: window.onlinePartyMode,
+      getCurrentGameMode: window.getCurrentGameMode?.(),
+      isOnlinePartyMode: this.isOnlinePartyMode
+    });
+    
+    this.createPartyModeUI();
     
     if (this.isOnlinePartyMode) {
-      console.log('🌐 Online Party Mode detected');
+      console.log('🌐 Online Party Mode detected - updating UI');
       this.initializeOnlinePartyMode();
     } else {
+      console.log('📺 Regular Party Mode detected - initializing Cast');
       this.initializeCastSDK();
     }
   }
 
   // Initialize Online Party Mode
   initializeOnlinePartyMode() {
-    console.log('🌐 Setting up Online Party Mode...');
+    console.log('🌐 Setting up Online Party Mode UI updates...');
     
-    // Update the header text for Online Party Mode
-    const partyModeCard = document.querySelector('.party-mode-card h3');
-    if (partyModeCard) {
-      partyModeCard.textContent = 'Online Party Mode';
-    }
-    
-    // Update the description
-    const partyModeDescription = document.querySelector('.party-mode-card p');
-    if (partyModeDescription) {
-      partyModeDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
-    }
-    
-    // Update cast button for online mode
-    const castBtn = document.getElementById('cast-to-tv-btn');
-    if (castBtn) {
-      castBtn.innerHTML = '🖥️ Open Spectator View';
-      castBtn.title = 'Open spectator view in new window';
-    }
+    // Wait a bit for DOM to be ready, then update
+    setTimeout(() => {
+      // Update the header text for Online Party Mode
+      const partyModeCard = document.querySelector('.party-mode-card h3');
+      if (partyModeCard) {
+        console.log('📝 Updating header to Online Party Mode');
+        partyModeCard.textContent = 'Online Party Mode';
+      } else {
+        console.error('❌ Could not find party mode card header');
+      }
+      
+      // Update the description
+      const partyModeDescription = document.querySelector('.party-mode-card p');
+      if (partyModeDescription) {
+        console.log('📝 Updating description for Online Party Mode');
+        partyModeDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
+      } else {
+        console.error('❌ Could not find party mode card description');
+      }
+      
+      // Update cast button for online mode
+      const castBtn = document.getElementById('cast-to-tv-btn');
+      if (castBtn) {
+        console.log('📝 Updating button to Open Spectator View');
+        castBtn.innerHTML = '🖥️ Open Spectator View';
+        castBtn.title = 'Open spectator view in new window';
+      } else {
+        console.error('❌ Could not find cast button');
+      }
+      
+      console.log('✅ Online Party Mode UI updates complete');
+    }, 100);
   }
 
   // Setup audio system
@@ -278,7 +300,7 @@ class PartyGameClient {
     });
   }
 
-  // Audio functions (unchanged)
+  // Audio functions
   initializeAudio() {
     if (this.audioInitialized) return;
     
