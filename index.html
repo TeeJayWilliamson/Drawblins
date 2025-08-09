@@ -160,6 +160,11 @@
       transform: translateY(-2px);
     }
 
+    /* Hide the old mode toggle from party-client.js */
+    .mode-toggle {
+      display: none !important;
+    }
+
     @media (max-width: 768px) {
       .menu-card {
         padding: 1.5rem 1rem;
@@ -489,8 +494,8 @@
         }
         
         // Reset party mode if it has cleanup functions
-        if (typeof disconnectFromParty === 'function') {
-          disconnectFromParty();
+        if (window.partyClient && typeof window.partyClient.cleanup === 'function') {
+          window.partyClient.cleanup();
         }
       }
       
@@ -500,14 +505,26 @@
         backToMenuBtn.classList.remove('hidden');
       }
       
-      // Pass & Play Mode (LOCAL ONLY - no party mode selector)
+      // Pass & Play Mode (LOCAL ONLY)
       document.getElementById('pass-play-card').addEventListener('click', () => {
         currentGameMode = 'local';
         hideMainMenu();
         
-        // Show ONLY the local game interface
+        // Show ONLY the local game interface - no party mode toggles
         document.getElementById('start-screen').classList.remove('hidden');
         document.getElementById('round-info').classList.remove('hidden');
+        
+        // Force local mode by hiding any party mode UI that might exist
+        const partyModeSection = document.getElementById('party-mode-section');
+        if (partyModeSection) {
+          partyModeSection.classList.add('hidden');
+        }
+        
+        // Show local mode settings
+        const settingsGroup = document.querySelector('.settings-group');
+        const startButtons = document.getElementById('start-buttons');
+        if (settingsGroup) settingsGroup.classList.remove('hidden');
+        if (startButtons) startButtons.classList.remove('hidden');
         
         // Make sure any party mode functionality is disabled
         if (typeof setGameMode === 'function') {
@@ -515,38 +532,40 @@
         }
       });
 
-      // Party Mode (PARTY ONLY - no local mode selector)
+      // Party Mode - directly show the party interface
       document.getElementById('party-mode-card').addEventListener('click', () => {
         currentGameMode = 'party';
         hideMainMenu();
         
-        // Initialize party mode directly - no mode selector
-        if (typeof initializePartyMode === 'function') {
-          initializePartyMode();
-        } else if (typeof showPartyInterface === 'function') {
-          showPartyInterface();
-        } else {
-          // Fallback: show basic party interface
-          // You'll need to create/show your party mode UI here
-          // This might involve room creation, joining, etc.
-          console.log('Party mode selected - implement party interface');
+        // Show the start screen first
+        document.getElementById('start-screen').classList.remove('hidden');
+        
+        // Force party mode to show by simulating the party mode button click
+        if (window.partyClient) {
+          // Use the existing party client functionality
+          window.partyClient.showPartyMode();
           
-          // For now, create a simple party interface
-          createPartyInterface();
+          // Auto-connect if not connected
+          if (!window.partyClient.isConnected) {
+            window.partyClient.connect();
+          }
+        } else {
+          // Fallback if party client isn't ready yet
+          setTimeout(() => {
+            if (window.partyClient) {
+              window.partyClient.showPartyMode();
+              if (!window.partyClient.isConnected) {
+                window.partyClient.connect();
+              }
+            }
+          }, 100);
         }
       });
 
       // Online Party Mode (same as party mode for now)
       document.getElementById('online-party-card').addEventListener('click', () => {
-        currentGameMode = 'online';
-        hideMainMenu();
-        
-        // Same as party mode for now
-        if (typeof initializePartyMode === 'function') {
-          initializePartyMode();
-        } else {
-          createPartyInterface();
-        }
+        // Same behavior as party mode
+        document.getElementById('party-mode-card').click();
       });
       
       // Back to menu button
@@ -581,185 +600,23 @@
         });
       }
       
-      // Make sure modals still work - don't interfere with existing modal handlers
-      // Settings and Info modals should work from the original script.js
+      // Handle the "back to local" button from party mode
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'back-to-local') {
+          showMainMenu();
+        }
+      });
     });
     
-    // Create a proper party interface that matches your existing party-client.js functionality
-    function createPartyInterface() {
-      // Hide the regular start screen
-      document.getElementById('start-screen').classList.add('hidden');
-      
-      // Create or show party-specific interface
-      let partyInterface = document.getElementById('party-interface');
-      if (!partyInterface) {
-        partyInterface = document.createElement('div');
-        partyInterface.id = 'party-interface';
-        partyInterface.innerHTML = `
-          <div style="text-align: center; padding: 2rem;">
-            <h2>🎉 Party Mode</h2>
-            <p>Connect multiple devices to play together!</p>
-            
-            <div id="party-setup" style="margin: 2rem 0;">
-              <div style="margin-bottom: 1.5rem;">
-                <label for="player-name-input" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Your Name:</label>
-                <input type="text" id="player-name-input" placeholder="Enter your name" style="padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; width: 200px;">
-              </div>
-              
-              <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <div style="text-align: center;">
-                  <button id="create-room-btn" style="background: #27ae60; margin: 0.5rem; padding: 1rem 2rem;">Create Room</button>
-                  <p style="font-size: 0.9rem; color: #666;">Start a new game room</p>
-                </div>
-                
-                <div style="text-align: center;">
-                  <input type="text" id="room-code-input" placeholder="Room Code" style="padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; width: 120px; margin: 0.5rem;">
-                  <br>
-                  <button id="join-room-btn" style="background: #3498db; margin: 0.5rem; padding: 1rem 2rem;">Join Room</button>
-                  <p style="font-size: 0.9rem; color: #666;">Join an existing room</p>
-                </div>
-              </div>
-            </div>
-            
-            <div id="party-room-interface" class="hidden">
-              <!-- This will be populated when connected to a room -->
-              <div id="room-info" style="background: #ecf0f1; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                <h3 id="room-code-display">Room: ----</h3>
-                <p>Share this code with friends to join!</p>
-              </div>
-              
-              <div id="players-list" style="margin: 1rem 0;">
-                <h4>Players in Room:</h4>
-                <ul id="players-ul" style="list-style: none; padding: 0;"></ul>
-              </div>
-              
-              <div id="party-game-controls" style="margin: 1rem 0;">
-                <button id="start-party-game-btn" class="hidden" style="background: #e74c3c; padding: 1rem 2rem;">Start Game</button>
-                <button id="leave-room-btn" style="background: #95a5a6; padding: 0.5rem 1rem;">Leave Room</button>
-              </div>
-            </div>
-            
-            <div id="party-status" style="margin-top: 1rem; font-style: italic; color: #666;"></div>
-          </div>
-        `;
-        document.querySelector('.container').appendChild(partyInterface);
-        
-        // Add event listeners for party mode functionality
-        document.getElementById('create-room-btn').addEventListener('click', () => {
-          const playerName = document.getElementById('player-name-input').value.trim();
-          if (!playerName) {
-            alert('Please enter your name first!');
-            return;
-          }
-          
-          // Update status
-          document.getElementById('party-status').textContent = 'Creating room...';
-          
-          // Call your existing party-client.js create room function
-          if (typeof createPartyRoom === 'function') {
-            createPartyRoom(playerName);
-          } else {
-            // Fallback simulation
-            setTimeout(() => {
-              const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-              showRoomInterface(roomCode, playerName, true);
-            }, 1000);
-          }
-        });
-        
-        document.getElementById('join-room-btn').addEventListener('click', () => {
-          const playerName = document.getElementById('player-name-input').value.trim();
-          const roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
-          
-          if (!playerName) {
-            alert('Please enter your name first!');
-            return;
-          }
-          
-          if (!roomCode) {
-            alert('Please enter a room code!');
-            return;
-          }
-          
-          // Update status
-          document.getElementById('party-status').textContent = `Joining room ${roomCode}...`;
-          
-          // Call your existing party-client.js join room function  
-          if (typeof joinPartyRoom === 'function') {
-            joinPartyRoom(roomCode, playerName);
-          } else {
-            // Fallback simulation
-            setTimeout(() => {
-              showRoomInterface(roomCode, playerName, false);
-            }, 1000);
-          }
-        });
-        
-        document.getElementById('leave-room-btn').addEventListener('click', () => {
-          if (typeof leavePartyRoom === 'function') {
-            leavePartyRoom();
-          }
-          // Reset to setup interface
-          document.getElementById('party-setup').classList.remove('hidden');
-          document.getElementById('party-room-interface').classList.add('hidden');
-          document.getElementById('party-status').textContent = '';
-        });
-        
-        document.getElementById('start-party-game-btn').addEventListener('click', () => {
-          if (typeof startPartyGame === 'function') {
-            startPartyGame();
-          } else {
-            alert('Starting party game - connect this to your party game logic');
-          }
-        });
-      }
-      
-      partyInterface.classList.remove('hidden');
-    }
-    
-    // Function to show the room interface once connected
-    function showRoomInterface(roomCode, playerName, isHost) {
-      document.getElementById('party-setup').classList.add('hidden');
-      document.getElementById('party-room-interface').classList.remove('hidden');
-      document.getElementById('room-code-display').textContent = `Room: ${roomCode}`;
-      document.getElementById('party-status').textContent = `Connected as ${playerName}${isHost ? ' (Host)' : ''}`;
-      
-      // Show start button only for host
-      if (isHost) {
-        document.getElementById('start-party-game-btn').classList.remove('hidden');
-      }
-      
-      // Add player to list
-      updatePlayersList([{ name: playerName, isHost: isHost }]);
-    }
-    
-    // Function to update players list
-    function updatePlayersList(players) {
-      const playersUl = document.getElementById('players-ul');
-      playersUl.innerHTML = '';
-      players.forEach(player => {
-        const li = document.createElement('li');
-        li.style.padding = '0.5rem';
-        li.style.background = player.isHost ? '#e8f5e8' : '#f8f9fa';
-        li.style.margin = '0.25rem 0';
-        li.style.borderRadius = '4px';
-        li.textContent = `${player.name}${player.isHost ? ' 👑' : ''}`;
-        playersUl.appendChild(li);
-      });
-    }
-    
-    // Expose functions for party-client.js to call
-    window.partyUI = {
-      showRoomInterface,
-      updatePlayersList,
-      setStatus: (message) => {
-        const statusEl = document.getElementById('party-status');
-        if (statusEl) statusEl.textContent = message;
-      }
-    };
-    
-    // Expose game mode for other scripts to check
+    // Expose functions for other scripts to use
     window.getCurrentGameMode = () => currentGameMode;
+    window.showMainMenu = () => {
+      const mainMenu = document.getElementById('main-menu');
+      const backToMenuBtn = document.getElementById('back-to-menu-btn');
+      if (mainMenu) mainMenu.classList.remove('hidden');
+      if (backToMenuBtn) backToMenuBtn.classList.add('hidden');
+      currentGameMode = null;
+    };
   </script>
 </body>
 </html>
