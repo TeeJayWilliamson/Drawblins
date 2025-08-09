@@ -285,6 +285,18 @@ button:hover {
   width: 100%;
 }
 
+.menu-logo-wrapper {
+  position: relative;
+  background: #fff;
+  z-index: 100;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+}
+
 .corner-buttons {
   position: absolute;
   top: 0.5rem;
@@ -297,6 +309,13 @@ button:hover {
 }
 
 .logo-img {
+  max-width: min(250px, 60vw);
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.menu-logo-img {
   max-width: min(250px, 60vw);
   width: 100%;
   height: auto;
@@ -853,6 +872,10 @@ input[type="checkbox"] {
   }
   
   .logo-img {
+    max-width: min(250px, 80vw);
+  }
+
+  .menu-logo-img {
     max-width: min(250px, 80vw);
   }
   
