@@ -1,3 +1,24 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <title>Drawblins</title> <link rel="stylesheet" href="style.css" /> <!-- Party Mode CSS --> <link rel="stylesheet" href="party-mode.css" />
+
+pasted
+
+my menu has stopped working. I feel like i've wrapped something incorrectly
+
+Edit
+Looking at your HTML structure, I can see a potential issue with the JavaScript scope and DOM element access. The main problem appears to be that your menu system JavaScript is wrapped inside a DOMContentLoaded event listener, but some of the variables and functions might not be properly scoped.
+
+Let me help you fix this by creating a corrected version:
+
+
+Fixed Drawblins Menu System
+Interactive artifact 
+
+
+
+
+You are out of free messages until 2:00 AM
+Continue
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -479,15 +500,25 @@
   <script src="party-client.js"></script>
   
   <script>
-    // Menu System Implementation
+    // Menu System Implementation - Fixed Version
     let currentGameMode = null;
     
-    document.addEventListener('DOMContentLoaded', function() {
+    // Initialize menu system when DOM is ready
+    function initMenuSystem() {
       console.log('Menu system initializing...');
       
       const menu = document.getElementById('game-mode-menu');
       const gameContent = document.getElementById('game-content');
       const backBtn = document.getElementById('back-to-menu-btn');
+      
+      if (!menu || !gameContent || !backBtn) {
+        console.error('Missing required menu elements:', {
+          menu: !!menu,
+          gameContent: !!gameContent,
+          backBtn: !!backBtn
+        });
+        return;
+      }
       
       // Show menu initially
       function showMenu() {
@@ -502,10 +533,8 @@
           window.partyClient.cleanup();
         }
         
-        // Only reset to original state when coming FROM a mode, not on initial load
-        if (currentGameMode !== null) {
-          resetToOriginalState();
-        }
+        // Reset to original state
+        resetToOriginalState();
       }
       
       // Reset all UI elements back to their original local state
@@ -527,10 +556,10 @@
         }
         if (roundInfo) {
           roundInfo.style.display = '';
-          // Keep round info hidden initially, it will show when local mode starts
+          // Keep round info hidden initially
         }
         
-        // Hide party elements (but don't remove them)
+        // Hide party elements
         const partySection = document.getElementById('party-mode-section');
         const modeToggle = document.querySelector('.mode-toggle');
         
@@ -561,69 +590,81 @@
         backBtn.classList.remove('hidden');
       }
       
+      // Event Listeners
+      
       // Local Mode Selection
-      document.getElementById('local-mode-card').addEventListener('click', function() {
-        console.log('Local mode selected');
-        currentGameMode = 'local';
-        hideMenu();
-        
-        // First, ensure we have a clean slate
-        resetToOriginalState();
-        
-        // Show the start screen for local play
-        const startScreen = document.getElementById('start-screen');
-        if (startScreen) {
-          startScreen.classList.remove('hidden');
-        }
-        
-        // Show round info
-        const roundInfo = document.getElementById('round-info');
-        if (roundInfo) {
-          roundInfo.classList.remove('hidden');
-        }
-        
-        // Ensure local elements are visible
-        const settingsGroup = document.querySelector('.settings-group');
-        const startButtons = document.getElementById('start-buttons');
-        
-        if (settingsGroup) {
-          settingsGroup.style.display = 'block';
-          settingsGroup.classList.remove('hidden');
-        }
-        if (startButtons) {
-          startButtons.style.display = 'block';
-          startButtons.classList.remove('hidden');
-        }
-        
-        // Hide party mode elements instead of removing them
-        const partySection = document.getElementById('party-mode-section');
-        if (partySection) {
-          partySection.style.display = 'none';
-          partySection.classList.add('hidden');
-        }
-        
-        const modeToggle = document.querySelector('.mode-toggle');
-        if (modeToggle) {
-          modeToggle.style.display = 'none';
-          modeToggle.classList.add('hidden');
-        }
-        
-        console.log('Local mode activated - pure local interface shown');
-      });
+      const localModeCard = document.getElementById('local-mode-card');
+      if (localModeCard) {
+        localModeCard.addEventListener('click', function() {
+          console.log('Local mode selected');
+          currentGameMode = 'local';
+          hideMenu();
+          
+          // Show local mode UI
+          const startScreen = document.getElementById('start-screen');
+          const roundInfo = document.getElementById('round-info');
+          const settingsGroup = document.querySelector('.settings-group');
+          const startButtons = document.getElementById('start-buttons');
+          
+          if (startScreen) startScreen.classList.remove('hidden');
+          if (roundInfo) roundInfo.classList.remove('hidden');
+          if (settingsGroup) {
+            settingsGroup.style.display = 'block';
+            settingsGroup.classList.remove('hidden');
+          }
+          if (startButtons) {
+            startButtons.style.display = 'block';
+            startButtons.classList.remove('hidden');
+          }
+          
+          // Hide party elements
+          const partySection = document.getElementById('party-mode-section');
+          const modeToggle = document.querySelector('.mode-toggle');
+          
+          if (partySection) {
+            partySection.style.display = 'none';
+            partySection.classList.add('hidden');
+          }
+          if (modeToggle) {
+            modeToggle.style.display = 'none';
+            modeToggle.classList.add('hidden');
+          }
+          
+          console.log('Local mode activated');
+        });
+      }
       
       // Party Mode Selection  
-      document.getElementById('party-mode-card').addEventListener('click', function() {
-        console.log('Party mode selected');
-        currentGameMode = 'party';
-        hideMenu();
-        
-        // Show the start screen first
+      const partyModeCard = document.getElementById('party-mode-card');
+      if (partyModeCard) {
+        partyModeCard.addEventListener('click', function() {
+          console.log('Party mode selected');
+          currentGameMode = 'party';
+          hideMenu();
+          activatePartyMode();
+        });
+      }
+      
+      // Online Party Mode Selection  
+      const onlinePartyModeCard = document.getElementById('online-party-mode-card');
+      if (onlinePartyModeCard) {
+        onlinePartyModeCard.addEventListener('click', function() {
+          console.log('Online party mode selected');
+          window.onlinePartyMode = true; // Set flag for viewer.html
+          currentGameMode = 'online-party';
+          hideMenu();
+          activatePartyMode();
+        });
+      }
+      
+      // Common party mode activation logic
+      function activatePartyMode() {
         const startScreen = document.getElementById('start-screen');
         if (startScreen) {
           startScreen.classList.remove('hidden');
         }
         
-        // Hide local mode UI elements
+        // Hide local UI elements
         const settingsGroup = document.querySelector('.settings-group');
         const startButtons = document.getElementById('start-buttons');
         const roundInfo = document.getElementById('round-info');
@@ -641,217 +682,49 @@
           roundInfo.classList.add('hidden');
         }
         
-        // Show party mode elements (in case they were hidden)
+        // Show party elements
         const partySection = document.getElementById('party-mode-section');
         const modeToggle = document.querySelector('.mode-toggle');
         
         if (partySection) {
           partySection.style.display = 'block';
           partySection.classList.remove('hidden');
-          partySection.style.visibility = 'visible';
         }
-        
         if (modeToggle) {
           modeToggle.style.display = 'block';
           modeToggle.classList.remove('hidden');
-          modeToggle.style.visibility = 'visible';
         }
         
-        // Ensure party mode UI is created (in case it was never created)
-        if (!document.getElementById('party-mode-section')) {
-          console.log('Party section missing, recreating...');
-          // Trigger party client initialization
-          if (window.partyClient) {
-            window.partyClient.createPartyModeUI();
-          }
-        }
-        
-        // Let party-client.js create its UI, then activate party mode
-        let attemptCount = 0;
-        const maxAttempts = 10;
-        
-        const tryActivateParty = function() {
-          attemptCount++;
-          console.log('Party activation attempt', attemptCount);
-          
-          // Look for the party mode button that party-client.js creates
+        // Activate party client
+        setTimeout(() => {
           const partyModeBtn = document.getElementById('party-mode-btn');
           if (partyModeBtn) {
-            console.log('Found party mode button, clicking it');
+            console.log('Clicking party mode button');
             partyModeBtn.click();
-            
-            // After party mode is activated, hide the mode toggle (but don't remove it)
-            setTimeout(() => {
-              const modeToggle = document.querySelector('.mode-toggle');
-              if (modeToggle) {
-                modeToggle.style.display = 'none';
-              }
-            }, 200);
-            
-            return true; // Success
+          } else if (window.partyClient && typeof window.partyClient.showPartyMode === 'function') {
+            console.log('Calling showPartyMode directly');
+            window.partyClient.showPartyMode();
           }
           
-          // Try to call party client methods directly
-          if (window.partyClient) {
-            if (typeof window.partyClient.showPartyMode === 'function') {
-              console.log('Calling showPartyMode directly');
-              window.partyClient.showPartyMode();
-              
-              // Hide mode toggle after direct activation
-              setTimeout(() => {
-                const modeToggle = document.querySelector('.mode-toggle');
-                if (modeToggle) {
-                  modeToggle.style.display = 'none';
-                }
-              }, 200);
-              
-              return true;
+          // Hide mode toggle after activation
+          setTimeout(() => {
+            if (modeToggle) {
+              modeToggle.style.display = 'none';
             }
-            
-            if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
-              console.log('Connecting party client');
-              window.partyClient.connect();
-            }
-          }
-          
-          // Schedule next attempt if we haven't reached max attempts
-          if (attemptCount < maxAttempts) {
-            setTimeout(tryActivateParty, 300);
-          }
-          
-          return false; // Continue trying
-        };
-        
-        // Start activation attempts
-        setTimeout(tryActivateParty, 200);
+          }, 500);
+        }, 300);
         
         console.log('Party mode activation started');
-      });
+      }
       
-// Online Party Mode Selection  
-document.getElementById('online-party-mode-card').addEventListener('click', function() {
-    console.log('Online party mode selected');
-
-    // ✅ Set online flag right away so party-client.js uses viewer.html
-    window.onlinePartyMode = true;
-
-    currentGameMode = 'online-party';
-    hideMenu();
-    
-    // Show the start screen first
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen) {
-        startScreen.classList.remove('hidden');
-    }
-    
-    // Hide local mode UI elements
-    const settingsGroup = document.querySelector('.settings-group');
-    const startButtons = document.getElementById('start-buttons');
-    const roundInfo = document.getElementById('round-info');
-    
-    if (settingsGroup) {
-        settingsGroup.style.display = 'none';
-        settingsGroup.classList.add('hidden');
-    }
-    if (startButtons) {
-        startButtons.style.display = 'none';
-        startButtons.classList.add('hidden');
-    }
-    if (roundInfo) {
-        roundInfo.style.display = 'none';
-        roundInfo.classList.add('hidden');
-    }
-    
-    // Show party mode elements (in case they were hidden)
-    const partySection = document.getElementById('party-mode-section');
-    const modeToggle = document.querySelector('.mode-toggle');
-    
-    if (partySection) {
-        partySection.style.display = 'block';
-        partySection.classList.remove('hidden');
-        partySection.style.visibility = 'visible';
-    }
-    
-    if (modeToggle) {
-        modeToggle.style.display = 'block';
-        modeToggle.classList.remove('hidden');
-        modeToggle.style.visibility = 'visible';
-    }
-    
-    // Ensure party mode UI is created (in case it was never created)
-    if (!document.getElementById('party-mode-section')) {
-        console.log('Party section missing, recreating...');
-        if (window.partyClient) {
-            window.partyClient.createPartyModeUI();
-        }
-    }
-    
-    // Let party-client.js create its UI, then activate party mode
-    let attemptCount = 0;
-    const maxAttempts = 10;
-    
-    const tryActivateParty = function() {
-        attemptCount++;
-        console.log('Online party activation attempt', attemptCount);
-        
-        const partyModeBtn = document.getElementById('party-mode-btn');
-        if (partyModeBtn) {
-            console.log('Found party mode button, clicking it');
-            partyModeBtn.click();
-            
-            setTimeout(() => {
-                const modeToggle = document.querySelector('.mode-toggle');
-                if (modeToggle) {
-                    modeToggle.style.display = 'none';
-                }
-            }, 200);
-            
-            return true; // Success
-        }
-        
-        if (window.partyClient) {
-            if (typeof window.partyClient.showPartyMode === 'function') {
-                console.log('Calling showPartyMode directly');
-                window.partyClient.showPartyMode();
-                
-                setTimeout(() => {
-                    const modeToggle = document.querySelector('.mode-toggle');
-                    if (modeToggle) {
-                        modeToggle.style.display = 'none';
-                    }
-                }, 200);
-                
-                return true;
-            }
-            
-            if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
-                console.log('Connecting party client');
-                window.partyClient.connect();
-            }
-        }
-        
-        if (attemptCount < maxAttempts) {
-            setTimeout(tryActivateParty, 300);
-        }
-        
-        return false;
-    };
-    
-    setTimeout(tryActivateParty, 200);
-    
-    console.log('Online party mode activation started');
-});
-
-}); 
-
-
-      // Back to menu button
-      backBtn.addEventListener('click', function() {
+      // Back button event listener
+      backBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         console.log('Back to menu clicked');
         showMenu();
       });
       
-      // Override logo click to go back to menu
+      // Logo click override
       const logoClick = document.getElementById('logo-click');
       if (logoClick) {
         logoClick.addEventListener('click', function(e) {
@@ -859,12 +732,13 @@ document.getElementById('online-party-mode-card').addEventListener('click', func
           if (e.target.closest('.corner-buttons')) {
             return;
           }
+          e.preventDefault();
           console.log('Logo clicked, going to menu');
           showMenu();
         });
       }
       
-      // Override restart button to go to menu
+      // Restart button override
       const restartBtn = document.getElementById('restart-btn');
       if (restartBtn) {
         restartBtn.addEventListener('click', function(e) {
@@ -882,20 +756,27 @@ document.getElementById('online-party-mode-card').addEventListener('click', func
           showMenu();
         }
       });
+      
+      console.log('Menu system initialized successfully');
+    }
     
-    // Expose current game mode for other scripts
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMenuSystem);
+    } else {
+      initMenuSystem();
+    }
+    
+    // Expose global functions
     window.getCurrentGameMode = function() {
       return currentGameMode;
     };
-    
-    console.log('Menu system loaded');
     
     // Online Party Mode functionality
     window.openSpectatorView = function() {
       if (window.getCurrentGameMode() === 'online-party') {
         console.log('Opening spectator view...');
         
-        // Open viewer.html in a new window/tab
         const spectatorWindow = window.open(
           'viewer.html', 
           'DrawblinsSpectator',
@@ -904,11 +785,8 @@ document.getElementById('online-party-mode-card').addEventListener('click', func
         
         if (spectatorWindow) {
           console.log('Spectator window opened successfully');
-          
-          // Store reference for communication
           window.spectatorWindow = spectatorWindow;
           
-          // Set up message listener for spectator window communication
           window.addEventListener('message', function(event) {
             if (event.source === spectatorWindow && event.origin === window.location.origin) {
               console.log('Message from spectator window:', event.data.type);
@@ -916,7 +794,6 @@ document.getElementById('online-party-mode-card').addEventListener('click', func
               if (event.data.type === 'spectator-ready') {
                 console.log('Spectator window is ready for data');
                 
-                // Send initial room code if we have one
                 if (window.partyClient && window.partyClient.roomCode) {
                   spectatorWindow.postMessage({
                     type: 'room-code',
@@ -930,7 +807,6 @@ document.getElementById('online-party-mode-card').addEventListener('click', func
             }
           });
           
-          // Handle window close detection
           const checkClosed = setInterval(() => {
             if (spectatorWindow.closed) {
               console.log('Spectator window closed');
