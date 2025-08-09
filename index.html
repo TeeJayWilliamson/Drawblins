@@ -160,9 +160,13 @@
       transform: translateY(-2px);
     }
 
-    /* Hide the old mode toggle from party-client.js */
+    /* Hide the old mode toggle from party-client.js initially, but allow it to be shown */
     .mode-toggle {
-      display: none !important;
+      display: none;
+    }
+    
+    .mode-toggle.show-for-party {
+      display: block !important;
     }
 
     @media (max-width: 768px) {
@@ -537,29 +541,47 @@
         currentGameMode = 'party';
         hideMainMenu();
         
-        // Show the start screen first
+        // Show the start screen
         document.getElementById('start-screen').classList.remove('hidden');
         
-        // Force party mode to show by simulating the party mode button click
-        if (window.partyClient) {
-          // Use the existing party client functionality
-          window.partyClient.showPartyMode();
-          
-          // Auto-connect if not connected
-          if (!window.partyClient.isConnected) {
-            window.partyClient.connect();
-          }
-        } else {
-          // Fallback if party client isn't ready yet
-          setTimeout(() => {
-            if (window.partyClient) {
-              window.partyClient.showPartyMode();
-              if (!window.partyClient.isConnected) {
-                window.partyClient.connect();
-              }
+        // Wait for party client and DOM to be ready
+        const initPartyMode = () => {
+          // Show the mode toggle temporarily and click party mode
+          const modeToggle = document.querySelector('.mode-toggle');
+          if (modeToggle) {
+            modeToggle.classList.add('show-for-party');
+            
+            // Click the party mode button to activate party UI
+            const partyModeBtn = document.getElementById('party-mode-btn');
+            if (partyModeBtn) {
+              console.log('Clicking party mode button...');
+              partyModeBtn.click();
+              
+              // Hide the toggle again after a short delay
+              setTimeout(() => {
+                modeToggle.classList.remove('show-for-party');
+                modeToggle.style.display = 'none';
+              }, 100);
             }
-          }, 100);
-        }
+          }
+          
+          // Also try the direct approach
+          if (window.partyClient) {
+            if (typeof window.partyClient.showPartyMode === 'function') {
+              window.partyClient.showPartyMode();
+            }
+            
+            // Auto-connect if not connected
+            if (!window.partyClient.isConnected) {
+              window.partyClient.connect();
+            }
+          }
+        };
+        
+        // Try immediately and with retries
+        setTimeout(initPartyMode, 50);
+        setTimeout(initPartyMode, 200);
+        setTimeout(initPartyMode, 500);
       });
 
       // Online Party Mode (same as party mode for now)
