@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Fixed Cast Integration
+// Enhanced Party Mode Client - Fixed Cast Integration + Online Party Mode
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -14,6 +14,9 @@ class PartyGameClient {
     this.castManager = null;
     // Add storage for preventing accumulation
     this.lastSentDrawings = null;
+    // Online Party Mode support
+    this.isOnlinePartyMode = false;
+    this.spectatorWindow = null;
   }
 
   // Initialize party mode
@@ -21,7 +24,26 @@ class PartyGameClient {
     console.log('Initializing Enhanced Party Mode...');
     this.createPartyModeUI();
     this.setupAudio();
-    this.initializeCastSDK();
+    // Check if this is online party mode
+    this.isOnlinePartyMode = window.onlinePartyMode || false;
+    
+    if (this.isOnlinePartyMode) {
+      console.log('🌐 Online Party Mode detected');
+      this.initializeOnlinePartyMode();
+    } else {
+      this.initializeCastSDK();
+    }
+  }
+
+  // Initialize Online Party Mode
+  initializeOnlinePartyMode() {
+    console.log('🌐 Setting up Online Party Mode...');
+    // Update cast button for online mode
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (castBtn) {
+      castBtn.innerHTML = '🖥️ Open Spectator View';
+      castBtn.title = 'Open spectator view in new window';
+    }
   }
 
   // Setup audio system
@@ -37,7 +59,88 @@ class PartyGameClient {
 
   // Initialize Google Cast SDK with custom receiver
   initializeCastSDK() {
-    this.castManager = new CustomCastManager(this);
+    if (!this.isOnlinePartyMode) {
+      this.castManager = new CustomCastManager(this);
+    }
+  }
+
+  // Handle cast/spectator button click
+  handleCastClick() {
+    if (this.isOnlinePartyMode) {
+      this.handleSpectatorClick();
+    } else if (this.castManager) {
+      this.castManager.handleCastClick();
+    }
+  }
+
+  // Handle spectator window for online party mode
+  handleSpectatorClick() {
+    if (this.spectatorWindow && !this.spectatorWindow.closed) {
+      this.spectatorWindow.focus();
+      this.showMessage('Spectator view is already open!');
+    } else {
+      try {
+        this.spectatorWindow = window.open('viewer.html', 'DrawblinsSpectator', 'width=1200,height=800,scrollbars=no,resizable=yes');
+        if (this.spectatorWindow) {
+          this.showMessage('Spectator view opened! Game will display in the new window.');
+          // Update button
+          const castBtn = document.getElementById('cast-to-tv-btn');
+          if (castBtn) {
+            castBtn.innerHTML = '🖥️ Spectator Open';
+            castBtn.classList.add('connected');
+          }
+          // Send initial data when spectator loads
+          this.spectatorWindow.addEventListener('load', () => {
+            this.sendInitialSpectatorData();
+          });
+        } else {
+          this.showError('Failed to open spectator window. Please check popup blockers.');
+        }
+      } catch (error) {
+        console.error('Error opening spectator window:', error);
+        this.showError('Failed to open spectator window');
+      }
+    }
+  }
+
+  // Send initial data to spectator
+  sendInitialSpectatorData() {
+    if (this.currentRoom) {
+      this.sendToSpectator('room-code', {
+        roomCode: this.roomCode
+      });
+
+      if (this.currentRoom.gameState) {
+        this.sendToSpectator('game-update', {
+          gameState: this.currentRoom.gameState,
+          room: this.currentRoom
+        });
+      }
+    }
+  }
+
+  // Send data to spectator window
+  sendToSpectator(type, data) {
+    if (this.spectatorWindow && !this.spectatorWindow.closed) {
+      try {
+        this.spectatorWindow.postMessage({
+          type: type,
+          data: data
+        }, '*');
+        console.log('📤 Sent to spectator:', type);
+      } catch (error) {
+        console.error('❌ Failed to send to spectator:', error);
+      }
+    }
+  }
+
+  // Universal method to send to display (Cast or Spectator)
+  sendToCastDisplay(type, data) {
+    if (this.isOnlinePartyMode) {
+      this.sendToSpectator(type, data);
+    } else if (this.castManager) {
+      this.castManager.sendToCast(type, data);
+    }
   }
 
   // Connect to the backend server
@@ -96,33 +199,6 @@ class PartyGameClient {
         this.showError(data.error);
       }
     });
-
-    
-  // Add this to your server's socket event handlers
-  /*
-socket.on('spectate-room', ({ roomCode }) => {
-  const room = rooms.get(roomCode);
-  
-  if (!room) {
-    socket.emit('spectate-error', { error: 'Room not found' });
-    return;
-  }
-  
-  // Join the socket room for updates but don't add as player
-  socket.join(roomCode);
-  
-  // Send current room state
-  socket.emit('spectate-success', { 
-    room: {
-      code: room.code,
-      players: room.players,
-      gameState: room.gameState
-    }
-  });
-  
-  console.log(`Spectator joined room ${roomCode}`);
-});
-*/
 
     this.socket.on('player-joined', (data) => {
       console.log('Player joined:', data);
@@ -431,7 +507,7 @@ socket.on('spectate-room', ({ roomCode }) => {
             <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
           </div>
         </div>
-              </div>
+      </div>
     `;
     
     startScreen.appendChild(partyModeSection);
@@ -502,11 +578,11 @@ socket.on('spectate-room', ({ roomCode }) => {
       });
     }
 
-    // Cast button
+    // Cast/Spectator button
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
       castBtn.addEventListener('click', () => {
-        console.log('Cast button clicked');
+        console.log('Cast/Spectator button clicked');
         this.handleCastClick();
       });
     }
@@ -540,13 +616,6 @@ socket.on('spectate-room', ({ roomCode }) => {
     }
 
     console.log('Event listeners set up');
-  }
-
-  // Handle cast button click
-  handleCastClick() {
-    if (this.castManager) {
-      this.castManager.handleCastClick();
-    }
   }
 
   showLocalMode() {
@@ -730,7 +799,7 @@ socket.on('spectate-room', ({ roomCode }) => {
     if (partyLobby) partyLobby.classList.add('hidden');
     if (partyGameArea) partyGameArea.classList.remove('hidden');
     
-    // Send update to cast display (lightweight)
+    // Send update to display (Cast or Spectator)
     this.sendToCastDisplay('game-update', {
       gameState: {
         phase: gameState.phase,
@@ -810,10 +879,10 @@ socket.on('spectate-room', ({ roomCode }) => {
     // Only send if different from last sent (prevents accumulation)
     const drawingsStringified = JSON.stringify(drawings);
     if (this.lastSentDrawings !== drawingsStringified) {
-      console.log('📤 Sending new drawings to cast...');
+      console.log('📤 Sending new drawings to display...');
       this.lastSentDrawings = drawingsStringified;
       
-      // Send drawings to cast display using slideshow format
+      // Send drawings to display (Cast or Spectator)
       this.sendToCastDisplay('show-drawings-slideshow', {
         drawings: drawings,
         originalMonster: originalMonster
@@ -822,25 +891,11 @@ socket.on('spectate-room', ({ roomCode }) => {
       console.log('📤 Skipping duplicate drawings send');
     }
     
-    this.showWaitingArea('Round Complete!', 'Check the cast screen to see all the drawings!');
+    this.showWaitingArea('Round Complete!', 'Check the display to see all the drawings!');
     
     // Show next round button for host
     if (this.isHost) {
       this.showNextRoundButton(gameState);
-    }
-  }
-
-  sendToCastDisplay(type, data) {
-    console.log('🎬 === SEND TO CAST DISPLAY ===');
-    console.log('Type:', type);
-    console.log('Data:', data);
-    console.log('Cast manager exists:', !!this.castManager);
-    
-    if (this.castManager) {
-      console.log('📡 Calling castManager.sendToCast...');
-      this.castManager.sendToCast(type, data);
-    } else {
-      console.log('❌ No cast manager available');
     }
   }
 
@@ -871,631 +926,631 @@ socket.on('spectate-room', ({ roomCode }) => {
     this.createDrawingOverlay();
   }
 
-createDrawingOverlay() {
-  // Remove existing drawing overlay if any
-  const existingOverlay = document.getElementById('drawing-overlay');
-  if (existingOverlay) {
-    existingOverlay.remove();
-  }
-  
-  // Create new drawing overlay iframe
-  const overlay = document.createElement('div');
-  overlay.id = 'drawing-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 5000;
-    background: white;
-  `;
-  
-  const iframe = document.createElement('iframe');
-  iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-      <title>Drawing Interface</title>
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-          -webkit-touch-callout: none;
-          -webkit-user-select: none;
-          user-select: none;
-        }
-        
-        /* CSS custom properties for dynamic viewport height */
-        :root {
-          --vh: 1vh;
-          --actual-vh: 100vh;
-        }
-        
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          overflow: hidden;
-          height: var(--actual-vh);
-          height: 100vh;
-          height: calc(var(--vh, 1vh) * 100);
-          width: 100vw;
-          position: fixed;
-          top: 0;
-          left: 0;
-        }
-        
-        .drawing-interface {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          width: 100%;
-        }
-        
-        .drawing-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem 2rem;
-          backdrop-filter: blur(10px);
-          color: white;
-          flex-shrink: 0;
-          min-height: 70px;
-        }
-        
-        .drawing-title {
-          font-size: 1.5rem;
-          font-weight: bold;
-          text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-        }
-        
-        .drawing-timer {
-          background: rgba(0, 0, 0, 0.6);
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 25px;
-          font-size: 1.5rem;
-          font-weight: bold;
-          min-width: 120px;
-          text-align: center;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        
-        .drawing-timer.timer-urgent {
-          background: #e74c3c;
-        }
-        
-        .canvas-container {
-          flex: 1;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(5px);
-          overflow: hidden;
-        }
-        
-        #drawing-canvas {
-          border: 4px solid white;
-          border-radius: 20px;
-          background: white;
-          cursor: crosshair;
-          touch-action: none;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-          display: block;
-        }
-        
-        .drawing-controls {
-          background: rgba(0, 0, 0, 0.9);
-          backdrop-filter: blur(10px);
-          padding: 1.5rem 1rem; /* Increased top/bottom padding */
-          flex-shrink: 0;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 0.75rem;
-          width: 100%;
-          position: relative;
-          bottom: 0;
-          min-height: 120px; /* Ensure minimum height for button area */
-        }
-        
-        .color-size-controls {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        
-        .action-controls {
-          display: flex;
-          gap: 0.75rem;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        
-        #brush-color {
-          width: 45px;
-          height: 45px;
-          border: 3px solid white;
-          border-radius: 12px;
-          cursor: pointer;
-          background: none;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-        }
-        
-        #brush-size {
-          width: 100px;
-          height: 6px;
-          -webkit-appearance: none;
-          background: rgba(255,255,255,0.3);
-          border-radius: 5px;
-          outline: none;
-        }
-        
-        #brush-size::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        
-        #brush-preview {
-          background: #000;
-          border: 2px solid white;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        
-        .control-btn {
-          background: white;
-          color: #333;
-          border: none;
-          padding: 1rem 1.5rem; /* Increased padding for larger buttons */
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 1.1rem; /* Increased font size */
-          font-weight: bold;
-          transition: all 0.3s ease;
-          min-width: 140px; /* Increased minimum width */
-          min-height: 50px; /* Added minimum height */
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-          text-align: center;
-        }
-        
-        .control-btn:hover:not(:disabled) {
-          background: #f0f0f0;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 25px rgba(0,0,0,0.4);
-        }
-        
-        .control-btn:disabled {
-          background: #cccccc;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        
-        .control-btn.submit-btn {
-          background: #27ae60;
-          color: white;
-          font-size: 1.2rem; /* Larger submit button */
-          min-width: 160px;
-          min-height: 55px;
-          padding: 1.1rem 1.75rem;
-        }
-        
-        .control-btn.submit-btn:hover:not(:disabled) {
-          background: #229954;
-          box-shadow: 0 6px 30px rgba(39, 174, 96, 0.4);
-        }
-        
-        .control-btn.submit-btn.submitted {
-          background: #1e8449;
-        }
-        
-        .control-btn.clear-btn {
-          background: #e74c3c;
-          color: white;
-        }
-        
-        .control-btn.clear-btn:hover {
-          background: #c0392b;
-        }
-        
-        /* Mobile-specific optimizations */
-        @media (max-width: 768px) {
+  createDrawingOverlay() {
+    // Remove existing drawing overlay if any
+    const existingOverlay = document.getElementById('drawing-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    // Create new drawing overlay iframe
+    const overlay = document.createElement('div');
+    overlay.id = 'drawing-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 5000;
+      background: white;
+    `;
+    
+    const iframe = document.createElement('iframe');
+    iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <title>Drawing Interface</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+          }
+          
+          /* CSS custom properties for dynamic viewport height */
+          :root {
+            --vh: 1vh;
+            --actual-vh: 100vh;
+          }
+          
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: var(--actual-vh);
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+          }
+          
+          .drawing-interface {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+          }
+          
           .drawing-header {
-            padding: 0.75rem 1rem;
-            min-height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            backdrop-filter: blur(10px);
+            color: white;
+            flex-shrink: 0;
+            min-height: 70px;
           }
           
           .drawing-title {
-            font-size: 1.3rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
           }
           
           .drawing-timer {
-            font-size: 1.3rem;
-            padding: 0.6rem 1.2rem;
-            min-width: 100px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+          }
+          
+          .drawing-timer.timer-urgent {
+            background: #e74c3c;
           }
           
           .canvas-container {
-            padding: 0.75rem;
-          }
-          
-          .drawing-controls {
-            padding: 1.25rem 0.75rem; /* Increased mobile padding */
-            gap: 1rem; /* Increased gap on mobile */
-            min-height: 140px; /* Increased mobile control height */
-          }
-          
-          .color-size-controls {
-            gap: 0.75rem;
-          }
-          
-          .action-controls {
-            gap: 1rem; /* Increased button gap */
-            width: 100%;
-          }
-          
-          .control-btn {
-            padding: 1rem 1.25rem; /* Larger mobile buttons */
-            font-size: 1.05rem;
-            min-width: 120px;
-            min-height: 50px;
-          }
-          
-          .control-btn.submit-btn {
-            font-size: 1.15rem;
-            min-width: 140px;
-            min-height: 55px;
-            padding: 1.1rem 1.5rem;
-          }
-        }
-        
-        /* Extra small mobile devices */
-        @media (max-width: 480px) {
-          .drawing-header {
-            flex-direction: column;
-            gap: 0.5rem;
-            text-align: center;
-            padding: 0.5rem 1rem;
-            min-height: auto;
-          }
-          
-          .drawing-controls {
-            padding: 1.5rem 0.5rem; /* Even more padding for small screens */
-            flex-direction: column;
-            gap: 1.25rem;
-            min-height: 160px; /* Increased for small screens */
-          }
-          
-          .color-size-controls {
-            order: 2;
-            width: 100%;
-            justify-content: space-around;
-          }
-          
-          .action-controls {
-            order: 1;
-            width: 100%;
-            justify-content: center;
-            gap: 1.25rem; /* Larger gap between buttons */
-          }
-          
-          .control-btn {
             flex: 1;
-            max-width: 160px;
-            min-height: 55px; /* Taller buttons for easier tapping */
-            padding: 1.1rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            overflow: hidden;
           }
           
-          .control-btn.submit-btn {
-            min-height: 60px;
-            font-size: 1.2rem;
+          #drawing-canvas {
+            border: 4px solid white;
+            border-radius: 20px;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: block;
           }
-        }
-        
-        /* Landscape mobile orientation */
-        @media (max-height: 500px) and (orientation: landscape) {
+          
           .drawing-controls {
-            padding: 1rem 0.5rem;
-            min-height: 100px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 1rem;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            width: 100%;
+            position: relative;
+            bottom: 0;
+            min-height: 120px;
+          }
+          
+          .color-size-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+          
+          .action-controls {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+          
+          #brush-color {
+            width: 45px;
+            height: 45px;
+            border: 3px solid white;
+            border-radius: 12px;
+            cursor: pointer;
+            background: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+          }
+          
+          #brush-size {
+            width: 100px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.3);
+            border-radius: 5px;
+            outline: none;
+          }
+          
+          #brush-size::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+          }
+          
+          #brush-preview {
+            background: #000;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
           }
           
           .control-btn {
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            min-height: 45px;
+            background: white;
+            color: #333;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 140px;
+            min-height: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
+          }
+          
+          .control-btn:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+          }
+          
+          .control-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
           }
           
           .control-btn.submit-btn {
-            min-height: 50px;
-            font-size: 1.1rem;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="drawing-interface">
-        <div class="drawing-header">
-          <div class="drawing-title">Draw What You Hear!</div>
-          <div class="drawing-timer" id="drawing-timer">02:00</div>
-        </div>
-        
-        <div class="canvas-container">
-          <canvas id="drawing-canvas" width="600" height="600"></canvas>
-        </div>
-        
-        <div class="drawing-controls">
-          <div class="action-controls">
-            <button id="clear-btn" class="control-btn clear-btn">Clear</button>
-            <button id="submit-btn" class="control-btn submit-btn">Submit</button>
-          </div>
-          
-          <div class="color-size-controls">
-            <input type="color" id="brush-color" value="#000000">
-            <input type="range" id="brush-size" min="1" max="30" value="5">
-            <div id="brush-preview"></div>
-          </div>
-        </div>
-      </div>
-      
-      <script>
-        // Set CSS custom property for actual viewport height
-        function setVH() {
-          let vh = window.innerHeight * 0.01;
-          document.documentElement.style.setProperty('--vh', vh + 'px');
-          document.documentElement.style.setProperty('--actual-vh', window.innerHeight + 'px');
-        }
-        
-        // Set on load
-        setVH();
-        
-        // Update on resize/orientation change
-        window.addEventListener('resize', setVH);
-        window.addEventListener('orientationchange', () => {
-          setTimeout(setVH, 100); // Small delay for orientation change
-        });
-        
-        class DrawingInterface {
-          constructor() {
-            this.canvas = document.getElementById('drawing-canvas');
-            this.ctx = this.canvas.getContext('2d');
-            this.isDrawing = false;
-            this.lastX = 0;
-            this.lastY = 0;
-            
-            this.init();
+            background: #27ae60;
+            color: white;
+            font-size: 1.2rem;
+            min-width: 160px;
+            min-height: 55px;
+            padding: 1.1rem 1.75rem;
           }
           
-          init() {
-            this.setupCanvas();
-            this.setupEventListeners();
-            this.updateBrushPreview();
+          .control-btn.submit-btn:hover:not(:disabled) {
+            background: #229954;
+            box-shadow: 0 6px 30px rgba(39, 174, 96, 0.4);
           }
           
-          setupCanvas() {
-            this.resizeCanvas();
-            
-            this.ctx.lineCap = 'round';
-            this.ctx.lineJoin = 'round';
-            this.ctx.lineWidth = 5;
-            this.ctx.strokeStyle = '#000000';
+          .control-btn.submit-btn.submitted {
+            background: #1e8449;
           }
           
-          resizeCanvas() {
-            const container = this.canvas.parentElement;
-            const containerRect = container.getBoundingClientRect();
-            
-            const maxSize = Math.min(containerRect.width - 20, containerRect.height - 20, 600);
-            
-            this.canvas.style.width = maxSize + 'px';
-            this.canvas.style.height = maxSize + 'px';
-            
-            const dpr = window.devicePixelRatio || 1;
-            this.canvas.width = maxSize * dpr;
-            this.canvas.height = maxSize * dpr;
-            
-            this.ctx.scale(dpr, dpr);
-            
-            this.ctx.lineCap = 'round';
-            this.ctx.lineJoin = 'round';
-            this.ctx.lineWidth = document.getElementById('brush-size').value;
-            this.ctx.strokeStyle = document.getElementById('brush-color').value;
+          .control-btn.clear-btn {
+            background: #e74c3c;
+            color: white;
           }
           
-          setupEventListeners() {
-            this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
-            this.canvas.addEventListener('mousemove', (e) => this.draw(e));
-            this.canvas.addEventListener('mouseup', () => this.stopDrawing());
-            this.canvas.addEventListener('mouseout', () => this.stopDrawing());
-            
-            this.canvas.addEventListener('touchstart', (e) => this.startDrawing(e));
-            this.canvas.addEventListener('touchmove', (e) => this.draw(e));
-            this.canvas.addEventListener('touchend', () => this.stopDrawing());
-            
-            document.getElementById('brush-color').addEventListener('change', (e) => {
-              this.ctx.strokeStyle = e.target.value;
-              this.updateBrushPreview();
-            });
-            
-            document.getElementById('brush-size').addEventListener('input', (e) => {
-              this.ctx.lineWidth = e.target.value;
-              this.updateBrushPreview();
-            });
-            
-            document.getElementById('clear-btn').addEventListener('click', () => {
-              this.clearCanvas();
-            });
-            
-            document.getElementById('submit-btn').addEventListener('click', () => {
-              this.submitDrawing();
-            });
-            
-            window.addEventListener('resize', () => {
-              this.resizeCanvas();
-            });
-            
-            window.addEventListener('orientationchange', () => {
-              setTimeout(() => this.resizeCanvas(), 100);
-            });
+          .control-btn.clear-btn:hover {
+            background: #c0392b;
           }
           
-          getCoordinates(e) {
-            const rect = this.canvas.getBoundingClientRect();
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+          /* Mobile-specific optimizations */
+          @media (max-width: 768px) {
+            .drawing-header {
+              padding: 0.75rem 1rem;
+              min-height: 60px;
+            }
             
-            const scaleX = this.canvas.width / rect.width;
-            const scaleY = this.canvas.height / rect.height;
+            .drawing-title {
+              font-size: 1.3rem;
+            }
             
-            const x = (clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
-            const y = (clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+            .drawing-timer {
+              font-size: 1.3rem;
+              padding: 0.6rem 1.2rem;
+              min-width: 100px;
+            }
             
-            return { x, y };
-          }
-          
-          startDrawing(e) {
-            e.preventDefault();
-            this.isDrawing = true;
-            const coords = this.getCoordinates(e);
-            this.lastX = coords.x;
-            this.lastY = coords.y;
-          }
-          
-          draw(e) {
-            if (!this.isDrawing) return;
+            .canvas-container {
+              padding: 0.75rem;
+            }
             
-            e.preventDefault();
-            const coords = this.getCoordinates(e);
+            .drawing-controls {
+              padding: 1.25rem 0.75rem;
+              gap: 1rem;
+              min-height: 140px;
+            }
             
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.lastX, this.lastY);
-            this.ctx.lineTo(coords.x, coords.y);
-            this.ctx.stroke();
+            .color-size-controls {
+              gap: 0.75rem;
+            }
             
-            this.lastX = coords.x;
-            this.lastY = coords.y;
-          }
-          
-          stopDrawing() {
-            this.isDrawing = false;
-          }
-          
-          clearCanvas() {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-          }
-          
-          submitDrawing() {
-            const imageData = this.canvas.toDataURL('image/png');
+            .action-controls {
+              gap: 1rem;
+              width: 100%;
+            }
             
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitted!';
-            submitBtn.classList.add('submitted');
+            .control-btn {
+              padding: 1rem 1.25rem;
+              font-size: 1.05rem;
+              min-width: 120px;
+              min-height: 50px;
+            }
             
-            window.parent.postMessage({
-              type: 'drawing-submitted',
-              imageData: imageData
-            }, '*');
-          }
-          
-          updateBrushPreview() {
-            const preview = document.getElementById('brush-preview');
-            const color = document.getElementById('brush-color').value;
-            const size = document.getElementById('brush-size').value;
-            
-            preview.style.backgroundColor = color;
-            preview.style.width = Math.max(10, Math.min(30, size)) + 'px';
-            preview.style.height = Math.max(10, Math.min(30, size)) + 'px';
-          }
-          
-          updateTimer(timeString, timeLeft) {
-            const timer = document.getElementById('drawing-timer');
-            timer.textContent = timeString;
-            
-            if (timeLeft <= 10) {
-              timer.classList.add('timer-urgent');
-            } else {
-              timer.classList.remove('timer-urgent');
+            .control-btn.submit-btn {
+              font-size: 1.15rem;
+              min-width: 140px;
+              min-height: 55px;
+              padding: 1.1rem 1.5rem;
             }
           }
           
-          handleAutoSubmit() {
-            const submitBtn = document.getElementById('submit-btn');
-            const imageData = this.canvas.toDataURL('image/png');
+          /* Extra small mobile devices */
+          @media (max-width: 480px) {
+            .drawing-header {
+              flex-direction: column;
+              gap: 0.5rem;
+              text-align: center;
+              padding: 0.5rem 1rem;
+              min-height: auto;
+            }
             
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Auto-Submitted';
-            submitBtn.classList.add('auto-submitted');
+            .drawing-controls {
+              padding: 1.5rem 0.5rem;
+              flex-direction: column;
+              gap: 1.25rem;
+              min-height: 160px;
+            }
             
-            window.parent.postMessage({
-              type: 'drawing-auto-submitted',
-              imageData: imageData
-            }, '*');
-          }
-        }
-        
-        let drawingInterface;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-          drawingInterface = new DrawingInterface();
-        });
-        
-        window.addEventListener('message', (event) => {
-          if (event.data.type === 'timer-update' && drawingInterface) {
-            drawingInterface.updateTimer(event.data.timeString, event.data.timeLeft);
+            .color-size-controls {
+              order: 2;
+              width: 100%;
+              justify-content: space-around;
+            }
+            
+            .action-controls {
+              order: 1;
+              width: 100%;
+              justify-content: center;
+              gap: 1.25rem;
+            }
+            
+            .control-btn {
+              flex: 1;
+              max-width: 160px;
+              min-height: 55px;
+              padding: 1.1rem 1rem;
+            }
+            
+            .control-btn.submit-btn {
+              min-height: 60px;
+              font-size: 1.2rem;
+            }
           }
           
-          if (event.data.type === 'auto-submit' && drawingInterface) {
-            drawingInterface.handleAutoSubmit();
+          /* Landscape mobile orientation */
+          @media (max-height: 500px) and (orientation: landscape) {
+            .drawing-controls {
+              padding: 1rem 0.5rem;
+              min-height: 100px;
+            }
+            
+            .control-btn {
+              padding: 0.75rem 1rem;
+              font-size: 1rem;
+              min-height: 45px;
+            }
+            
+            .control-btn.submit-btn {
+              min-height: 50px;
+              font-size: 1.1rem;
+            }
           }
-        });
-      </script>
-    </body>
-    </html>
-  `);
-  
-  iframe.style.cssText = `
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: white;
-  `;
-  
-  overlay.appendChild(iframe);
-  document.body.appendChild(overlay);
-  
-  // Listen for messages from the drawing interface
-  window.addEventListener('message', (event) => {
-    if (event.data.type === 'drawing-submitted') {
-      this.handleDrawingSubmission(event.data.imageData);
-      this.hideDrawingOverlay();
-    }
+        </style>
+      </head>
+      <body>
+        <div class="drawing-interface">
+          <div class="drawing-header">
+            <div class="drawing-title">Draw What You Hear!</div>
+            <div class="drawing-timer" id="drawing-timer">02:00</div>
+          </div>
+          
+          <div class="canvas-container">
+            <canvas id="drawing-canvas" width="600" height="600"></canvas>
+          </div>
+          
+          <div class="drawing-controls">
+            <div class="action-controls">
+              <button id="clear-btn" class="control-btn clear-btn">Clear</button>
+              <button id="submit-btn" class="control-btn submit-btn">Submit</button>
+            </div>
+            
+            <div class="color-size-controls">
+              <input type="color" id="brush-color" value="#000000">
+              <input type="range" id="brush-size" min="1" max="30" value="5">
+              <div id="brush-preview"></div>
+            </div>
+          </div>
+        </div>
+        
+        <script>
+          // Set CSS custom property for actual viewport height
+          function setVH() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', vh + 'px');
+            document.documentElement.style.setProperty('--actual-vh', window.innerHeight + 'px');
+          }
+          
+          // Set on load
+          setVH();
+          
+          // Update on resize/orientation change
+          window.addEventListener('resize', setVH);
+          window.addEventListener('orientationchange', () => {
+            setTimeout(setVH, 100);
+          });
+          
+          class DrawingInterface {
+            constructor() {
+              this.canvas = document.getElementById('drawing-canvas');
+              this.ctx = this.canvas.getContext('2d');
+              this.isDrawing = false;
+              this.lastX = 0;
+              this.lastY = 0;
+              
+              this.init();
+            }
+            
+            init() {
+              this.setupCanvas();
+              this.setupEventListeners();
+              this.updateBrushPreview();
+            }
+            
+            setupCanvas() {
+              this.resizeCanvas();
+              
+              this.ctx.lineCap = 'round';
+              this.ctx.lineJoin = 'round';
+              this.ctx.lineWidth = 5;
+              this.ctx.strokeStyle = '#000000';
+            }
+            
+            resizeCanvas() {
+              const container = this.canvas.parentElement;
+              const containerRect = container.getBoundingClientRect();
+              
+              const maxSize = Math.min(containerRect.width - 20, containerRect.height - 20, 600);
+              
+              this.canvas.style.width = maxSize + 'px';
+              this.canvas.style.height = maxSize + 'px';
+              
+              const dpr = window.devicePixelRatio || 1;
+              this.canvas.width = maxSize * dpr;
+              this.canvas.height = maxSize * dpr;
+              
+              this.ctx.scale(dpr, dpr);
+              
+              this.ctx.lineCap = 'round';
+              this.ctx.lineJoin = 'round';
+              this.ctx.lineWidth = document.getElementById('brush-size').value;
+              this.ctx.strokeStyle = document.getElementById('brush-color').value;
+            }
+            
+            setupEventListeners() {
+              this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+              this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+              this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+              this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+              
+              this.canvas.addEventListener('touchstart', (e) => this.startDrawing(e));
+              this.canvas.addEventListener('touchmove', (e) => this.draw(e));
+              this.canvas.addEventListener('touchend', () => this.stopDrawing());
+              
+              document.getElementById('brush-color').addEventListener('change', (e) => {
+                this.ctx.strokeStyle = e.target.value;
+                this.updateBrushPreview();
+              });
+              
+              document.getElementById('brush-size').addEventListener('input', (e) => {
+                this.ctx.lineWidth = e.target.value;
+                this.updateBrushPreview();
+              });
+              
+              document.getElementById('clear-btn').addEventListener('click', () => {
+                this.clearCanvas();
+              });
+              
+              document.getElementById('submit-btn').addEventListener('click', () => {
+                this.submitDrawing();
+              });
+              
+              window.addEventListener('resize', () => {
+                this.resizeCanvas();
+              });
+              
+              window.addEventListener('orientationchange', () => {
+                setTimeout(() => this.resizeCanvas(), 100);
+              });
+            }
+            
+            getCoordinates(e) {
+              const rect = this.canvas.getBoundingClientRect();
+              const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+              const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+              
+              const scaleX = this.canvas.width / rect.width;
+              const scaleY = this.canvas.height / rect.height;
+              
+              const x = (clientX - rect.left) * scaleX / (window.devicePixelRatio || 1);
+              const y = (clientY - rect.top) * scaleY / (window.devicePixelRatio || 1);
+              
+              return { x, y };
+            }
+            
+            startDrawing(e) {
+              e.preventDefault();
+              this.isDrawing = true;
+              const coords = this.getCoordinates(e);
+              this.lastX = coords.x;
+              this.lastY = coords.y;
+            }
+            
+            draw(e) {
+              if (!this.isDrawing) return;
+              
+              e.preventDefault();
+              const coords = this.getCoordinates(e);
+              
+              this.ctx.beginPath();
+              this.ctx.moveTo(this.lastX, this.lastY);
+              this.ctx.lineTo(coords.x, coords.y);
+              this.ctx.stroke();
+              
+              this.lastX = coords.x;
+              this.lastY = coords.y;
+            }
+            
+            stopDrawing() {
+              this.isDrawing = false;
+            }
+            
+            clearCanvas() {
+              this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            submitDrawing() {
+              const imageData = this.canvas.toDataURL('image/png');
+              
+              const submitBtn = document.getElementById('submit-btn');
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'Submitted!';
+              submitBtn.classList.add('submitted');
+              
+              window.parent.postMessage({
+                type: 'drawing-submitted',
+                imageData: imageData
+              }, '*');
+            }
+            
+            updateBrushPreview() {
+              const preview = document.getElementById('brush-preview');
+              const color = document.getElementById('brush-color').value;
+              const size = document.getElementById('brush-size').value;
+              
+              preview.style.backgroundColor = color;
+              preview.style.width = Math.max(10, Math.min(30, size)) + 'px';
+              preview.style.height = Math.max(10, Math.min(30, size)) + 'px';
+            }
+            
+            updateTimer(timeString, timeLeft) {
+              const timer = document.getElementById('drawing-timer');
+              timer.textContent = timeString;
+              
+              if (timeLeft <= 10) {
+                timer.classList.add('timer-urgent');
+              } else {
+                timer.classList.remove('timer-urgent');
+              }
+            }
+            
+            handleAutoSubmit() {
+              const submitBtn = document.getElementById('submit-btn');
+              const imageData = this.canvas.toDataURL('image/png');
+              
+              submitBtn.disabled = true;
+              submitBtn.textContent = 'Auto-Submitted';
+              submitBtn.classList.add('auto-submitted');
+              
+              window.parent.postMessage({
+                type: 'drawing-auto-submitted',
+                imageData: imageData
+              }, '*');
+            }
+          }
+          
+          let drawingInterface;
+          
+          document.addEventListener('DOMContentLoaded', () => {
+            drawingInterface = new DrawingInterface();
+          });
+          
+          window.addEventListener('message', (event) => {
+            if (event.data.type === 'timer-update' && drawingInterface) {
+              drawingInterface.updateTimer(event.data.timeString, event.data.timeLeft);
+            }
+            
+            if (event.data.type === 'auto-submit' && drawingInterface) {
+              drawingInterface.handleAutoSubmit();
+            }
+          });
+        </script>
+      </body>
+      </html>
+    `);
     
-    if (event.data.type === 'drawing-auto-submitted') {
-      this.handleDrawingSubmission(event.data.imageData, true);
-      this.hideDrawingOverlay();
-    }
-  });
-}
+    iframe.style.cssText = `
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    `;
+    
+    overlay.appendChild(iframe);
+    document.body.appendChild(overlay);
+    
+    // Listen for messages from the drawing interface
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'drawing-submitted') {
+        this.handleDrawingSubmission(event.data.imageData);
+        this.hideDrawingOverlay();
+      }
+      
+      if (event.data.type === 'drawing-auto-submitted') {
+        this.handleDrawingSubmission(event.data.imageData, true);
+        this.hideDrawingOverlay();
+      }
+    });
+  }
 
   // Enhanced drawing submission handler with validation
   handleDrawingSubmission(imageData, isAutoSubmit = false) {
@@ -1602,47 +1657,47 @@ createDrawingOverlay() {
     this.hideDrawingOverlay();
   }
 
- showNextRoundButton(gameState) {
-  const waitingArea = document.getElementById('waiting-area');
-  if (!waitingArea) return;
-  
-  // Remove any existing host controls first
-  const existingControls = waitingArea.querySelector('.waiting-host-controls');
-  if (existingControls) {
-    existingControls.remove();
+  showNextRoundButton(gameState) {
+    const waitingArea = document.getElementById('waiting-area');
+    if (!waitingArea) return;
+    
+    // Remove any existing host controls first
+    const existingControls = waitingArea.querySelector('.waiting-host-controls');
+    if (existingControls) {
+      existingControls.remove();
+    }
+    
+    // Always show both buttons - no max rounds, game continues until host chooses to finish
+    const buttonHtml = `
+      <div class="waiting-host-controls">
+        <button id="next-round-waiting-btn" class="party-btn next-btn">
+          Next Round
+        </button>
+        <button id="finish-game-waiting-btn" class="party-btn finish-btn">
+          Finish Game
+        </button>
+      </div>
+    `;
+    
+    waitingArea.innerHTML += buttonHtml;
+    
+    const nextRoundBtn = document.getElementById('next-round-waiting-btn');
+    const finishGameBtn = document.getElementById('finish-game-waiting-btn');
+    
+    if (nextRoundBtn) {
+      nextRoundBtn.addEventListener('click', () => {
+        // Clear the last sent drawings to reset state
+        this.lastSentDrawings = null;
+        this.socket.emit('next-round');
+      });
+    }
+    
+    if (finishGameBtn) {
+      finishGameBtn.addEventListener('click', () => {
+        this.socket.emit('finish-game');
+      });
+    }
   }
-  
-  // Always show both buttons - no max rounds, game continues until host chooses to finish
-  const buttonHtml = `
-    <div class="waiting-host-controls">
-      <button id="next-round-waiting-btn" class="party-btn next-btn">
-        Next Round
-      </button>
-      <button id="finish-game-waiting-btn" class="party-btn finish-btn">
-        Finish Game
-      </button>
-    </div>
-  `;
-  
-  waitingArea.innerHTML += buttonHtml;
-  
-  const nextRoundBtn = document.getElementById('next-round-waiting-btn');
-  const finishGameBtn = document.getElementById('finish-game-waiting-btn');
-  
-  if (nextRoundBtn) {
-    nextRoundBtn.addEventListener('click', () => {
-      // Clear the last sent drawings to reset state
-      this.lastSentDrawings = null;
-      this.socket.emit('next-round');
-    });
-  }
-  
-  if (finishGameBtn) {
-    finishGameBtn.addEventListener('click', () => {
-      this.socket.emit('finish-game');
-    });
-  }
-}
 
   updateGameTimer(timeLeft, phase) {
     const minutes = Math.floor(timeLeft / 60);
@@ -1663,7 +1718,7 @@ createDrawingOverlay() {
       }
     });
     
-    // Send to cast display
+    // Send to display (Cast or Spectator)
     this.sendToCastDisplay('timer-update', {
       timeString,
       timeLeft,
@@ -1690,7 +1745,7 @@ createDrawingOverlay() {
   }
 
   updateDrawingProgress(data) {
-    // Send to cast display
+    // Send to display (Cast or Spectator)
     this.sendToCastDisplay('drawing-progress', data);
     
     this.showMessage(`${data.playerName} finished drawing! (${data.totalSubmitted}/${data.totalExpected})`);
@@ -1723,7 +1778,7 @@ createDrawingOverlay() {
     console.log('Game finished:', data);
     this.stopAllMusicImmediate();
     
-    // Send to cast display
+    // Send to display (Cast or Spectator)
     this.sendToCastDisplay('game-finished', data);
     
     this.showWaitingArea('Game Complete!', 'Thanks for playing! The host can start a new game.');
@@ -1780,13 +1835,6 @@ createDrawingOverlay() {
     }, 3000);
   }
 
-  // Cast methods
-  sendToCastDisplay(type, data) {
-    if (this.castManager) {
-      this.castManager.sendToCast(type, data);
-    }
-  }
-
   cleanup() {
     console.log('Cleaning up party mode...');
     
@@ -1803,6 +1851,12 @@ createDrawingOverlay() {
     // Cleanup cast manager
     if (this.castManager) {
       this.castManager.cleanup();
+    }
+    
+    // Close spectator window
+    if (this.spectatorWindow && !this.spectatorWindow.closed) {
+      this.spectatorWindow.close();
+      this.spectatorWindow = null;
     }
     
     // Hide drawing overlay
@@ -1824,6 +1878,18 @@ createDrawingOverlay() {
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
+    
+    // Reset cast/spectator button
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (castBtn) {
+      castBtn.classList.remove('connected', 'connecting');
+      if (this.isOnlinePartyMode) {
+        castBtn.innerHTML = '🖥️ Open Spectator View';
+      } else {
+        castBtn.innerHTML = '📺 Cast to TV';
+      }
+      castBtn.disabled = false;
+    }
   }
 }
 
