@@ -667,11 +667,6 @@ class PartyGameClient {
               <button id="join-room-btn" class="party-btn join-btn">Join Room</button>
             </div>
           </div>
-          
-          <!-- Proper Back Button -->
-          <div class="back-button-section">
-            <button id="back-to-local-btn" class="party-btn back-btn">← Back to Local Mode</button>
-          </div>
         </div>
         
         <!-- Lobby -->
