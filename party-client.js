@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Fixed Cast Integration + Online Party Mode
+// Enhanced Party Mode Client - Fixed Disconnection Issues + iOS Support
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -17,19 +17,37 @@ class PartyGameClient {
     // Online Party Mode support
     this.isOnlinePartyMode = false;
     this.spectatorWindow = null;
+    
+    // iOS Support and Connection Management
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.connectionAttempts = 0;
+    this.maxConnectionAttempts = 5;
+    this.reconnectInterval = null;
+    this.heartbeatInterval = null;
+    this.isInRoom = false;
+    this.forceDisconnectOnCleanup = false;
+    
+    // Visibility API for iOS background detection
+    this.visibilityChangeHandler = null;
+    this.pageHideHandler = null;
+    this.beforeUnloadHandler = null;
   }
 
   // Initialize party mode
   init() {
     console.log('Initializing Enhanced Party Mode...');
     this.setupAudio();
+    this.setupIOSSupport();
+    this.setupVisibilityHandlers();
+    
     // Check if this is online party mode - check both current and global flags
     this.isOnlinePartyMode = window.onlinePartyMode || window.getCurrentGameMode?.() === 'online-party' || false;
     
     console.log('🔍 Mode detection:', {
       windowOnlinePartyMode: window.onlinePartyMode,
       getCurrentGameMode: window.getCurrentGameMode?.(),
-      isOnlinePartyMode: this.isOnlinePartyMode
+      isOnlinePartyMode: this.isOnlinePartyMode,
+      isIOS: this.isIOS
     });
     
     this.createPartyModeUI();
@@ -43,6 +61,104 @@ class PartyGameClient {
     }
   }
 
+  // Setup iOS-specific support
+  setupIOSSupport() {
+    if (!this.isIOS) return;
+    
+    console.log('📱 Setting up iOS-specific support...');
+    
+    // iOS needs different WebSocket handling
+    this.iosSocketOptions = {
+      transports: ['polling', 'websocket'], // Prefer polling on iOS
+      upgrade: true,
+      rememberUpgrade: true,
+      timeout: 20000,
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000
+    };
+  }
+
+  // Setup visibility change handlers for iOS background detection
+  setupVisibilityHandlers() {
+    // Page visibility API
+    this.visibilityChangeHandler = () => {
+      if (document.hidden) {
+        console.log('📱 Page hidden - handling iOS background state');
+        this.handlePageHidden();
+      } else {
+        console.log('📱 Page visible - handling iOS foreground state');
+        this.handlePageVisible();
+      }
+    };
+
+    // Page hide event (better for iOS)
+    this.pageHideHandler = () => {
+      console.log('📱 Page hide event - iOS cleanup');
+      this.handlePageHidden();
+    };
+
+    // Before unload
+    this.beforeUnloadHandler = (e) => {
+      console.log('📱 Before unload - final cleanup');
+      this.forceDisconnectOnCleanup = true;
+      this.cleanup();
+    };
+
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+    window.addEventListener('pagehide', this.pageHideHandler);
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+  }
+
+  // Handle iOS page hidden state
+  handlePageHidden() {
+    if (this.socket && this.isConnected && this.isIOS) {
+      // On iOS, we need to disconnect cleanly when backgrounded
+      console.log('📱 iOS: Disconnecting due to background state');
+      this.socket.disconnect();
+    }
+  }
+
+  // Handle iOS page visible state
+  handlePageVisible() {
+    if (this.isIOS && this.isInRoom && (!this.socket || !this.isConnected)) {
+      console.log('📱 iOS: Reconnecting due to foreground state');
+      setTimeout(() => {
+        this.reconnectToRoom();
+      }, 1000);
+    }
+  }
+
+  // Reconnect to existing room (iOS support)
+  reconnectToRoom() {
+    if (!this.playerName || !this.roomCode) {
+      console.log('📱 No room data to reconnect to');
+      return;
+    }
+
+    console.log('📱 Attempting to reconnect to room:', this.roomCode);
+    this.connect();
+    
+    // Give connection time to establish
+    setTimeout(() => {
+      if (this.isConnected) {
+        this.joinExistingRoom();
+      }
+    }, 2000);
+  }
+
+  // Join existing room after reconnection
+  joinExistingRoom() {
+    console.log('📱 Rejoining room after reconnection...');
+    this.socket.emit('join-room', { 
+      roomCode: this.roomCode, 
+      playerName: this.playerName,
+      reconnecting: true
+    });
+  }
+
   // Initialize Online Party Mode
   initializeOnlinePartyMode() {
     console.log('🌐 Setting up Online Party Mode UI updates...');
@@ -54,8 +170,6 @@ class PartyGameClient {
       if (partyModeCard) {
         console.log('📝 Updating header to Online Party Mode');
         partyModeCard.textContent = 'Online Party Mode';
-      } else {
-        console.error('❌ Could not find party mode card header');
       }
       
       // Update the description
@@ -63,8 +177,6 @@ class PartyGameClient {
       if (partyModeDescription) {
         console.log('📝 Updating description for Online Party Mode');
         partyModeDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
-      } else {
-        console.error('❌ Could not find party mode card description');
       }
       
       // Update cast button for online mode
@@ -73,8 +185,6 @@ class PartyGameClient {
         console.log('📝 Updating button to Open Spectator View');
         castBtn.innerHTML = '🖥️ Open Spectator View';
         castBtn.title = 'Open spectator view in new window';
-      } else {
-        console.error('❌ Could not find cast button');
       }
       
       console.log('✅ Online Party Mode UI updates complete');
@@ -94,7 +204,7 @@ class PartyGameClient {
 
   // Initialize Google Cast SDK with custom receiver
   initializeCastSDK() {
-    if (!this.isOnlinePartyMode) {
+    if (!this.isOnlinePartyMode && !this.isIOS) {
       this.castManager = new CustomCastManager(this);
     }
   }
@@ -103,8 +213,10 @@ class PartyGameClient {
   handleCastClick() {
     if (this.isOnlinePartyMode) {
       this.handleSpectatorClick();
-    } else if (this.castManager) {
+    } else if (this.castManager && !this.isIOS) {
       this.castManager.handleCastClick();
+    } else if (this.isIOS) {
+      this.showError('Casting is not supported on iOS devices. Use Chrome on Android or desktop.');
     }
   }
 
@@ -173,39 +285,91 @@ class PartyGameClient {
   sendToCastDisplay(type, data) {
     if (this.isOnlinePartyMode) {
       this.sendToSpectator(type, data);
-    } else if (this.castManager) {
+    } else if (this.castManager && !this.isIOS) {
       this.castManager.sendToCast(type, data);
     }
   }
 
-  // Connect to the backend server
+  // Connect to the backend server with iOS support
   connect() {
-    if (this.socket && this.isConnected) return;
+    if (this.socket && this.isConnected) {
+      console.log('Already connected, skipping connection attempt');
+      return;
+    }
 
     console.log('Connecting to:', this.serverUrl);
+    console.log('iOS device:', this.isIOS);
     
-    this.socket = io(this.serverUrl, {
+    // Use different options for iOS
+    const socketOptions = this.isIOS ? {
+      ...this.iosSocketOptions,
+      transports: ['polling', 'websocket']
+    } : {
       transports: ['websocket', 'polling'],
       timeout: 10000
-    });
+    };
+    
+    console.log('Socket options:', socketOptions);
+    
+    this.socket = io(this.serverUrl, socketOptions);
+
+    // Clear any existing heartbeat
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
 
     this.socket.on('connect', () => {
-      console.log('Connected to party server');
+      console.log('✅ Connected to party server');
       this.isConnected = true;
+      this.connectionAttempts = 0;
       this.updateConnectionStatus('Connected');
+      
+      // Start heartbeat for iOS
+      if (this.isIOS) {
+        this.startHeartbeat();
+      }
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from party server');
+    this.socket.on('disconnect', (reason) => {
+      console.log('❌ Disconnected from party server:', reason);
       this.isConnected = false;
       this.updateConnectionStatus('Disconnected');
-      this.cleanup();
+      
+      // Clear heartbeat
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
+      
+      // Don't try to reconnect if we're cleaning up
+      if (!this.forceDisconnectOnCleanup) {
+        // Only attempt reconnection if we were in a room
+        if (this.isInRoom && this.connectionAttempts < this.maxConnectionAttempts) {
+          console.log('🔄 Attempting reconnection...');
+          this.connectionAttempts++;
+          setTimeout(() => {
+            if (!this.isConnected && this.isInRoom) {
+              this.connect();
+            }
+          }, 2000 * this.connectionAttempts);
+        }
+      }
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      console.error('❌ Connection error:', error);
       this.updateConnectionStatus('Connection Failed');
-      this.showError('Failed to connect to server');
+      this.connectionAttempts++;
+      
+      if (this.connectionAttempts < this.maxConnectionAttempts) {
+        console.log(`🔄 Retrying connection (${this.connectionAttempts}/${this.maxConnectionAttempts})...`);
+        setTimeout(() => {
+          this.connect();
+        }, 2000 * this.connectionAttempts);
+      } else {
+        this.showError('Failed to connect to server after multiple attempts');
+      }
     });
 
     // Room events
@@ -215,6 +379,7 @@ class PartyGameClient {
         this.roomCode = data.roomCode;
         this.currentRoom = data.room;
         this.isHost = true;
+        this.isInRoom = true;
         this.showLobby();
         console.log('Room created successfully:', data.roomCode);
       } else {
@@ -227,11 +392,13 @@ class PartyGameClient {
       console.log('Room joined response:', data);
       if (data.success) {
         this.currentRoom = data.room;
+        this.isInRoom = true;
         this.showLobby();
         console.log('Joined room successfully');
       } else {
         console.error('Failed to join room:', data.error);
         this.showError(data.error);
+        this.isInRoom = false;
       }
     });
 
@@ -300,6 +467,19 @@ class PartyGameClient {
     });
   }
 
+  // Start heartbeat for iOS stability
+  startHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+    }
+    
+    this.heartbeatInterval = setInterval(() => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('heartbeat');
+      }
+    }, 25000); // Send heartbeat every 25 seconds for iOS
+  }
+
   // Audio functions
   initializeAudio() {
     if (this.audioInitialized) return;
@@ -319,6 +499,7 @@ class PartyGameClient {
     this.audioInitialized = true;
   }
 
+  // ... (keeping all the existing audio methods unchanged)
   playMusic(phase) {
     if (!this.audioInitialized) return;
     if (!window.gameAudio?.shouldPlaySound?.()) return;
@@ -436,7 +617,7 @@ class PartyGameClient {
     this.buzzer.play().catch(() => {});
   }
 
-  // Create enhanced party mode UI
+  // Create enhanced party mode UI with iOS indicators
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -460,10 +641,15 @@ class PartyGameClient {
       'Play together with web spectator view - everyone uses their own device!' :
       'Play together - everyone uses their own device!';
     
+    // Add iOS warning if needed
+    const iosWarning = this.isIOS ? 
+      '<div class="ios-warning">📱 iOS Device: Casting not available, limited background support</div>' : '';
+    
     partyModeSection.innerHTML = `
       <div class="party-mode-card">
         <h3>${modeTitle}</h3>
         <p>${modeDescription}</p>
+        ${iosWarning}
         
         <div id="party-connection-status" class="connection-status">
           <span class="status-indicator"></span>
@@ -480,6 +666,11 @@ class PartyGameClient {
               <input type="text" id="join-room-code" placeholder="Room Code" maxlength="4">
               <button id="join-room-btn" class="party-btn join-btn">Join Room</button>
             </div>
+          </div>
+          
+          <!-- Proper Back Button -->
+          <div class="back-button-section">
+            <button id="back-to-local-btn" class="party-btn back-btn">← Back to Local Mode</button>
           </div>
         </div>
         
@@ -519,10 +710,15 @@ class PartyGameClient {
             </div>
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
-              <button id="cast-to-tv-btn" class="party-btn cast-btn">
-                ${this.isOnlinePartyMode ? '🖥️ Open Spectator View' : '📺 Cast to TV'}
+              <button id="cast-to-tv-btn" class="party-btn cast-btn" ${this.isIOS ? 'disabled' : ''}>
+                ${this.isOnlinePartyMode ? '🖥️ Open Spectator View' : (this.isIOS ? '📺 iOS Not Supported' : '📺 Cast to TV')}
               </button>
             </div>
+          </div>
+          
+          <!-- Leave Room Button -->
+          <div class="lobby-actions">
+            <button id="leave-room-btn" class="party-btn leave-btn">Leave Room</button>
           </div>
         </div>
         
@@ -546,6 +742,11 @@ class PartyGameClient {
             <h3 id="waiting-title">Waiting...</h3>
             <p id="waiting-message">Please wait for the game to continue.</p>
             <div id="waiting-timer" class="waiting-timer hidden">00:00</div>
+          </div>
+          
+          <!-- Emergency Leave Button in Game -->
+          <div class="game-actions">
+            <button id="emergency-leave-btn" class="party-btn emergency-btn">Emergency Leave</button>
           </div>
         </div>
       </div>
@@ -628,12 +829,30 @@ class PartyGameClient {
       });
     }
 
-    const backBtn = document.getElementById('back-to-local');
+    // Back to local button
+    const backBtn = document.getElementById('back-to-local-btn');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         console.log('Back to local button clicked');
-        this.showLocalMode();
-        this.cleanup();
+        this.leaveRoomAndGoLocal();
+      });
+    }
+
+    // Leave room button
+    const leaveBtn = document.getElementById('leave-room-btn');
+    if (leaveBtn) {
+      leaveBtn.addEventListener('click', () => {
+        console.log('Leave room button clicked');
+        this.leaveRoom();
+      });
+    }
+
+    // Emergency leave button
+    const emergencyBtn = document.getElementById('emergency-leave-btn');
+    if (emergencyBtn) {
+      emergencyBtn.addEventListener('click', () => {
+        console.log('Emergency leave button clicked');
+        this.emergencyLeave();
       });
     }
 
@@ -657,6 +876,43 @@ class PartyGameClient {
     }
 
     console.log('Event listeners set up');
+  }
+
+  // Proper room leaving with server notification
+  leaveRoom() {
+    console.log('🚪 Leaving room...');
+    
+    if (this.socket && this.isConnected && this.isInRoom) {
+      // Notify server we're leaving
+      this.socket.emit('leave-room', {
+        roomCode: this.roomCode,
+        playerName: this.playerName
+      });
+    }
+    
+    // Clean up local state
+    this.isInRoom = false;
+    this.isHost = false;
+    this.currentRoom = null;
+    this.roomCode = '';
+    
+    // Show setup form
+    this.showSetupForm();
+    this.showMessage('Left the room');
+  }
+
+  // Leave room and go back to local mode
+  leaveRoomAndGoLocal() {
+    console.log('🚪 Leaving room and going to local mode...');
+    this.leaveRoom();
+    this.showLocalMode();
+    this.cleanup();
+  }
+
+  // Emergency leave during game
+  emergencyLeave() {
+    console.log('🚨 Emergency leave during game...');
+    this.leaveRoomAndGoLocal();
   }
 
   showLocalMode() {
@@ -764,6 +1020,7 @@ class PartyGameClient {
     }
 
     this.playerName = playerName;
+    this.roomCode = roomCode; // Store for potential reconnection
     console.log('Emitting join-room event...');
     this.socket.emit('join-room', { 
       roomCode, 
@@ -996,6 +1253,7 @@ class PartyGameClient {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <title>Drawing Interface</title>
         <style>
+          /* Same CSS as before but with iOS optimizations */
           * {
             margin: 0;
             padding: 0;
@@ -1005,7 +1263,6 @@ class PartyGameClient {
             user-select: none;
           }
           
-          /* CSS custom properties for dynamic viewport height */
           :root {
             --vh: 1vh;
             --actual-vh: 100vh;
@@ -1022,6 +1279,8 @@ class PartyGameClient {
             position: fixed;
             top: 0;
             left: 0;
+            /* iOS optimizations */
+            -webkit-overflow-scrolling: touch;
           }
           
           .drawing-interface {
@@ -1083,6 +1342,9 @@ class PartyGameClient {
             touch-action: none;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             display: block;
+            /* iOS optimization */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
           }
           
           .drawing-controls {
@@ -1099,6 +1361,8 @@ class PartyGameClient {
             position: relative;
             bottom: 0;
             min-height: 120px;
+            /* iOS safe area */
+            padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
           }
           
           .color-size-controls {
@@ -1172,12 +1436,18 @@ class PartyGameClient {
             min-height: 50px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             text-align: center;
+            /* iOS optimization */
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
           }
           
           .control-btn:hover:not(:disabled) {
             background: #f0f0f0;
             transform: translateY(-2px);
             box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+          }
+          
+          .control-btn:active {
+            transform: translateY(0);
           }
           
           .control-btn:disabled {
@@ -1214,7 +1484,7 @@ class PartyGameClient {
             background: #c0392b;
           }
           
-          /* Mobile-specific optimizations */
+          /* Enhanced iOS optimizations */
           @media (max-width: 768px) {
             .drawing-header {
               padding: 0.75rem 1rem;
@@ -1236,18 +1506,9 @@ class PartyGameClient {
             }
             
             .drawing-controls {
-              padding: 1.25rem 0.75rem;
+              padding: 1.25rem 0.75rem max(1.25rem, env(safe-area-inset-bottom));
               gap: 1rem;
               min-height: 140px;
-            }
-            
-            .color-size-controls {
-              gap: 0.75rem;
-            }
-            
-            .action-controls {
-              gap: 1rem;
-              width: 100%;
             }
             
             .control-btn {
@@ -1256,74 +1517,23 @@ class PartyGameClient {
               min-width: 120px;
               min-height: 50px;
             }
-            
-            .control-btn.submit-btn {
-              font-size: 1.15rem;
-              min-width: 140px;
-              min-height: 55px;
-              padding: 1.1rem 1.5rem;
-            }
           }
           
-          /* Extra small mobile devices */
-          @media (max-width: 480px) {
-            .drawing-header {
-              flex-direction: column;
-              gap: 0.5rem;
-              text-align: center;
-              padding: 0.5rem 1rem;
-              min-height: auto;
+          /* iOS-specific optimizations */
+          @supports (-webkit-appearance: none) {
+            .drawing-interface {
+              height: -webkit-fill-available;
             }
             
-            .drawing-controls {
-              padding: 1.5rem 0.5rem;
-              flex-direction: column;
-              gap: 1.25rem;
-              min-height: 160px;
+            .canvas-container {
+              /* Ensure canvas doesn't interfere with iOS gestures */
+              padding: 1rem;
+              margin: 0;
             }
             
-            .color-size-controls {
-              order: 2;
-              width: 100%;
-              justify-content: space-around;
-            }
-            
-            .action-controls {
-              order: 1;
-              width: 100%;
-              justify-content: center;
-              gap: 1.25rem;
-            }
-            
-            .control-btn {
-              flex: 1;
-              max-width: 160px;
-              min-height: 55px;
-              padding: 1.1rem 1rem;
-            }
-            
-            .control-btn.submit-btn {
-              min-height: 60px;
-              font-size: 1.2rem;
-            }
-          }
-          
-          /* Landscape mobile orientation */
-          @media (max-height: 500px) and (orientation: landscape) {
-            .drawing-controls {
-              padding: 1rem 0.5rem;
-              min-height: 100px;
-            }
-            
-            .control-btn {
-              padding: 0.75rem 1rem;
-              font-size: 1rem;
-              min-height: 45px;
-            }
-            
-            .control-btn.submit-btn {
-              min-height: 50px;
-              font-size: 1.1rem;
+            #drawing-canvas {
+              /* Prevent iOS zoom on double-tap */
+              touch-action: manipulation;
             }
           }
         </style>
@@ -1354,17 +1564,17 @@ class PartyGameClient {
         </div>
         
         <script>
-          // Set CSS custom property for actual viewport height
+          // Enhanced iOS support
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          
+          // Set CSS custom property for actual viewport height (iOS fix)
           function setVH() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', vh + 'px');
             document.documentElement.style.setProperty('--actual-vh', window.innerHeight + 'px');
           }
           
-          // Set on load
           setVH();
-          
-          // Update on resize/orientation change
           window.addEventListener('resize', setVH);
           window.addEventListener('orientationchange', () => {
             setTimeout(setVH, 100);
@@ -1377,6 +1587,7 @@ class PartyGameClient {
               this.isDrawing = false;
               this.lastX = 0;
               this.lastY = 0;
+              this.isIOS = isIOS;
               
               this.init();
             }
@@ -1385,6 +1596,25 @@ class PartyGameClient {
               this.setupCanvas();
               this.setupEventListeners();
               this.updateBrushPreview();
+              
+              // iOS-specific initialization
+              if (this.isIOS) {
+                this.setupIOSOptimizations();
+              }
+            }
+            
+            setupIOSOptimizations() {
+              // Prevent iOS zoom
+              document.addEventListener('touchmove', (e) => {
+                if (e.scale !== 1) {
+                  e.preventDefault();
+                }
+              }, { passive: false });
+              
+              // Prevent iOS bounce scrolling
+              document.body.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+              }, { passive: false });
             }
             
             setupCanvas() {
@@ -1394,6 +1624,12 @@ class PartyGameClient {
               this.ctx.lineJoin = 'round';
               this.ctx.lineWidth = 5;
               this.ctx.strokeStyle = '#000000';
+              
+              // iOS Canvas optimizations
+              if (this.isIOS) {
+                this.ctx.imageSmoothingEnabled = true;
+                this.ctx.imageSmoothingQuality = 'high';
+              }
             }
             
             resizeCanvas() {
@@ -1418,14 +1654,32 @@ class PartyGameClient {
             }
             
             setupEventListeners() {
+              // Enhanced touch support for iOS
               this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
               this.canvas.addEventListener('mousemove', (e) => this.draw(e));
               this.canvas.addEventListener('mouseup', () => this.stopDrawing());
               this.canvas.addEventListener('mouseout', () => this.stopDrawing());
               
-              this.canvas.addEventListener('touchstart', (e) => this.startDrawing(e));
-              this.canvas.addEventListener('touchmove', (e) => this.draw(e));
-              this.canvas.addEventListener('touchend', () => this.stopDrawing());
+              // Better touch handling for iOS
+              this.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.startDrawing(e);
+              }, { passive: false });
+              
+              this.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                this.draw(e);
+              }, { passive: false });
+              
+              this.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.stopDrawing();
+              }, { passive: false });
+              
+              this.canvas.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                this.stopDrawing();
+              }, { passive: false });
               
               document.getElementById('brush-color').addEventListener('change', (e) => {
                 this.ctx.strokeStyle = e.target.value;
@@ -1877,16 +2131,29 @@ class PartyGameClient {
   }
 
   cleanup() {
-    console.log('Cleaning up party mode...');
+    console.log('🧹 Cleaning up party mode...');
+    
+    // Set flag to prevent reconnection attempts during cleanup
+    this.forceDisconnectOnCleanup = true;
     
     // Stop all audio
     this.stopAllMusicImmediate();
     this.currentMusicPhase = null;
     
-    // Clear timers
+    // Clear timers and intervals
     if (this.gameTimer) {
       clearInterval(this.gameTimer);
       this.gameTimer = null;
+    }
+    
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
+    if (this.reconnectInterval) {
+      clearTimeout(this.reconnectInterval);
+      this.reconnectInterval = null;
     }
     
     // Cleanup cast manager
@@ -1903,19 +2170,32 @@ class PartyGameClient {
     // Hide drawing overlay
     this.hideDrawingOverlay();
     
-    // Disconnect socket
+    // Properly disconnect from room and socket
     if (this.socket && this.isConnected) {
+      console.log('🔌 Disconnecting from server...');
+      
+      // Send leave room event if we're in a room
+      if (this.isInRoom && this.roomCode) {
+        this.socket.emit('leave-room', {
+          roomCode: this.roomCode,
+          playerName: this.playerName
+        });
+      }
+      
+      // Force disconnect
       this.socket.disconnect();
       this.socket = null;
-      this.isConnected = false;
     }
     
-    // Reset state
+    // Reset all state variables
+    this.isConnected = false;
+    this.isInRoom = false;
     this.playerName = '';
     this.roomCode = '';
     this.isHost = false;
     this.currentRoom = null;
     this.lastSentDrawings = null;
+    this.connectionAttempts = 0;
     
     // Reset UI
     this.updateConnectionStatus('Not Connected');
@@ -1926,15 +2206,40 @@ class PartyGameClient {
       castBtn.classList.remove('connected', 'connecting');
       if (this.isOnlinePartyMode) {
         castBtn.innerHTML = '🖥️ Open Spectator View';
+      } else if (this.isIOS) {
+        castBtn.innerHTML = '📺 iOS Not Supported';
       } else {
         castBtn.innerHTML = '📺 Cast to TV';
       }
-      castBtn.disabled = false;
+      castBtn.disabled = this.isIOS;
+    }
+    
+    // Remove event listeners
+    this.removeVisibilityHandlers();
+    
+    console.log('✅ Party mode cleanup complete');
+  }
+
+  // Remove visibility handlers
+  removeVisibilityHandlers() {
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+      this.visibilityChangeHandler = null;
+    }
+    
+    if (this.pageHideHandler) {
+      window.removeEventListener('pagehide', this.pageHideHandler);
+      this.pageHideHandler = null;
+    }
+    
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
     }
   }
 }
 
-// Enhanced Custom Cast Manager with Image Processing and iPad Support
+// Enhanced Custom Cast Manager with iOS Detection
 class CustomCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
@@ -1942,16 +2247,15 @@ class CustomCastManager {
     this.APPLICATION_ID = '570D13B8';
     this.useDefaultReceiver = false;
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    this.init();
+    
+    if (this.isIOS) {
+      this.setupIOSFallback();
+    } else {
+      this.init();
+    }
   }
 
   init() {
-    // For iOS devices, show a different message since they don't support Cast SDK
-    if (this.isIOS) {
-      this.setupIOSFallback();
-      return;
-    }
-
     if (!window.chrome || !window.chrome.cast) {
       const script = document.createElement('script');
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';

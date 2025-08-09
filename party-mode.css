@@ -572,6 +572,401 @@ body:has(#drawing-overlay) {
   border-color: rgba(255, 255, 255, 0.8);
 }
 
+/* Party Mode Enhancements and iOS Support */
+
+/* iOS Warning Styles */
+.ios-warning {
+  background: linear-gradient(135deg, #ff9a56 0%, #ff6b35 100%);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Enhanced Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.status-indicator.connected {
+  background: #27ae60;
+  box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+}
+
+.status-indicator.disconnected {
+  background: #e74c3c;
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+.status-text {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* Enhanced Party Buttons */
+.party-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  text-align: center;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.party-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.party-btn:active {
+  transform: translateY(0);
+}
+
+.party-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 10px rgba(189, 195, 199, 0.3);
+  opacity: 0.6;
+}
+
+/* Button Variants */
+.party-btn.create-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.party-btn.create-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.party-btn.join-btn {
+  background: linear-gradient(135deg, #3498db 0%, #5dade2 100%);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.party-btn.join-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+.party-btn.start-btn {
+  background: linear-gradient(135deg, #e74c3c 0%, #ec7063 100%);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  font-size: 1.1rem;
+  padding: 1rem 2rem;
+}
+
+.party-btn.start-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.party-btn.cast-btn {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+}
+
+.party-btn.cast-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+}
+
+.party-btn.cast-btn.connected {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.party-btn.cast-btn.connecting {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+  animation: pulse 2s infinite;
+}
+
+.party-btn.back-btn {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+  margin-top: 1rem;
+}
+
+.party-btn.back-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+}
+
+.party-btn.leave-btn {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.party-btn.leave-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.party-btn.emergency-btn {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  border-radius: 50px;
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  min-height: auto;
+}
+
+.party-btn.emergency-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+.party-btn.next-btn {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.party-btn.next-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.party-btn.finish-btn {
+  background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+  box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
+}
+
+.party-btn.finish-btn:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+}
+
+/* Enhanced Layout */
+.back-button-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.lobby-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.game-actions {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.waiting-host-controls {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Enhanced Player List */
+.player-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.player-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(5px);
+}
+
+.player-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.player-role {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.host-badge {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+
+/* Enhanced Toasts */
+.party-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  animation: slideInRight 0.3s ease, fadeOut 0.3s ease 3.5s;
+  max-width: 300px;
+}
+
+.party-toast.error-toast {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.party-toast.success-toast {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+  }
+  50% {
+    box-shadow: 0 6px 25px rgba(243, 156, 18, 0.6);
+  }
+  100% {
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .party-btn {
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    min-height: 55px;
+  }
+  
+  .party-btn.start-btn {
+    font-size: 1.05rem;
+    padding: 1.1rem 1.75rem;
+  }
+  
+  .waiting-host-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .waiting-host-controls .party-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+  
+  .party-toast {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .game-actions .party-btn.emergency-btn {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    border-radius: 10px;
+    width: auto;
+  }
+}
+
+/* iOS-specific optimizations */
+@supports (-webkit-appearance: none) {
+  .party-btn {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-touch-callout: none;
+  }
+  
+  .party-btn:active {
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+  
+  /* Prevent iOS zoom on form inputs */
+  input[type="text"], input[type="color"], select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Dark mode support for iOS */
+@media (prefers-color-scheme: dark) {
+  .player-name {
+    color: #f8f9fa;
+  }
+  
+  .player-role {
+    color: #adb5bd;
+  }
+  
+  .connection-status {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f8f9fa;
+  }
+  
+  .player-item {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .player-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
 /* Print styles */
 @media print {
   .party-toast,
