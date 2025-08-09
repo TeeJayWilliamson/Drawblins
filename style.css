@@ -875,9 +875,13 @@ input[type="checkbox"] {
     max-width: min(250px, 80vw);
   }
 
-  .menu-logo-img {
-    max-width: min(250px, 80vw);
-  }
+ .menu-logo-img {
+  max-width: min(180px, 45vw);
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
   
   .header {
     gap: 1rem;
