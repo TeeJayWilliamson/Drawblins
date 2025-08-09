@@ -501,6 +501,20 @@
           // Keep round info hidden initially, it will show when local mode starts
         }
         
+        // Hide party elements (but don't remove them)
+        const partySection = document.getElementById('party-mode-section');
+        const modeToggle = document.querySelector('.mode-toggle');
+        
+        if (partySection) {
+          partySection.style.display = 'none';
+          partySection.classList.add('hidden');
+        }
+        
+        if (modeToggle) {
+          modeToggle.style.display = 'none';  
+          modeToggle.classList.add('hidden');
+        }
+        
         // Hide start screen initially
         const startScreen = document.getElementById('start-screen');
         if (startScreen) {
@@ -552,23 +566,23 @@
           startButtons.classList.remove('hidden');
         }
         
-        // Clean up any party mode elements (only when switching to local)
-        setTimeout(() => {
-          const partySection = document.getElementById('party-mode-section');
-          if (partySection) {
-            partySection.remove();
-          }
-          
-          const modeToggle = document.querySelector('.mode-toggle');
-          if (modeToggle) {
-            modeToggle.remove();
-          }
-        }, 100);
+        // Hide party mode elements instead of removing them
+        const partySection = document.getElementById('party-mode-section');
+        if (partySection) {
+          partySection.style.display = 'none';
+          partySection.classList.add('hidden');
+        }
+        
+        const modeToggle = document.querySelector('.mode-toggle');
+        if (modeToggle) {
+          modeToggle.style.display = 'none';
+          modeToggle.classList.add('hidden');
+        }
         
         console.log('Local mode activated - pure local interface shown');
       });
       
-      // Party Mode Selection
+      // Party Mode Selection  
       document.getElementById('party-mode-card').addEventListener('click', function() {
         console.log('Party mode selected');
         currentGameMode = 'party';
@@ -598,6 +612,31 @@
           roundInfo.classList.add('hidden');
         }
         
+        // Show party mode elements (in case they were hidden)
+        const partySection = document.getElementById('party-mode-section');
+        const modeToggle = document.querySelector('.mode-toggle');
+        
+        if (partySection) {
+          partySection.style.display = 'block';
+          partySection.classList.remove('hidden');
+          partySection.style.visibility = 'visible';
+        }
+        
+        if (modeToggle) {
+          modeToggle.style.display = 'block';
+          modeToggle.classList.remove('hidden');
+          modeToggle.style.visibility = 'visible';
+        }
+        
+        // Ensure party mode UI is created (in case it was never created)
+        if (!document.getElementById('party-mode-section')) {
+          console.log('Party section missing, recreating...');
+          // Trigger party client initialization
+          if (window.partyClient) {
+            window.partyClient.createPartyModeUI();
+          }
+        }
+        
         // Let party-client.js create its UI, then activate party mode
         let attemptCount = 0;
         const maxAttempts = 10;
@@ -612,7 +651,7 @@
             console.log('Found party mode button, clicking it');
             partyModeBtn.click();
             
-            // After party mode is activated, hide the mode toggle (but don't remove it yet)
+            // After party mode is activated, hide the mode toggle (but don't remove it)
             setTimeout(() => {
               const modeToggle = document.querySelector('.mode-toggle');
               if (modeToggle) {
@@ -648,7 +687,7 @@
           
           // Schedule next attempt if we haven't reached max attempts
           if (attemptCount < maxAttempts) {
-            setTimeout(tryActivateParty, 300); // Fixed delay
+            setTimeout(tryActivateParty, 300);
           }
           
           return false; // Continue trying
