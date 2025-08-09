@@ -580,9 +580,12 @@
           showMainMenu();
         });
       }
+      
+      // Make sure modals still work - don't interfere with existing modal handlers
+      // Settings and Info modals should work from the original script.js
     });
     
-    // Create a basic party interface (you'll customize this based on your party-client.js)
+    // Create a proper party interface that matches your existing party-client.js functionality
     function createPartyInterface() {
       // Hide the regular start screen
       document.getElementById('start-screen').classList.add('hidden');
@@ -597,41 +600,163 @@
             <h2>🎉 Party Mode</h2>
             <p>Connect multiple devices to play together!</p>
             
-            <div style="margin: 2rem 0;">
-              <button id="create-room-btn" style="background: #27ae60; margin: 0.5rem;">Create Room</button>
-              <button id="join-room-btn" style="background: #3498db; margin: 0.5rem;">Join Room</button>
+            <div id="party-setup" style="margin: 2rem 0;">
+              <div style="margin-bottom: 1.5rem;">
+                <label for="player-name-input" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Your Name:</label>
+                <input type="text" id="player-name-input" placeholder="Enter your name" style="padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; width: 200px;">
+              </div>
+              
+              <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <div style="text-align: center;">
+                  <button id="create-room-btn" style="background: #27ae60; margin: 0.5rem; padding: 1rem 2rem;">Create Room</button>
+                  <p style="font-size: 0.9rem; color: #666;">Start a new game room</p>
+                </div>
+                
+                <div style="text-align: center;">
+                  <input type="text" id="room-code-input" placeholder="Room Code" style="padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; width: 120px; margin: 0.5rem;">
+                  <br>
+                  <button id="join-room-btn" style="background: #3498db; margin: 0.5rem; padding: 1rem 2rem;">Join Room</button>
+                  <p style="font-size: 0.9rem; color: #666;">Join an existing room</p>
+                </div>
+              </div>
             </div>
             
-            <div id="room-interface" class="hidden">
-              <!-- Room interface will be populated by party-client.js -->
+            <div id="party-room-interface" class="hidden">
+              <!-- This will be populated when connected to a room -->
+              <div id="room-info" style="background: #ecf0f1; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                <h3 id="room-code-display">Room: ----</h3>
+                <p>Share this code with friends to join!</p>
+              </div>
+              
+              <div id="players-list" style="margin: 1rem 0;">
+                <h4>Players in Room:</h4>
+                <ul id="players-ul" style="list-style: none; padding: 0;"></ul>
+              </div>
+              
+              <div id="party-game-controls" style="margin: 1rem 0;">
+                <button id="start-party-game-btn" class="hidden" style="background: #e74c3c; padding: 1rem 2rem;">Start Game</button>
+                <button id="leave-room-btn" style="background: #95a5a6; padding: 0.5rem 1rem;">Leave Room</button>
+              </div>
             </div>
+            
+            <div id="party-status" style="margin-top: 1rem; font-style: italic; color: #666;"></div>
           </div>
         `;
         document.querySelector('.container').appendChild(partyInterface);
         
-        // Add event listeners for party mode buttons
+        // Add event listeners for party mode functionality
         document.getElementById('create-room-btn').addEventListener('click', () => {
+          const playerName = document.getElementById('player-name-input').value.trim();
+          if (!playerName) {
+            alert('Please enter your name first!');
+            return;
+          }
+          
+          // Update status
+          document.getElementById('party-status').textContent = 'Creating room...';
+          
+          // Call your existing party-client.js create room function
           if (typeof createPartyRoom === 'function') {
-            createPartyRoom();
+            createPartyRoom(playerName);
           } else {
-            alert('Create Room functionality - connect this to your party-client.js');
+            // Fallback simulation
+            setTimeout(() => {
+              const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+              showRoomInterface(roomCode, playerName, true);
+            }, 1000);
           }
         });
         
         document.getElementById('join-room-btn').addEventListener('click', () => {
+          const playerName = document.getElementById('player-name-input').value.trim();
+          const roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+          
+          if (!playerName) {
+            alert('Please enter your name first!');
+            return;
+          }
+          
+          if (!roomCode) {
+            alert('Please enter a room code!');
+            return;
+          }
+          
+          // Update status
+          document.getElementById('party-status').textContent = `Joining room ${roomCode}...`;
+          
+          // Call your existing party-client.js join room function  
           if (typeof joinPartyRoom === 'function') {
-            joinPartyRoom();
+            joinPartyRoom(roomCode, playerName);
           } else {
-            const roomCode = prompt('Enter room code:');
-            if (roomCode) {
-              alert(`Joining room ${roomCode} - connect this to your party-client.js`);
-            }
+            // Fallback simulation
+            setTimeout(() => {
+              showRoomInterface(roomCode, playerName, false);
+            }, 1000);
+          }
+        });
+        
+        document.getElementById('leave-room-btn').addEventListener('click', () => {
+          if (typeof leavePartyRoom === 'function') {
+            leavePartyRoom();
+          }
+          // Reset to setup interface
+          document.getElementById('party-setup').classList.remove('hidden');
+          document.getElementById('party-room-interface').classList.add('hidden');
+          document.getElementById('party-status').textContent = '';
+        });
+        
+        document.getElementById('start-party-game-btn').addEventListener('click', () => {
+          if (typeof startPartyGame === 'function') {
+            startPartyGame();
+          } else {
+            alert('Starting party game - connect this to your party game logic');
           }
         });
       }
       
       partyInterface.classList.remove('hidden');
     }
+    
+    // Function to show the room interface once connected
+    function showRoomInterface(roomCode, playerName, isHost) {
+      document.getElementById('party-setup').classList.add('hidden');
+      document.getElementById('party-room-interface').classList.remove('hidden');
+      document.getElementById('room-code-display').textContent = `Room: ${roomCode}`;
+      document.getElementById('party-status').textContent = `Connected as ${playerName}${isHost ? ' (Host)' : ''}`;
+      
+      // Show start button only for host
+      if (isHost) {
+        document.getElementById('start-party-game-btn').classList.remove('hidden');
+      }
+      
+      // Add player to list
+      updatePlayersList([{ name: playerName, isHost: isHost }]);
+    }
+    
+    // Function to update players list
+    function updatePlayersList(players) {
+      const playersUl = document.getElementById('players-ul');
+      playersUl.innerHTML = '';
+      players.forEach(player => {
+        const li = document.createElement('li');
+        li.style.padding = '0.5rem';
+        li.style.background = player.isHost ? '#e8f5e8' : '#f8f9fa';
+        li.style.margin = '0.25rem 0';
+        li.style.borderRadius = '4px';
+        li.textContent = `${player.name}${player.isHost ? ' 👑' : ''}`;
+        playersUl.appendChild(li);
+      });
+    }
+    
+    // Expose functions for party-client.js to call
+    window.partyUI = {
+      showRoomInterface,
+      updatePlayersList,
+      setStatus: (message) => {
+        const statusEl = document.getElementById('party-status');
+        if (statusEl) statusEl.textContent = message;
+      }
+    };
     
     // Expose game mode for other scripts to check
     window.getCurrentGameMode = () => currentGameMode;
