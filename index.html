@@ -8,38 +8,37 @@
   <!-- Party Mode CSS -->
   <link rel="stylesheet" href="party-mode.css" />
   <style>
-    /* Additional menu-specific styles */
-    .main-menu {
+    /* Menu System Styles */
+    .game-mode-menu {
       text-align: center;
-      max-width: 100%;
-      padding: 2rem 0;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
     }
 
-    .main-menu h1 {
+    .menu-title {
       color: #2c3e50;
       font-size: clamp(2rem, 6vw, 3rem);
       margin-bottom: 0.5rem;
       font-weight: 700;
       letter-spacing: 1px;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-      word-wrap: break-word;
     }
 
-    .subtitle {
+    .menu-subtitle {
       color: #7f8c8d;
       font-size: clamp(1rem, 3vw, 1.2rem);
       margin-bottom: 3rem;
       font-style: italic;
     }
 
-    .menu-options {
+    .mode-options {
       display: grid;
       gap: 1.5rem;
       margin-bottom: 2rem;
-      max-width: 100%;
     }
 
-    .menu-card {
+    .mode-card {
       background: linear-gradient(135deg, #fff, #f8f9fa);
       border-radius: 16px;
       padding: 2rem 1.5rem;
@@ -51,7 +50,7 @@
       overflow: hidden;
     }
 
-    .menu-card::before {
+    .mode-card::before {
       content: '';
       position: absolute;
       top: 0;
@@ -62,49 +61,46 @@
       transition: left 0.6s;
     }
 
-    .menu-card:hover::before {
+    .mode-card:hover::before {
       left: 100%;
     }
 
-    .menu-card:hover {
+    .mode-card:hover {
       transform: translateY(-8px) scale(1.02);
       box-shadow: 0 15px 40px rgba(0,0,0,0.2);
       border-color: #3498db;
     }
 
-    .menu-card.disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .mode-card.local-mode:hover {
+      border-color: #27ae60;
     }
 
-    .menu-card.disabled:hover {
-      transform: none;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-      border-color: transparent;
+    .mode-card.party-mode:hover {
+      border-color: #9b59b6;
     }
 
-    .menu-card-icon {
+    .mode-icon {
       font-size: 3rem;
       margin-bottom: 1rem;
       display: block;
     }
 
-    .menu-card h3 {
+    .mode-card h3 {
       color: #2c3e50;
       font-size: clamp(1.3rem, 4vw, 1.6rem);
       margin-bottom: 0.5rem;
       font-weight: 600;
     }
 
-    .menu-card p {
+    .mode-card p {
       color: #7f8c8d;
       font-size: clamp(0.9rem, 3vw, 1rem);
       margin-bottom: 1rem;
       line-height: 1.5;
     }
 
-    .menu-card-badge {
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
+    .mode-badge {
+      background: linear-gradient(135deg, #3498db, #2980b9);
       color: white;
       padding: 0.25rem 0.75rem;
       border-radius: 20px;
@@ -114,33 +110,16 @@
       letter-spacing: 0.5px;
     }
 
-    .menu-card-badge.new {
+    .mode-badge.new {
       background: linear-gradient(135deg, #27ae60, #2ecc71);
     }
 
-    .menu-card-badge.beta {
-      background: linear-gradient(135deg, #f39c12, #e67e22);
-    }
-
-    .menu-card-badge.classic {
+    .mode-badge.classic {
       background: linear-gradient(135deg, #3498db, #2980b9);
     }
 
-    /* Game mode specific colors */
-    .menu-card.pass-play:hover {
-      border-color: #27ae60;
-    }
-
-    .menu-card.party-mode:hover {
-      border-color: #9b59b6;
-    }
-
-    .menu-card.online-party:hover {
-      border-color: #e74c3c;
-    }
-
-    /* Back to menu button */
-    .back-to-menu {
+    /* Back button */
+    .back-to-menu-btn {
       position: absolute;
       top: 1rem;
       left: 1rem;
@@ -155,26 +134,27 @@
       transition: all 0.3s ease;
     }
 
-    .back-to-menu:hover {
+    .back-to-menu-btn:hover {
       background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
       transform: translateY(-2px);
     }
 
-    /* Hide the old mode toggle from party-client.js initially, but allow it to be shown */
-    .mode-toggle {
+    /* Hide menu when game is active */
+    .game-mode-menu.hidden {
       display: none;
     }
-    
-    .mode-toggle.show-for-party {
-      display: block !important;
+
+    /* Show/hide game content */
+    .game-content.hidden {
+      display: none;
     }
 
     @media (max-width: 768px) {
-      .menu-card {
+      .mode-card {
         padding: 1.5rem 1rem;
       }
       
-      .back-to-menu {
+      .back-to-menu-btn {
         top: 0.5rem;
         left: 0.5rem;
         font-size: 0.8rem;
@@ -185,267 +165,263 @@
 </head>
 <body>
   <div class="container">
+    
     <!-- Back to Menu Button (initially hidden) -->
-    <button id="back-to-menu-btn" class="back-to-menu hidden">← Back to Menu</button>
+    <button id="back-to-menu-btn" class="back-to-menu-btn hidden">← Back to Menu</button>
 
-    <!-- Logo + Info + Settings Buttons -->
-    <div class="sticky-header">
-      <div class="logo-wrapper" id="logo-click">
-        <img src="images/logo.png" alt="Drawblins" class="logo-img" />
-        
-        <div class="corner-buttons">
-          <!-- Info Button -->
-          <button id="info-btn" class="icon-button" aria-label="How to Play">
-            <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-              <path d="M11 9h2V7h-2v2zm0 8h2v-6h-2v6zm1-16C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 
-              8-8 8 3.59 8 8-3.59 8-8 8z"/>
-            </svg>
-          </button>
-
-          <!-- Settings Button -->
-          <button id="settings-btn" class="icon-button" aria-label="Settings">
-            <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-              <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65c.18-.14.23-.41.12-.61l-2-3.46c-.11-.2-.36-.27-.57-.2l-2.49 1a8.027 
-              8.027 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4c-.25 0-.46.18-.5.42l-.37 2.65a8.16 8.16 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.57.2l-2 
-              3.46a.5.5 0 0 0 .12.61L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 0 0-.12.61l2 3.46c.11.2.36.27.57.2l2.49-1c.52.39 
-              1.08.72 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.61-.26 1.17-.59 1.69-.98l2.49 1c.21.07.46 0 .57-.2l2-3.46a.5.5 
-              0 0 0-.12-.61l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Menu (initially visible) -->
-    <div id="main-menu" class="main-menu">
-      <h1>Choose Your Game Mode</h1>
-      <p class="subtitle">Pick how you want to play Drawblins!</p>
+    <!-- Game Mode Selection Menu -->
+    <div id="game-mode-menu" class="game-mode-menu">
+      <h1 class="menu-title">Choose Your Game Mode</h1>
+      <p class="menu-subtitle">Pick how you want to play Drawblins!</p>
       
-      <div class="menu-options">
-        <!-- Pass & Play Mode -->
-        <div class="menu-card pass-play" id="pass-play-card">
-          <div class="menu-card-icon">🎮</div>
+      <div class="mode-options">
+        <!-- Local Pass & Play Mode -->
+        <div class="mode-card local-mode" id="local-mode-card">
+          <div class="mode-icon">🎮</div>
           <h3>Pass & Play</h3>
           <p>Play locally with friends around one device. Perfect for family game nights and small groups!</p>
-          <span class="menu-card-badge classic">Classic</span>
+          <span class="mode-badge classic">Classic</span>
         </div>
 
         <!-- Party Mode -->
-        <div class="menu-card party-mode" id="party-mode-card">
-          <div class="menu-card-icon">🎉</div>
+        <div class="mode-card party-mode" id="party-mode-card">
+          <div class="mode-icon">🎉</div>
           <h3>Party Mode</h3>
           <p>Connect multiple devices to one room. Everyone draws on their own device while one person describes!</p>
-          <span class="menu-card-badge new">New</span>
-        </div>
-
-        <!-- Online Party Mode -->
-        <div class="menu-card online-party" id="online-party-card">
-          <div class="menu-card-icon">🌐</div>
-          <h3>Online Party</h3>
-          <p>Play with friends anywhere in the world. Same as Party Mode for now!</p>
-          <span class="menu-card-badge beta">Beta</span>
+          <span class="mode-badge new">New</span>
         </div>
       </div>
     </div>
 
-    <!-- ALL YOUR EXISTING GAME CONTENT BELOW -->
+    <!-- Original Game Content (wrapped in game-content div) -->
+    <div id="game-content" class="game-content hidden">
+      
+      <!-- Logo + Info + Settings Buttons -->
+      <div class="sticky-header">
+        <div class="logo-wrapper" id="logo-click">
+          <img src="images/logo.png" alt="Drawblins" class="logo-img" />
+          
+          <div class="corner-buttons">
+            <!-- Info Button -->
+            <button id="info-btn" class="icon-button" aria-label="How to Play">
+              <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M11 9h2V7h-2v2zm0 8h2v-6h-2v6zm1-16C6.48 1 2 5.48 2 11s4.48 10 10 10 10-4.48 10-10S17.52 1 12 1zm0 18c-4.41 0-8-3.59-8-8s3.59-8 
+                8-8 8 3.59 8 8-3.59 8-8 8z"/>
+              </svg>
+            </button>
 
-    <!-- Info Modal -->
-    <div id="info-modal" class="hidden">
-      <div class="info-modal-content">
-        <!-- Header with title and close button -->
-        <div class="info-modal-header">
-          <h3 class="info-modal-title">How to Play Drawblins</h3>
-          <button id="close-info" class="info-modal-close-x">×</button>
+            <!-- Settings Button -->
+            <button id="settings-btn" class="icon-button" aria-label="Settings">
+              <svg class="icon-button__icon" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path d="M19.43 12.98c.04-.32.07-.66.07-1s-.03-.68-.07-1l2.11-1.65c.18-.14.23-.41.12-.61l-2-3.46c-.11-.2-.36-.27-.57-.2l-2.49 1a8.027 
+                8.027 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4c-.25 0-.46.18-.5.42l-.37 2.65a8.16 8.16 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.57.2l-2 
+                3.46a.5.5 0 0 0 .12.61L4.57 11c-.04.32-.07.66-.07 1s.03.68.07 1l-2.11 1.65a.5.5 0 0 0-.12.61l2 3.46c.11.2.36.27.57.2l2.49-1c.52.39 
+                1.08.72 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.61-.26 1.17-.59 1.69-.98l2.49 1c.21.07.46 0 .57-.2l2-3.46a.5.5 
+                0 0 0-.12-.61l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        
-        <!-- Modal body content -->
-        <div class="info-modal-body">
-          <div class="info-modal-columns">
-            <!-- Left Column -->
-            <div class="info-modal-section">
-              <h4>Objective</h4>
-              <p>One player sees a monster for x seconds, then describes it while others draw!</p>
+      </div>
+
+      <!-- Info Modal -->
+      <div id="info-modal" class="hidden">
+        <div class="info-modal-content">
+          <!-- Header with title and close button -->
+          <div class="info-modal-header">
+            <h3 class="info-modal-title">How to Play Drawblins</h3>
+            <button id="close-info" class="info-modal-close-x">×</button>
+          </div>
+          
+          <!-- Modal body content -->
+          <div class="info-modal-body">
+            <div class="info-modal-columns">
+              <!-- Left Column -->
+              <div class="info-modal-section">
+                <h4>Objective</h4>
+                <p>One player sees a monster for x seconds, then describes it while others draw!</p>
+                
+                <h4>Setup</h4>
+                <ul>
+                  <li>Use "Who Goes First?" to pick first player</li>
+                  <li>Adjust difficulty in Settings</li>
+                  <li>Get paper and drawing materials ready</li>
+                </ul>
+              </div>
               
-              <h4>Setup</h4>
-              <ul>
-                <li>Use "Who Goes First?" to pick first player</li>
-                <li>Adjust difficulty in Settings</li>
-                <li>Get paper and drawing materials ready</li>
-              </ul>
-            </div>
-            
-            <!-- Right Column -->
-            <div class="info-modal-section">
-              <h4>Gameplay</h4>
-              <ol>
-                <li><strong>Study:</strong> Active player memorizes monster</li>
-                <li><strong>Describe:</strong> Player describes, others draw</li>
-                <li><strong>Judge:</strong> Active player picks best drawing</li>
-                <li><strong>Reveal:</strong> Show original and compare!</li>
-                <li><strong>Rotate:</strong> Next player's turn</li>
-              </ol>
-              
-              <h4>Tips</h4>
-              <ul>
-                <li>Start with overall shape</li>
-                <li>Describe distinctive features</li>
-                <li>Use clear, simple language</li>
-                <li>Guide step-by-step</li>
-              </ul>
+              <!-- Right Column -->
+              <div class="info-modal-section">
+                <h4>Gameplay</h4>
+                <ol>
+                  <li><strong>Study:</strong> Active player memorizes monster</li>
+                  <li><strong>Describe:</strong> Player describes, others draw</li>
+                  <li><strong>Judge:</strong> Active player picks best drawing</li>
+                  <li><strong>Reveal:</strong> Show original and compare!</li>
+                  <li><strong>Rotate:</strong> Next player's turn</li>
+                </ol>
+                
+                <h4>Tips</h4>
+                <ul>
+                  <li>Start with overall shape</li>
+                  <li>Describe distinctive features</li>
+                  <li>Use clear, simple language</li>
+                  <li>Guide step-by-step</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Footer with close button -->
-        <div class="info-modal-footer">
-          <button id="close-info-bottom" class="info-modal-close-bottom">Got It!</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal hidden">
-      <div class="modal-content">
-        <h3>Game Settings</h3>
-        
-        <div class="setting-group">
-          <h2>Sound</h2>
-          <div class="toggle-container">
-            <input type="checkbox" id="sound-toggle" checked>
-            <label for="sound-toggle" class="toggle-label">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <div class="setting-group">
-          <h2>Volume</h2>
-          <input type="range" id="volume-slider" min="0" max="100" value="60">
-          <span id="volume-display">60%</span>
-        </div>
-
-        <div class="setting-group">
-          <h2>Goblin Difficulty</h2>
-          <div class="custom-select-wrapper">
-            <select id="difficulty-select" class="custom-select">
-              <option value="easy">Easy</option>
-              <option value="all">All</option>
-              <option value="standard" selected>Standard</option>
-            </select>
-          </div>
-        </div>
-
-        <button id="close-settings" class="close-btn">Save Settings</button>
-      </div>
-    </div>
-
-    <!-- Start Screen -->
-    <div id="start-screen" class="hidden">
-      <div id="round-info" class="hidden">
-        <span id="round-display">Round 1</span>
-      </div>
-
-      <div class="settings-group">
-        
-        <div class="time-setting-card">
-          <label>View Time (sec):</label>
-          <div class="rules-grid">
-            <button class="rule-btn" data-view="30">
-              Easy
-              <br><strong>30s</strong>
-            </button>
-            <button class="rule-btn active" data-view="20">
-              Standard
-              <br><strong>20s</strong>
-            </button>
-            <button class="rule-btn" data-view="10">
-              Hard
-              <br><strong>10s</strong>
-            </button>
-          </div>
-        </div>
-
-        <div class="time-setting-card">
-          <label>Drawing Time (min):</label>
-          <div class="rules-grid">
-            <button class="rule-btn" data-draw="3">
-              Easy
-              <br><strong>3min</strong>
-            </button>
-            <button class="rule-btn active" data-draw="2">
-              Standard
-              <br><strong>2min</strong>
-            </button>
-            <button class="rule-btn" data-draw="1">
-              Hard
-              <br><strong>1min</strong>
-            </button>
+          
+          <!-- Footer with close button -->
+          <div class="info-modal-footer">
+            <button id="close-info-bottom" class="info-modal-close-bottom">Got It!</button>
           </div>
         </div>
       </div>
 
-      <div id="start-buttons">
-        <button id="start-btn">Start Round</button>
-        <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
-        <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
+      <!-- Settings Modal -->
+      <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+          <h3>Game Settings</h3>
+          
+          <div class="setting-group">
+            <h2>Sound</h2>
+            <div class="toggle-container">
+              <input type="checkbox" id="sound-toggle" checked>
+              <label for="sound-toggle" class="toggle-label">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <h2>Volume</h2>
+            <input type="range" id="volume-slider" min="0" max="100" value="60">
+            <span id="volume-display">60%</span>
+          </div>
+
+          <div class="setting-group">
+            <h2>Goblin Difficulty</h2>
+            <div class="custom-select-wrapper">
+              <select id="difficulty-select" class="custom-select">
+                <option value="easy">Easy</option>
+                <option value="all">All</option>
+                <option value="standard" selected>Standard</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="close-settings" class="close-btn">Save Settings</button>
+        </div>
       </div>
-    </div>
 
-    <!-- Turn Picker -->
-    <div id="mobile-turn-picker" class="picker-modal hidden">
-      <div class="picker-content">
-        <h3>Touch to Decide Who Goes First</h3>
-        <p>Have each player place one finger on the screen, then wait:</p>
-        <div id="touch-area"></div>
-        <div id="picker-status">Place fingers on the screen...</div>
+      <!-- Start Screen -->
+      <div id="start-screen">
+        <div id="round-info" class="hidden">
+          <span id="round-display">Round 1</span>
+        </div>
+
+        <div class="settings-group">
+          
+          <div class="time-setting-card">
+            <label>View Time (sec):</label>
+            <div class="rules-grid">
+              <button class="rule-btn" data-view="30">
+                Easy
+                <br><strong>30s</strong>
+              </button>
+              <button class="rule-btn active" data-view="20">
+                Standard
+                <br><strong>20s</strong>
+              </button>
+              <button class="rule-btn" data-view="10">
+                Hard
+                <br><strong>10s</strong>
+              </button>
+            </div>
+          </div>
+
+          <div class="time-setting-card">
+            <label>Drawing Time (min):</label>
+            <div class="rules-grid">
+              <button class="rule-btn" data-draw="3">
+                Easy
+                <br><strong>3min</strong>
+              </button>
+              <button class="rule-btn active" data-draw="2">
+                Standard
+                <br><strong>2min</strong>
+              </button>
+              <button class="rule-btn" data-draw="1">
+                Hard
+                <br><strong>1min</strong>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="start-buttons">
+          <button id="start-btn">Start Round</button>
+          <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
+          <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
+        </div>
       </div>
-    </div>
 
-    <!-- Phase Indicator -->
-    <div id="phase-indicator" class="hidden">Study the Monster!</div>
-
-    <!-- Monster Image -->
-    <div id="image-container" class="hidden">
-      <img id="monster-image" src="" alt="Monster" />
-    </div>
-
-    <!-- Thinking Screen -->
-    <div id="thinking-screen" class="hidden">
-      <h2>Time to Draw!</h2>
-      <p>Now describe what you saw to your team while they draw!</p>
-      <div class="thinking-tips">
-        <ul>
-          <li>Start with the basic shapes and how it looks</li>
-          <li>Describe features clearly</li>
-          <li>Use easy to understand descriptions</li>
-          <li>Guide your team step by step</li>
-        </ul>
+      <!-- Turn Picker -->
+      <div id="mobile-turn-picker" class="picker-modal hidden">
+        <div class="picker-content">
+          <h3>Touch to Decide Who Goes First</h3>
+          <p>Have each player place one finger on the screen, then wait:</p>
+          <div id="touch-area"></div>
+          <div id="picker-status">Place fingers on the screen...</div>
+        </div>
       </div>
-    </div>
 
-    <!-- Timer Section -->
-    <div id="timer-container" class="hidden">
-      <div id="progress-bar-container">
-        <div id="progress-bar"></div>
+      <!-- Phase Indicator -->
+      <div id="phase-indicator" class="hidden">Study the Monster!</div>
+
+      <!-- Monster Image -->
+      <div id="image-container" class="hidden">
+        <img id="monster-image" src="" alt="Monster" />
       </div>
-      <p id="timer">00:00</p>
-    </div>
 
-    <!-- Reveal Button -->
-    <div id="reveal-container" class="hidden">
-      <button id="reveal-btn">Reveal the Monster!</button>
-    </div>
-
-    <!-- End Screen -->
-    <div id="end-screen" class="hidden">
-      <h2>Round Complete!</h2>
-      <p>How did your team do?</p>
-      <div id="end-buttons">
-        <button id="next-round-btn">Next Round</button>
-        <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
+      <!-- Thinking Screen -->
+      <div id="thinking-screen" class="hidden">
+        <h2>Time to Draw!</h2>
+        <p>Now describe what you saw to your team while they draw!</p>
+        <div class="thinking-tips">
+          <ul>
+            <li>Start with the basic shapes and how it looks</li>
+            <li>Describe features clearly</li>
+            <li>Use easy to understand descriptions</li>
+            <li>Guide your team step by step</li>
+          </ul>
+        </div>
       </div>
-    </div>
+
+      <!-- Timer Section -->
+      <div id="timer-container" class="hidden">
+        <div id="progress-bar-container">
+          <div id="progress-bar"></div>
+        </div>
+        <p id="timer">00:00</p>
+      </div>
+
+      <!-- Reveal Button -->
+      <div id="reveal-container" class="hidden">
+        <button id="reveal-btn">Reveal the Monster!</button>
+      </div>
+
+      <!-- End Screen -->
+      <div id="end-screen" class="hidden">
+        <h2>Round Complete!</h2>
+        <p>How did your team do?</p>
+        <div id="end-buttons">
+          <button id="next-round-btn">Next Round</button>
+          <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
+        </div>
+      </div>
+      
+    </div> <!-- End game-content -->
   </div>
 
   <!-- Audio -->
@@ -461,184 +437,157 @@
   <script src="party-client.js"></script>
   
   <script>
-    // Global game mode state
-    let currentGameMode = null; // 'local', 'party', 'online'
+    // Menu System Implementation
+    let currentGameMode = null;
     
-    // Menu functionality
-    document.addEventListener('DOMContentLoaded', () => {
-      const mainMenu = document.getElementById('main-menu');
-      const backToMenuBtn = document.getElementById('back-to-menu-btn');
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Menu system initializing...');
       
-      // Function to show the menu and hide game content
-      function showMainMenu() {
-        mainMenu.classList.remove('hidden');
-        backToMenuBtn.classList.add('hidden');
+      const menu = document.getElementById('game-mode-menu');
+      const gameContent = document.getElementById('game-content');
+      const backBtn = document.getElementById('back-to-menu-btn');
+      
+      // Show menu initially
+      function showMenu() {
+        console.log('Showing menu');
+        menu.classList.remove('hidden');
+        gameContent.classList.add('hidden');
+        backBtn.classList.add('hidden');
         currentGameMode = null;
         
-        // Hide all game screens
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('image-container').classList.add('hidden');
-        document.getElementById('thinking-screen').classList.add('hidden');
-        document.getElementById('timer-container').classList.add('hidden');
-        document.getElementById('reveal-container').classList.add('hidden');
-        document.getElementById('end-screen').classList.add('hidden');
-        document.getElementById('phase-indicator').classList.add('hidden');
-        
-        // Hide any party mode screens if they exist
-        const partyElements = document.querySelectorAll('[id*="party"], [class*="party"]');
-        partyElements.forEach(el => {
-          if (el.id !== 'party-mode-card' && el.id !== 'online-party-card') {
-            el.classList.add('hidden');
-          }
-        });
-        
-        // Reset any game state if needed
-        if (typeof resetGameUI === 'function') {
-          resetGameUI();
-        }
-        
-        // Reset party mode if it has cleanup functions
+        // Clean up party mode if active
         if (window.partyClient && typeof window.partyClient.cleanup === 'function') {
           window.partyClient.cleanup();
         }
       }
       
-      // Function to hide menu and show game content
-      function hideMainMenu() {
-        mainMenu.classList.add('hidden');
-        backToMenuBtn.classList.remove('hidden');
+      // Hide menu and show game
+      function hideMenu() {
+        console.log('Hiding menu');
+        menu.classList.add('hidden');
+        gameContent.classList.remove('hidden');
+        backBtn.classList.remove('hidden');
       }
       
-      // Pass & Play Mode (LOCAL ONLY)
-      document.getElementById('pass-play-card').addEventListener('click', () => {
+      // Local Mode Selection
+      document.getElementById('local-mode-card').addEventListener('click', function() {
+        console.log('Local mode selected');
         currentGameMode = 'local';
-        hideMainMenu();
+        hideMenu();
         
-        // Show ONLY the local game interface - no party mode toggles
-        document.getElementById('start-screen').classList.remove('hidden');
-        document.getElementById('round-info').classList.remove('hidden');
-        
-        // Force local mode by hiding any party mode UI that might exist
-        const partyModeSection = document.getElementById('party-mode-section');
-        if (partyModeSection) {
-          partyModeSection.classList.add('hidden');
+        // Show the start screen for local play
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+          startScreen.classList.remove('hidden');
         }
         
-        // Show local mode settings
-        const settingsGroup = document.querySelector('.settings-group');
-        const startButtons = document.getElementById('start-buttons');
-        if (settingsGroup) settingsGroup.classList.remove('hidden');
-        if (startButtons) startButtons.classList.remove('hidden');
+        // Show round info
+        const roundInfo = document.getElementById('round-info');
+        if (roundInfo) {
+          roundInfo.classList.remove('hidden');
+        }
         
-        // Make sure any party mode functionality is disabled
-        if (typeof setGameMode === 'function') {
-          setGameMode('local');
+        // Make sure we're in local mode (no party mode toggles)
+        // Hide any party mode UI that might exist
+        const partySection = document.getElementById('party-mode-section');
+        if (partySection) {
+          partySection.classList.add('hidden');
         }
       });
-
-      // Party Mode - directly show the party interface
-      document.getElementById('party-mode-card').addEventListener('click', () => {
+      
+      // Party Mode Selection
+      document.getElementById('party-mode-card').addEventListener('click', function() {
+        console.log('Party mode selected');
         currentGameMode = 'party';
-        hideMainMenu();
+        hideMenu();
         
-        // Show the start screen
-        document.getElementById('start-screen').classList.remove('hidden');
+        // Show the start screen first
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+          startScreen.classList.remove('hidden');
+        }
         
-        // Wait for party client and DOM to be ready
-        const initPartyMode = () => {
-          // Show the mode toggle temporarily and click party mode
-          const modeToggle = document.querySelector('.mode-toggle');
-          if (modeToggle) {
-            modeToggle.classList.add('show-for-party');
-            
-            // Click the party mode button to activate party UI
-            const partyModeBtn = document.getElementById('party-mode-btn');
-            if (partyModeBtn) {
-              console.log('Clicking party mode button...');
-              partyModeBtn.click();
-              
-              // Hide the toggle again after a short delay
-              setTimeout(() => {
-                modeToggle.classList.remove('show-for-party');
-                modeToggle.style.display = 'none';
-              }, 100);
-            }
-          }
+        // Wait a moment for party client to initialize, then switch to party mode
+        setTimeout(function() {
+          console.log('Attempting to activate party mode...');
           
-          // Also try the direct approach
-          if (window.partyClient) {
-            if (typeof window.partyClient.showPartyMode === 'function') {
-              window.partyClient.showPartyMode();
-            }
+          // Look for the party mode button that party-client.js creates
+          const partyModeBtn = document.getElementById('party-mode-btn');
+          if (partyModeBtn) {
+            console.log('Found party mode button, clicking it');
+            partyModeBtn.click();
+          } else {
+            console.log('Party mode button not found, trying alternative approach');
             
-            // Auto-connect if not connected
-            if (!window.partyClient.isConnected) {
-              window.partyClient.connect();
+            // Try to call party client methods directly
+            if (window.partyClient) {
+              if (typeof window.partyClient.showPartyMode === 'function') {
+                console.log('Calling showPartyMode directly');
+                window.partyClient.showPartyMode();
+              }
+              
+              if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
+                console.log('Connecting party client');
+                window.partyClient.connect();
+              }
             }
           }
-        };
+        }, 200);
         
-        // Try immediately and with retries
-        setTimeout(initPartyMode, 50);
-        setTimeout(initPartyMode, 200);
-        setTimeout(initPartyMode, 500);
-      });
-
-      // Online Party Mode (same as party mode for now)
-      document.getElementById('online-party-card').addEventListener('click', () => {
-        // Same behavior as party mode
-        document.getElementById('party-mode-card').click();
+        // Also try with longer delays in case the first attempt fails
+        setTimeout(function() {
+          const partyModeBtn = document.getElementById('party-mode-btn');
+          if (partyModeBtn) {
+            partyModeBtn.click();
+          }
+        }, 500);
       });
       
       // Back to menu button
-      backToMenuBtn.addEventListener('click', showMainMenu);
+      backBtn.addEventListener('click', function() {
+        console.log('Back to menu clicked');
+        showMenu();
+      });
       
-      // Override the logo click to go to menu instead of reset
+      // Override logo click to go back to menu
       const logoClick = document.getElementById('logo-click');
       if (logoClick) {
-        // Remove existing event listeners by cloning the element
-        const newLogoClick = logoClick.cloneNode(true);
-        logoClick.parentNode.replaceChild(newLogoClick, logoClick);
-        
-        newLogoClick.addEventListener('click', (e) => {
-          // Don't trigger if clicking on the corner buttons
+        logoClick.addEventListener('click', function(e) {
+          // Don't trigger if clicking on corner buttons
           if (e.target.closest('.corner-buttons')) {
             return;
           }
-          
-          showMainMenu();
+          console.log('Logo clicked, going to menu');
+          showMenu();
         });
       }
       
-      // Also intercept the restart button to go back to menu instead
+      // Override restart button to go to menu
       const restartBtn = document.getElementById('restart-btn');
       if (restartBtn) {
-        const newRestartBtn = restartBtn.cloneNode(true);
-        restartBtn.parentNode.replaceChild(newRestartBtn, restartBtn);
-        
-        newRestartBtn.addEventListener('click', (e) => {
+        restartBtn.addEventListener('click', function(e) {
+          e.preventDefault();
           e.stopPropagation();
-          showMainMenu();
+          console.log('Restart clicked, going to menu');
+          showMenu();
         });
       }
       
-      // Handle the "back to local" button from party mode
-      document.addEventListener('click', (e) => {
+      // Handle back-to-local button from party mode
+      document.addEventListener('click', function(e) {
         if (e.target && e.target.id === 'back-to-local') {
-          showMainMenu();
+          console.log('Back to local clicked from party mode');
+          showMenu();
         }
       });
     });
     
-    // Expose functions for other scripts to use
-    window.getCurrentGameMode = () => currentGameMode;
-    window.showMainMenu = () => {
-      const mainMenu = document.getElementById('main-menu');
-      const backToMenuBtn = document.getElementById('back-to-menu-btn');
-      if (mainMenu) mainMenu.classList.remove('hidden');
-      if (backToMenuBtn) backToMenuBtn.classList.add('hidden');
-      currentGameMode = null;
+    // Expose current game mode for other scripts
+    window.getCurrentGameMode = function() {
+      return currentGameMode;
     };
+    
+    console.log('Menu system loaded');
   </script>
 </body>
 </html>
