@@ -16,6 +16,21 @@
       padding: 2rem 1rem;
     }
 
+    /* Menu-specific logo styling */
+    .menu-logo-wrapper {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 0;
+    }
+
+    .menu-logo-img {
+      max-width: min(180px, 45vw) !important;
+      width: 100% !important;
+      height: auto !important;
+      display: block !important;
+      margin: 0 auto !important;
+    }
+
     .menu-title {
       color: #2c3e50;
       font-size: clamp(2rem, 6vw, 3rem);
@@ -79,6 +94,10 @@
       border-color: #9b59b6;
     }
 
+    .mode-card.online-party-mode:hover {
+      border-color: #e67e22;
+    }
+
     .mode-icon {
       font-size: 3rem;
       margin-bottom: 1rem;
@@ -116,6 +135,10 @@
 
     .mode-badge.classic {
       background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+
+    .mode-badge.online {
+      background: linear-gradient(135deg, #e67e22, #f39c12);
     }
 
     /* Back button */
@@ -182,7 +205,7 @@
     <!-- Back to Menu Button (initially hidden) -->
     <button id="back-to-menu-btn" class="back-to-menu-btn hidden">← Back to Menu</button>
 
-  <!-- Game Mode Selection Menu -->
+    <!-- Game Mode Selection Menu -->
     <div id="game-mode-menu" class="game-mode-menu">
       <div class="menu-logo-wrapper">
         <img src="images/logo.png" alt="Drawblins" class="menu-logo-img" />
@@ -201,6 +224,13 @@
           <h3>Party Mode</h3>
           <p>Connect multiple devices to one room. Everyone draws on their own device while one person describes!</p>
           <span class="mode-badge new">New</span>
+        </div>
+
+        <!-- Online Party Mode -->
+        <div class="mode-card online-party-mode" id="online-party-mode-card">
+          <h3>Online Party Mode</h3>
+          <p>Same as Party Mode but with a web spectator view instead of TV casting. Perfect for remote play!</p>
+          <span class="mode-badge online">Online</span>
         </div>
       </div>
     </div>
@@ -698,6 +728,129 @@
         console.log('Party mode activation started');
       });
       
+      // Online Party Mode Selection  
+      document.getElementById('online-party-mode-card').addEventListener('click', function() {
+        console.log('Online party mode selected');
+        currentGameMode = 'online-party';
+        hideMenu();
+        
+        // Show the start screen first
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+          startScreen.classList.remove('hidden');
+        }
+        
+        // Hide local mode UI elements
+        const settingsGroup = document.querySelector('.settings-group');
+        const startButtons = document.getElementById('start-buttons');
+        const roundInfo = document.getElementById('round-info');
+        
+        if (settingsGroup) {
+          settingsGroup.style.display = 'none';
+          settingsGroup.classList.add('hidden');
+        }
+        if (startButtons) {
+          startButtons.style.display = 'none';
+          startButtons.classList.add('hidden');
+        }
+        if (roundInfo) {
+          roundInfo.style.display = 'none';
+          roundInfo.classList.add('hidden');
+        }
+        
+        // Show party mode elements (in case they were hidden)
+        const partySection = document.getElementById('party-mode-section');
+        const modeToggle = document.querySelector('.mode-toggle');
+        
+        if (partySection) {
+          partySection.style.display = 'block';
+          partySection.classList.remove('hidden');
+          partySection.style.visibility = 'visible';
+        }
+        
+        if (modeToggle) {
+          modeToggle.style.display = 'block';
+          modeToggle.classList.remove('hidden');
+          modeToggle.style.visibility = 'visible';
+        }
+        
+        // Ensure party mode UI is created (in case it was never created)
+        if (!document.getElementById('party-mode-section')) {
+          console.log('Party section missing, recreating...');
+          // Trigger party client initialization
+          if (window.partyClient) {
+            window.partyClient.createPartyModeUI();
+          }
+        }
+        
+        // Let party-client.js create its UI, then activate party mode
+        let attemptCount = 0;
+        const maxAttempts = 10;
+        
+        const tryActivateParty = function() {
+          attemptCount++;
+          console.log('Online party activation attempt', attemptCount);
+          
+          // Look for the party mode button that party-client.js creates
+          const partyModeBtn = document.getElementById('party-mode-btn');
+          if (partyModeBtn) {
+            console.log('Found party mode button, clicking it');
+            partyModeBtn.click();
+            
+            // After party mode is activated, hide the mode toggle (but don't remove it)
+            setTimeout(() => {
+              const modeToggle = document.querySelector('.mode-toggle');
+              if (modeToggle) {
+                modeToggle.style.display = 'none';
+              }
+            }, 200);
+            
+            // Set flag for online party mode (no casting)
+            window.onlinePartyMode = true;
+            
+            return true; // Success
+          }
+          
+          // Try to call party client methods directly
+          if (window.partyClient) {
+            if (typeof window.partyClient.showPartyMode === 'function') {
+              console.log('Calling showPartyMode directly');
+              window.partyClient.showPartyMode();
+              
+              // Hide mode toggle after direct activation
+              setTimeout(() => {
+                const modeToggle = document.querySelector('.mode-toggle');
+                if (modeToggle) {
+                  modeToggle.style.display = 'none';
+                }
+              }, 200);
+              
+              // Set flag for online party mode
+              window.onlinePartyMode = true;
+              
+              return true;
+            }
+            
+            if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
+              console.log('Connecting party client');
+              window.partyClient.connect();
+            }
+          }
+          
+          // Schedule next attempt if we haven't reached max attempts
+          if (attemptCount < maxAttempts) {
+            setTimeout(tryActivateParty, 300);
+          }
+          
+          return false; // Continue trying
+        };
+        
+        // Start activation attempts
+        setTimeout(tryActivateParty, 200);
+        
+        console.log('Online party mode activation started');
+      });
+
       // Back to menu button
       backBtn.addEventListener('click', function() {
         console.log('Back to menu clicked');
@@ -743,6 +896,50 @@
     };
     
     console.log('Menu system loaded');
+    
+    // Online Party Mode functionality
+    window.openSpectatorView = function() {
+      if (window.getCurrentGameMode() === 'online-party') {
+        console.log('Opening spectator view...');
+        
+        // Open receiver.html in a new window/tab
+        const spectatorWindow = window.open(
+          'receiver.html', 
+          'DrawblinsSpectator',
+          'width=1200,height=800,scrollbars=yes,resizable=yes'
+        );
+        
+        if (spectatorWindow) {
+          console.log('Spectator window opened successfully');
+          
+          // Store reference for communication
+          window.spectatorWindow = spectatorWindow;
+          
+          // Listen for when the spectator window loads
+          spectatorWindow.addEventListener('load', function() {
+            console.log('Spectator window loaded, ready for data');
+            // The party-client.js should handle sending game data to the spectator window
+            // instead of to Chromecast when onlinePartyMode is true
+          });
+          
+          // Handle window close
+          spectatorWindow.addEventListener('beforeunload', function() {
+            console.log('Spectator window closing');
+            window.spectatorWindow = null;
+          });
+          
+        } else {
+          alert('Unable to open spectator view. Please check if pop-ups are blocked.');
+        }
+      }
+    };
+    
+    // Auto-open spectator view when online party mode starts a game
+    document.addEventListener('game-started', function(event) {
+      if (window.getCurrentGameMode() === 'online-party' && !window.spectatorWindow) {
+        window.openSpectatorView();
+      }
+    });
   </script>
 </body>
 </html>
