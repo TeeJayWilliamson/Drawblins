@@ -473,8 +473,10 @@
           window.partyClient.cleanup();
         }
         
-        // Reset all UI elements to original state
-        resetToOriginalState();
+        // Only reset to original state when coming FROM a mode, not on initial load
+        if (currentGameMode !== null) {
+          resetToOriginalState();
+        }
       }
       
       // Reset all UI elements back to their original local state
@@ -497,18 +499,6 @@
         if (roundInfo) {
           roundInfo.style.display = '';
           // Keep round info hidden initially, it will show when local mode starts
-        }
-        
-        // Hide/remove any party mode elements that may have been created
-        const partySection = document.getElementById('party-mode-section');
-        if (partySection) {
-          partySection.remove(); // Completely remove it
-        }
-        
-        // Remove mode toggle that party-client.js creates
-        const modeToggle = document.querySelector('.mode-toggle');
-        if (modeToggle) {
-          modeToggle.remove(); // Completely remove it
         }
         
         // Hide start screen initially
@@ -549,7 +539,7 @@
           roundInfo.classList.remove('hidden');
         }
         
-        // Ensure local elements are visible and party elements are hidden
+        // Ensure local elements are visible
         const settingsGroup = document.querySelector('.settings-group');
         const startButtons = document.getElementById('start-buttons');
         
@@ -562,16 +552,18 @@
           startButtons.classList.remove('hidden');
         }
         
-        // Remove any party mode elements that might exist
-        const partySection = document.getElementById('party-mode-section');
-        if (partySection) {
-          partySection.remove();
-        }
-        
-        const modeToggle = document.querySelector('.mode-toggle');
-        if (modeToggle) {
-          modeToggle.remove();
-        }
+        // Clean up any party mode elements (only when switching to local)
+        setTimeout(() => {
+          const partySection = document.getElementById('party-mode-section');
+          if (partySection) {
+            partySection.remove();
+          }
+          
+          const modeToggle = document.querySelector('.mode-toggle');
+          if (modeToggle) {
+            modeToggle.remove();
+          }
+        }, 100);
         
         console.log('Local mode activated - pure local interface shown');
       });
@@ -606,9 +598,9 @@
           roundInfo.classList.add('hidden');
         }
         
-        // Initialize party mode with multiple attempts
+        // Let party-client.js create its UI, then activate party mode
         let attemptCount = 0;
-        const maxAttempts = 5;
+        const maxAttempts = 10;
         
         const tryActivateParty = function() {
           attemptCount++;
@@ -620,22 +612,32 @@
             console.log('Found party mode button, clicking it');
             partyModeBtn.click();
             
-            // Aggressively hide mode toggles after activation
+            // After party mode is activated, hide the mode toggle (but don't remove it yet)
             setTimeout(() => {
               const modeToggle = document.querySelector('.mode-toggle');
-              const localModeBtn = document.getElementById('local-mode-btn');
-              if (modeToggle) modeToggle.remove();
-              if (localModeBtn) localModeBtn.remove();
-            }, 100);
+              if (modeToggle) {
+                modeToggle.style.display = 'none';
+              }
+            }, 200);
             
             return true; // Success
           }
           
-          // Try direct party client methods
+          // Try to call party client methods directly
           if (window.partyClient) {
             if (typeof window.partyClient.showPartyMode === 'function') {
               console.log('Calling showPartyMode directly');
               window.partyClient.showPartyMode();
+              
+              // Hide mode toggle after direct activation
+              setTimeout(() => {
+                const modeToggle = document.querySelector('.mode-toggle');
+                if (modeToggle) {
+                  modeToggle.style.display = 'none';
+                }
+              }, 200);
+              
+              return true;
             }
             
             if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
@@ -646,25 +648,16 @@
           
           // Schedule next attempt if we haven't reached max attempts
           if (attemptCount < maxAttempts) {
-            setTimeout(tryActivateParty, 200 * attemptCount); // Increasing delay
+            setTimeout(tryActivateParty, 300); // Fixed delay
           }
           
           return false; // Continue trying
         };
         
         // Start activation attempts
-        setTimeout(tryActivateParty, 100);
+        setTimeout(tryActivateParty, 200);
         
-        // Final cleanup after all attempts
-        setTimeout(function() {
-          // Remove any remaining mode selection elements
-          const modeToggle = document.querySelector('.mode-toggle');
-          const localModeBtn = document.getElementById('local-mode-btn');
-          if (modeToggle) modeToggle.remove();
-          if (localModeBtn) localModeBtn.remove();
-          
-          console.log('Party mode activated - no local mode options visible');
-        }, 2000);
+        console.log('Party mode activation started');
       });
       
       // Back to menu button
