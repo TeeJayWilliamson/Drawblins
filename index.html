@@ -149,6 +149,19 @@
       display: none;
     }
 
+    /* Aggressively hide mode toggles from party-client.js */
+    .mode-toggle {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* Also hide individual mode buttons */
+    #local-mode-btn,
+    #party-mode-btn {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
     @media (max-width: 768px) {
       .mode-card {
         padding: 1.5rem 1rem;
@@ -487,12 +500,26 @@
           roundInfo.classList.remove('hidden');
         }
         
-        // Make sure we're in local mode (no party mode toggles)
-        // Hide any party mode UI that might exist
+        // FORCE local mode only - hide any party mode UI that might exist
         const partySection = document.getElementById('party-mode-section');
         if (partySection) {
           partySection.classList.add('hidden');
+          partySection.style.display = 'none';
         }
+        
+        // Hide mode toggle buttons from party-client.js
+        const modeToggle = document.querySelector('.mode-toggle');
+        if (modeToggle) {
+          modeToggle.style.display = 'none';
+        }
+        
+        // Force show local settings and buttons
+        const settingsGroup = document.querySelector('.settings-group');
+        const startButtons = document.getElementById('start-buttons');
+        if (settingsGroup) settingsGroup.style.display = 'block';
+        if (startButtons) startButtons.style.display = 'block';
+        
+        console.log('Local mode activated - no party mode options visible');
       });
       
       // Party Mode Selection
@@ -507,6 +534,15 @@
           startScreen.classList.remove('hidden');
         }
         
+        // FORCE party mode only - hide local mode UI
+        const settingsGroup = document.querySelector('.settings-group');
+        const startButtons = document.getElementById('start-buttons');
+        const roundInfo = document.getElementById('round-info');
+        
+        if (settingsGroup) settingsGroup.style.display = 'none';
+        if (startButtons) startButtons.style.display = 'none';
+        if (roundInfo) roundInfo.style.display = 'none';
+        
         // Wait a moment for party client to initialize, then switch to party mode
         setTimeout(function() {
           console.log('Attempting to activate party mode...');
@@ -516,6 +552,18 @@
           if (partyModeBtn) {
             console.log('Found party mode button, clicking it');
             partyModeBtn.click();
+            
+            // Hide the local mode button after clicking party mode
+            const localModeBtn = document.getElementById('local-mode-btn');
+            if (localModeBtn) {
+              localModeBtn.style.display = 'none';
+            }
+            
+            // Hide the entire mode toggle container
+            const modeToggle = document.querySelector('.mode-toggle');
+            if (modeToggle) {
+              modeToggle.style.display = 'none';
+            }
           } else {
             console.log('Party mode button not found, trying alternative approach');
             
@@ -524,6 +572,12 @@
               if (typeof window.partyClient.showPartyMode === 'function') {
                 console.log('Calling showPartyMode directly');
                 window.partyClient.showPartyMode();
+                
+                // Still hide mode toggles
+                const modeToggle = document.querySelector('.mode-toggle');
+                if (modeToggle) {
+                  modeToggle.style.display = 'none';
+                }
               }
               
               if (typeof window.partyClient.connect === 'function' && !window.partyClient.isConnected) {
@@ -534,13 +588,29 @@
           }
         }, 200);
         
-        // Also try with longer delays in case the first attempt fails
+        // Also try with longer delays and hide mode toggles each time
         setTimeout(function() {
           const partyModeBtn = document.getElementById('party-mode-btn');
           if (partyModeBtn) {
             partyModeBtn.click();
           }
+          
+          // Aggressively hide mode toggles
+          const modeToggle = document.querySelector('.mode-toggle');
+          const localModeBtn = document.getElementById('local-mode-btn');
+          if (modeToggle) modeToggle.style.display = 'none';
+          if (localModeBtn) localModeBtn.style.display = 'none';
         }, 500);
+        
+        setTimeout(function() {
+          // Final cleanup - hide any remaining mode selection elements
+          const modeToggle = document.querySelector('.mode-toggle');
+          const localModeBtn = document.getElementById('local-mode-btn');
+          if (modeToggle) modeToggle.style.display = 'none';
+          if (localModeBtn) localModeBtn.style.display = 'none';
+          
+          console.log('Party mode activated - no local mode options visible');
+        }, 1000);
       });
       
       // Back to menu button
