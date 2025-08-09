@@ -4,134 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Drawblins</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Party Mode CSS -->
+  <link rel="stylesheet" href="party-mode.css" />
   <style>
-    html, body {
-      overscroll-behavior-y: contain;
-      -webkit-overflow-scrolling: touch;
-      overflow-x: hidden;
-      max-width: 100vw;
-      width: 100%;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      height: 100vh;
-      width: 100vw;
-      display: flex;
-      justify-content: center;
-      align-items: stretch;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      overflow-y: auto;
-      overflow-x: hidden;
-      position: fixed;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      text-align: center;
-    }
-
-    .container {
-      flex: 1;
-      width: 100%;
-      max-width: min(900px, 100vw);
-      background: rgba(255, 255, 255, 0.95);
-      padding: 2rem 1rem;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      overflow-y: auto;
-      overflow-x: hidden;
-      box-sizing: border-box;
-      margin: 0 auto;
-    }
-
-    /* Header styles */
-    .sticky-header {
-      position: sticky;
-      top: 0;
-      width: 100%;
-      left: 0;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      z-index: 100;
-      box-sizing: border-box;
-      padding: 8px 0;
-      display: block;
-      overflow: hidden;
-      border-radius: 15px;
-      margin-bottom: 2rem;
-    }
-
-    .logo-wrapper {
-      position: relative;
-      background: transparent;
-      z-index: 100;
-      padding: 1rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-sizing: border-box;
-      width: 100%;
-    }
-
-    .corner-buttons {
-      position: absolute;
-      top: 0.5rem;
-      right: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      z-index: 101;
-      align-items: center;
-    }
-
-    .logo-img {
-      max-width: min(250px, 60vw);
-      width: 100%;
-      height: auto;
-      display: block;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
-    }
-
-    .icon-button {
-      position: relative;
-      background: linear-gradient(135deg, #3498db, #2980b9);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      outline: none;
-      flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    .icon-button:hover,
-    .icon-button:focus {
-      background: linear-gradient(135deg, #217dbb, #1f4e79);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-
-    .icon-button__icon {
-      display: block;
-      width: 24px;
-      height: 24px;
-    }
-
-    /* Main menu styles */
+    /* Additional menu-specific styles */
     .main-menu {
       text-align: center;
       max-width: 100%;
+      padding: 2rem 0;
     }
 
     .main-menu h1 {
@@ -241,6 +122,10 @@
       background: linear-gradient(135deg, #f39c12, #e67e22);
     }
 
+    .menu-card-badge.classic {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+
     /* Game mode specific colors */
     .menu-card.pass-play:hover {
       border-color: #27ae60;
@@ -254,307 +139,47 @@
       border-color: #e74c3c;
     }
 
-    /* Modal styles */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 1000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-      box-sizing: border-box;
-      overflow: hidden;
-    }
-
-    .modal-content {
-      background: linear-gradient(135deg, white 0%, #f2f2f2 100%);
-      border-radius: 20px;
-      padding: 2rem 1rem;
-      max-width: min(500px, 90vw);
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-      position: relative;
-      box-sizing: border-box;
-    }
-
-    .modal-content h3 {
-      color: #2c3e50;
-      font-size: clamp(1.5rem, 5vw, 2.2rem);
-      margin-bottom: 2rem;
-      word-wrap: break-word;
-    }
-
-    .setting-group {
-      margin: 1.5rem 0;
-      text-align: left;
-    }
-
-    .toggle-container {
-      display: flex;
-      align-items: center;
-    }
-
-    .toggle-label {
-      position: relative;
-      width: 60px;
-      height: 30px;
-      background: #ccc;
-      border-radius: 15px;
-      cursor: pointer;
-      transition: background 0.3s;
-      flex-shrink: 0;
-    }
-
-    .toggle-label.active {
-      background: #4CAF50;
-    }
-
-    .toggle-slider {
+    /* Back to menu button */
+    .back-to-menu {
       position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 24px;
-      height: 24px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.3s;
-    }
-
-    .toggle-label.active .toggle-slider {
-      transform: translateX(30px);
-    }
-
-    .custom-select-wrapper {
-      position: relative;
-      width: min(200px, 50vw);
-      max-width: 100%;
-    }
-
-    .custom-select {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      background-color: rgba(255, 255, 255, 0.9);
-      color: #333;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      padding: 10px 40px 10px 15px;
-      font-size: 16px;
-      border-radius: 12px;
-      width: 100%;
-      cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 24px;
-      box-sizing: border-box;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      margin-right: 1rem;
-    }
-
-    input[type="checkbox"] {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    button {
-      padding: 0.8rem 1.8rem;
-      font-size: 1rem;
-      margin-top: 1rem;
-      background: linear-gradient(135deg, #4CAF50, #45a049);
+      top: 1rem;
+      left: 1rem;
+      background: linear-gradient(135deg, #95a5a6, #7f8c8d);
       color: white;
       border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      box-sizing: border-box;
-      max-width: 100%;
-      font-weight: 600;
-    }
-
-    button:hover {
-      background: linear-gradient(135deg, #45a049, #3e8e41);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .close-btn {
-      background: linear-gradient(135deg, #e74c3c, #c0392b);
-    }
-
-    .close-btn:hover {
-      background: linear-gradient(135deg, #c0392b, #a93226);
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* Info Modal Styles */
-    #info-modal {
-      display: flex;
-    }
-
-    #info-modal.hidden {
-      display: none !important;
-    }
-
-    .info-modal-content {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 15px;
-      max-width: min(600px, 90vw);
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-top: 2rem;
-      margin-bottom: 2rem;
-      box-sizing: border-box;
-    }
-
-    .info-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-      box-sizing: border-box;
-    }
-
-    .info-modal-title {
-      margin: 0;
-      font-size: clamp(1.2rem, 4vw, 1.4rem);
-      color: #2c3e50;
-      word-wrap: break-word;
-      flex: 1;
-    }
-
-    .info-modal-close-x {
-      background-color: #e74c3c;
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      margin-left: 1rem;
-      flex-shrink: 0;
-    }
-
-    .info-modal-body {
-      text-align: left;
-      line-height: 1.5;
-      font-size: clamp(0.8rem, 3vw, 0.9rem);
-    }
-
-    .info-modal-columns {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-    }
-
-    .info-modal-section h4 {
-      margin: 0 0 0.5rem 0;
-      color: #34495e;
-      font-size: clamp(0.9rem, 3vw, 1rem);
-    }
-
-    .info-modal-section p {
-      margin: 0 0 1rem 0;
-      font-size: clamp(0.8rem, 3vw, 0.85rem);
-      word-wrap: break-word;
-    }
-
-    .info-modal-section ul,
-    .info-modal-section ol {
-      margin: 0 0 1rem 0;
-      padding-left: 1.2rem;
-      font-size: clamp(0.8rem, 3vw, 0.85rem);
-    }
-
-    .info-modal-footer {
-      text-align: center;
-      margin-top: 1.5rem;
-    }
-
-    .info-modal-close-bottom {
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      color: white;
-      border: none;
-      padding: 0.75rem 2rem;
+      padding: 0.5rem 1rem;
       border-radius: 8px;
-      font-size: 1rem;
       cursor: pointer;
-      font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 150;
+      transition: all 0.3s ease;
     }
 
-    /* Responsive design */
+    .back-to-menu:hover {
+      background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
+      transform: translateY(-2px);
+    }
+
     @media (max-width: 768px) {
-      .info-modal-columns {
-        grid-template-columns: 1fr !important;
-        gap: 1rem !important;
-      }
-      
-      .container {
-        padding: 1rem;
-      }
-      
       .menu-card {
         padding: 1.5rem 1rem;
       }
       
-      .corner-buttons {
-        right: 0.5rem;
-      }
-    }
-
-    @media (max-width: 600px) {
-      body {
-        height: 100vh;
-        max-height: 100vh;
-        overflow: hidden;
-      }
-      
-      .container {
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-        max-height: 100vh;
-        padding: 1rem;
-      }
-      
-      .sticky-header {
-        border-radius: 0;
-      }
-      
-      .logo-img {
-        max-width: min(200px, 80vw);
+      .back-to-menu {
+        top: 0.5rem;
+        left: 0.5rem;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
       }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header with logo and corner buttons -->
+    <!-- Back to Menu Button (initially hidden) -->
+    <button id="back-to-menu-btn" class="back-to-menu hidden">← Back to Menu</button>
+
+    <!-- Logo + Info + Settings Buttons -->
     <div class="sticky-header">
       <div class="logo-wrapper" id="logo-click">
         <img src="images/logo.png" alt="Drawblins" class="logo-img" />
@@ -582,8 +207,8 @@
       </div>
     </div>
 
-    <!-- Main Menu -->
-    <div class="main-menu">
+    <!-- Main Menu (initially visible) -->
+    <div id="main-menu" class="main-menu">
       <h1>Choose Your Game Mode</h1>
       <p class="subtitle">Pick how you want to play Drawblins!</p>
       
@@ -593,7 +218,7 @@
           <div class="menu-card-icon">🎮</div>
           <h3>Pass & Play</h3>
           <p>Play locally with friends around one device. Perfect for family game nights and small groups!</p>
-          <span class="menu-card-badge">Classic</span>
+          <span class="menu-card-badge classic">Classic</span>
         </div>
 
         <!-- Party Mode -->
@@ -605,17 +230,19 @@
         </div>
 
         <!-- Online Party Mode -->
-        <div class="menu-card online-party disabled" id="online-party-card">
+        <div class="menu-card online-party" id="online-party-card">
           <div class="menu-card-icon">🌐</div>
           <h3>Online Party</h3>
-          <p>Play with friends anywhere in the world. Join or create online rooms for remote fun!</p>
-          <span class="menu-card-badge beta">Coming Soon</span>
+          <p>Play with friends anywhere in the world. Same as Party Mode for now!</p>
+          <span class="menu-card-badge beta">Beta</span>
         </div>
       </div>
     </div>
 
+    <!-- ALL YOUR EXISTING GAME CONTENT BELOW -->
+
     <!-- Info Modal -->
-    <div id="info-modal" class="modal hidden">
+    <div id="info-modal" class="hidden">
       <div class="info-modal-content">
         <!-- Header with title and close button -->
         <div class="info-modal-header">
@@ -633,7 +260,7 @@
               
               <h4>Setup</h4>
               <ul>
-                <li>Choose your game mode</li>
+                <li>Use "Who Goes First?" to pick first player</li>
                 <li>Adjust difficulty in Settings</li>
                 <li>Get paper and drawing materials ready</li>
               </ul>
@@ -703,95 +330,213 @@
         <button id="close-settings" class="close-btn">Save Settings</button>
       </div>
     </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="hidden">
+      <div id="round-info" class="hidden">
+        <span id="round-display">Round 1</span>
+      </div>
+
+      <div class="settings-group">
+        
+        <div class="time-setting-card">
+          <label>View Time (sec):</label>
+          <div class="rules-grid">
+            <button class="rule-btn" data-view="30">
+              Easy
+              <br><strong>30s</strong>
+            </button>
+            <button class="rule-btn active" data-view="20">
+              Standard
+              <br><strong>20s</strong>
+            </button>
+            <button class="rule-btn" data-view="10">
+              Hard
+              <br><strong>10s</strong>
+            </button>
+          </div>
+        </div>
+
+        <div class="time-setting-card">
+          <label>Drawing Time (min):</label>
+          <div class="rules-grid">
+            <button class="rule-btn" data-draw="3">
+              Easy
+              <br><strong>3min</strong>
+            </button>
+            <button class="rule-btn active" data-draw="2">
+              Standard
+              <br><strong>2min</strong>
+            </button>
+            <button class="rule-btn" data-draw="1">
+              Hard
+              <br><strong>1min</strong>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="start-buttons">
+        <button id="start-btn">Start Round</button>
+        <button id="turn-picker-btn" style="background-color: #9b59b6;">Who Goes First?</button>
+        <button id="reset-rounds-btn" class="hidden" style="background-color: #e74c3c;">Reset Game</button>
+      </div>
+    </div>
+
+    <!-- Turn Picker -->
+    <div id="mobile-turn-picker" class="picker-modal hidden">
+      <div class="picker-content">
+        <h3>Touch to Decide Who Goes First</h3>
+        <p>Have each player place one finger on the screen, then wait:</p>
+        <div id="touch-area"></div>
+        <div id="picker-status">Place fingers on the screen...</div>
+      </div>
+    </div>
+
+    <!-- Phase Indicator -->
+    <div id="phase-indicator" class="hidden">Study the Monster!</div>
+
+    <!-- Monster Image -->
+    <div id="image-container" class="hidden">
+      <img id="monster-image" src="" alt="Monster" />
+    </div>
+
+    <!-- Thinking Screen -->
+    <div id="thinking-screen" class="hidden">
+      <h2>Time to Draw!</h2>
+      <p>Now describe what you saw to your team while they draw!</p>
+      <div class="thinking-tips">
+        <ul>
+          <li>Start with the basic shapes and how it looks</li>
+          <li>Describe features clearly</li>
+          <li>Use easy to understand descriptions</li>
+          <li>Guide your team step by step</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Timer Section -->
+    <div id="timer-container" class="hidden">
+      <div id="progress-bar-container">
+        <div id="progress-bar"></div>
+      </div>
+      <p id="timer">00:00</p>
+    </div>
+
+    <!-- Reveal Button -->
+    <div id="reveal-container" class="hidden">
+      <button id="reveal-btn">Reveal the Monster!</button>
+    </div>
+
+    <!-- End Screen -->
+    <div id="end-screen" class="hidden">
+      <h2>Round Complete!</h2>
+      <p>How did your team do?</p>
+      <div id="end-buttons">
+        <button id="next-round-btn">Next Round</button>
+        <button id="restart-btn" style="background-color: #f39c12;">New Game</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Hidden container for the original game content -->
-  <div id="original-game-content" class="hidden">
-    <!-- This will be populated with your existing game interface when a mode is selected -->
-  </div>
+  <!-- Audio -->
+  <audio id="buzzer" src="sounds/buzzer.mp3" preload="auto"></audio>
+  <audio id="waiting-music" src="sounds/waiting.mp3" preload="auto" loop></audio>
+  <audio id="drawing-music" src="sounds/drawing.mp3" preload="auto" loop></audio>
 
+  <!-- Party Mode Dependencies -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  
   <!-- Scripts -->
+  <script src="script.js"></script>
+  <script src="party-client.js"></script>
+  
   <script>
-    // Menu interaction handlers
+    // Menu functionality
     document.addEventListener('DOMContentLoaded', () => {
-      // Pass & Play Mode
-      document.getElementById('pass-play-card').addEventListener('click', () => {
-        // For now, we'll just show an alert. You can integrate your existing game logic here.
-        alert('Loading Pass & Play Mode...\n\nThis will load your existing local game interface.');
-        // TODO: Load your existing game interface here
-        // You would hide the menu and show the original game content
-      });
-
-      // Party Mode
-      document.getElementById('party-mode-card').addEventListener('click', () => {
-        alert('Loading Party Mode...\n\nThis will connect to the party mode server.');
-        // TODO: Initialize party mode connection
-      });
-
-      // Online Party Mode (disabled for now)
-      document.getElementById('online-party-card').addEventListener('click', (e) => {
-        if (e.target.closest('.menu-card').classList.contains('disabled')) {
-          alert('Online Party Mode is coming soon!\n\nStay tuned for remote multiplayer functionality.');
-          return;
+      const mainMenu = document.getElementById('main-menu');
+      const backToMenuBtn = document.getElementById('back-to-menu-btn');
+      
+      // Function to show the menu and hide game content
+      function showMainMenu() {
+        mainMenu.classList.remove('hidden');
+        backToMenuBtn.classList.add('hidden');
+        
+        // Hide all game screens
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('image-container').classList.add('hidden');
+        document.getElementById('thinking-screen').classList.add('hidden');
+        document.getElementById('timer-container').classList.add('hidden');
+        document.getElementById('reveal-container').classList.add('hidden');
+        document.getElementById('end-screen').classList.add('hidden');
+        document.getElementById('phase-indicator').classList.add('hidden');
+        
+        // Reset any game state if needed
+        if (typeof resetGameUI === 'function') {
+          resetGameUI();
         }
-        // TODO: Implement online party mode
+      }
+      
+      // Function to hide menu and show game content
+      function hideMainMenu() {
+        mainMenu.classList.add('hidden');
+        backToMenuBtn.classList.remove('hidden');
+      }
+      
+      // Pass & Play Mode (your original local game)
+      document.getElementById('pass-play-card').addEventListener('click', () => {
+        hideMainMenu();
+        document.getElementById('start-screen').classList.remove('hidden');
+        document.getElementById('round-info').classList.remove('hidden');
       });
 
-      // Settings modal handlers
-      document.getElementById('settings-btn').addEventListener('click', () => {
-        document.getElementById('settings-modal').classList.remove('hidden');
+      // Party Mode 
+      document.getElementById('party-mode-card').addEventListener('click', () => {
+        hideMainMenu();
+        // Initialize party mode - you'll need to add party mode UI here
+        // For now, let's show the same as pass & play
+        document.getElementById('start-screen').classList.remove('hidden');
+        document.getElementById('round-info').classList.remove('hidden');
+        alert('Party Mode selected! Connect multiple devices to play together.');
       });
 
-      document.getElementById('close-settings').addEventListener('click', () => {
-        document.getElementById('settings-modal').classList.add('hidden');
+      // Online Party Mode (same as party mode for now)
+      document.getElementById('online-party-card').addEventListener('click', () => {
+        hideMainMenu();
+        document.getElementById('start-screen').classList.remove('hidden');
+        document.getElementById('round-info').classList.remove('hidden');
+        alert('Online Party Mode! Currently same as Party Mode.');
       });
-
-      // Info modal handlers
-      document.getElementById('info-btn').addEventListener('click', () => {
-        document.getElementById('info-modal').classList.remove('hidden');
-      });
-
-      document.getElementById('close-info').addEventListener('click', () => {
-        document.getElementById('info-modal').classList.add('hidden');
-      });
-
-      document.getElementById('close-info-bottom').addEventListener('click', () => {
-        document.getElementById('info-modal').classList.add('hidden');
-      });
-
-      // Settings functionality
-      initializeSettings();
+      
+      // Back to menu button
+      backToMenuBtn.addEventListener('click', showMainMenu);
+      
+      // Override the logo click to go to menu instead of reset
+      const logoClick = document.getElementById('logo-click');
+      if (logoClick) {
+        // Remove existing event listeners by cloning the element
+        const newLogoClick = logoClick.cloneNode(true);
+        logoClick.parentNode.replaceChild(newLogoClick, logoClick);
+        
+        newLogoClick.addEventListener('click', (e) => {
+          // Don't trigger if clicking on the corner buttons
+          if (e.target.closest('.corner-buttons')) {
+            return;
+          }
+          
+          showMainMenu();
+        });
+      }
+      
+      // Also intercept the restart button to go back to menu instead
+      const restartBtn = document.getElementById('restart-btn');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showMainMenu();
+        });
+      }
     });
-
-    // Settings initialization (simplified from your original)
-    function initializeSettings() {
-      const soundToggle = document.getElementById('sound-toggle');
-      const toggleLabel = soundToggle.nextElementSibling;
-      const volumeSlider = document.getElementById('volume-slider');
-      const volumeDisplay = document.getElementById('volume-display');
-      const difficultySelect = document.getElementById('difficulty-select');
-
-      // Sound toggle
-      soundToggle.addEventListener('change', (e) => {
-        toggleLabel.classList.toggle('active', e.target.checked);
-        // TODO: Connect to your audio system
-      });
-
-      // Volume slider
-      volumeSlider.addEventListener('input', (e) => {
-        volumeDisplay.textContent = `${e.target.value}%`;
-        // TODO: Connect to your audio system
-      });
-
-      // Difficulty selector
-      difficultySelect.addEventListener('change', (e) => {
-        // TODO: Connect to your difficulty system
-        console.log('Difficulty changed to:', e.target.value);
-      });
-
-      // Set initial state
-      toggleLabel.classList.add('active');
-    }
   </script>
 </body>
 </html>
