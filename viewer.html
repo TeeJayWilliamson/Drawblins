@@ -82,6 +82,7 @@
             font-weight: bold;
             margin: 0.5rem 0 0 0;
             letter-spacing: 2px;
+            color: #FFD700;
         }
         
         /* Main content area */
@@ -335,6 +336,19 @@
             background: rgba(52, 152, 219, 0.8);
         }
 
+        /* URL connection info */
+        .url-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .spectator-header {
@@ -387,6 +401,9 @@
     <div class="spectator-display">
         <!-- Connection status -->
         <div id="connection-status" class="connection-status waiting">Connecting to game...</div>
+        
+        <!-- URL info for debugging -->
+        <div id="url-info" class="url-info hidden">No room code in URL</div>
 
         <!-- Header -->
         <div class="spectator-header">
@@ -450,36 +467,111 @@
                 this.slideshowDrawings = [];
                 this.currentSlideIndex = 0;
                 this.slideshowInterval = null;
+                this.roomCodeFromURL = null;
                 
                 this.init();
             }
             
             init() {
                 console.log('🎭 Spectator view initializing...');
-                this.updateConnectionStatus('Connecting to game...', 'waiting');
+                
+                // FIRST: Check for room code in URL
+                this.checkURLForRoomCode();
+                
+                // THEN: Set up message listener
                 this.setupMessageListener();
+                
+                // Initial connection status
+                this.updateConnectionStatus('Connecting to game...', 'waiting');
+            }
+            
+            checkURLForRoomCode() {
+                // Get room code from URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const roomFromURL = urlParams.get('room');
+                
+                if (roomFromURL) {
+                    console.log('🏠 Room code found in URL:', roomFromURL);
+                    this.roomCodeFromURL = roomFromURL.toUpperCase();
+                    this.updateRoomCode(this.roomCodeFromURL);
+                    
+                    // Show URL info
+                    const urlInfo = document.getElementById('url-info');
+                    if (urlInfo) {
+                        urlInfo.textContent = `Room from URL: ${this.roomCodeFromURL}`;
+                        urlInfo.classList.remove('hidden');
+                    }
+                    
+                    // Update status
+                    this.updateConnectionStatus(`Found room ${this.roomCodeFromURL} in URL`, 'waiting');
+                } else {
+                    console.log('⚠️ No room code in URL');
+                    const urlInfo = document.getElementById('url-info');
+                    if (urlInfo) {
+                        urlInfo.textContent = 'No room code in URL - waiting for game connection';
+                        urlInfo.classList.remove('hidden');
+                    }
+                }
             }
             
             setupMessageListener() {
                 // Listen for messages from the parent window (main game)
                 window.addEventListener('message', (event) => {
-                    // Basic security check - ensure message comes from same origin
-                    if (event.origin !== window.location.origin) {
-                        console.warn('🚫 Ignoring message from different origin:', event.origin);
+                    console.log('📨 Raw message received:', event);
+                    
+                    // More flexible origin checking - allow same domain
+                    const allowedOrigins = [
+                        window.location.origin,
+                        'https://teejaywilliamson.github.io',
+                        'http://localhost:3000',
+                        'http://127.0.0.1:3000'
+                    ];
+                    
+                    if (!allowedOrigins.includes(event.origin)) {
+                        console.warn('🚫 Message from unallowed origin:', event.origin);
                         return;
                     }
                     
                     this.handleMessage(event.data);
                 });
                 
-                // Let parent know we're ready
+                // Let parent know we're ready and send our room code if we have one
                 if (window.opener) {
-                    window.opener.postMessage({ type: 'spectator-ready' }, window.location.origin);
+                    console.log('👋 Notifying parent window we are ready');
+                    
+                    const readyMessage = { 
+                        type: 'spectator-ready'
+                    };
+                    
+                    // If we got room code from URL, include it
+                    if (this.roomCodeFromURL) {
+                        readyMessage.roomCodeFromURL = this.roomCodeFromURL;
+                    }
+                    
+                    window.opener.postMessage(readyMessage, '*');
                     this.updateConnectionStatus('Connected to game', 'connected');
                 } else {
-                    console.warn('⚠️ No parent window found - spectator view may not work properly');
-                    this.updateConnectionStatus('No game connection', 'disconnected');
+                    console.warn('⚠️ No parent window found');
+                    this.updateConnectionStatus('No game connection - standalone mode', 'disconnected');
                 }
+                
+                // Set up periodic connection check
+                this.setupConnectionCheck();
+            }
+            
+            setupConnectionCheck() {
+                // Check connection every 5 seconds
+                setInterval(() => {
+                    if (window.opener && !window.opener.closed) {
+                        // Connection is good
+                        if (document.getElementById('connection-status').textContent.includes('Disconnected')) {
+                            this.updateConnectionStatus('Reconnected to game', 'connected');
+                        }
+                    } else {
+                        // Connection lost
+                        this.updateConnectionStatus('Disconnected from game', 'disconnected');
+                    }
+                }, 5000);
             }
             
             handleMessage(message) {
@@ -488,7 +580,7 @@
                     return;
                 }
                 
-                console.log('📨 Spectator received message:', message.type);
+                console.log('📨 Spectator handling message:', message.type, message.data || message);
                 
                 try {
                     switch (message.type) {
@@ -527,7 +619,7 @@
                         case 'connection-check':
                             // Respond to keep-alive
                             if (window.opener) {
-                                window.opener.postMessage({ type: 'spectator-alive' }, window.location.origin);
+                                window.opener.postMessage({ type: 'spectator-alive' }, '*');
                             }
                             break;
                             
@@ -542,64 +634,82 @@
             }
             
             handleRoomCode(message) {
-                console.log('🏠 Room code received:', message.roomCode);
-                this.roomCode = message.roomCode;
-                this.updateRoomCode(message.roomCode);
-                this.updateConnectionStatus('Connected to room ' + message.roomCode, 'connected');
+                console.log('🏠 Room code received from game:', message.data?.roomCode);
+                const roomCode = message.data?.roomCode;
+                
+                if (roomCode) {
+                    this.roomCode = roomCode;
+                    this.updateRoomCode(roomCode);
+                    this.updateConnectionStatus('Connected to room ' + roomCode, 'connected');
+                    
+                    // Update URL info
+                    const urlInfo = document.getElementById('url-info');
+                    if (urlInfo) {
+                        if (this.roomCodeFromURL) {
+                            urlInfo.textContent = `URL: ${this.roomCodeFromURL} | Game: ${roomCode}`;
+                        } else {
+                            urlInfo.textContent = `Room from game: ${roomCode}`;
+                        }
+                    }
+                }
             }
             
             handleGameUpdate(message) {
-                console.log('🎮 Game update received:', message.gameState?.phase);
+                console.log('🎮 Game update received:', message.data?.gameState?.phase);
                 
-                this.gameState = message.gameState;
+                this.gameState = message.data?.gameState;
                 this.showGameContent();
                 
-                if (message.room && message.room.players) {
-                    const currentPlayer = message.room.players.find(p => p.id === message.gameState.currentDrawer);
-                    this.updateGameDisplay(message.gameState, currentPlayer);
+                if (message.data?.room && message.data.room.players) {
+                    const currentPlayer = message.data.room.players.find(p => p.id === message.data.gameState.currentDrawer);
+                    this.updateGameDisplay(message.data.gameState, currentPlayer);
                 }
             }
             
             handleTimerUpdate(message) {
-                this.updateTimer(message.timeString, message.timeLeft);
+                this.updateTimer(message.data?.timeString, message.data?.timeLeft);
             }
             
             handleDrawingProgress(message) {
                 const progressCount = document.getElementById('spectator-progress-count');
                 const progressTotal = document.getElementById('spectator-progress-total');
                 
-                if (progressCount) progressCount.textContent = message.totalSubmitted || 0;
-                if (progressTotal) progressTotal.textContent = message.totalExpected || 0;
+                if (progressCount) progressCount.textContent = message.data?.totalSubmitted || 0;
+                if (progressTotal) progressTotal.textContent = message.data?.totalExpected || 0;
                 
-                console.log(`📊 Drawing progress: ${message.totalSubmitted}/${message.totalExpected}`);
+                console.log(`📊 Drawing progress: ${message.data?.totalSubmitted}/${message.data?.totalExpected}`);
             }
             
             handleSlideshowStart(message) {
-                console.log('🎬 Starting slideshow with original:', message.originalMonster);
+                console.log('🎬 Starting slideshow with original:', message.data?.originalMonster);
                 this.clearSlideshow();
                 
-                if (message.originalMonster) {
+                if (message.data?.originalMonster) {
                     const originalImage = document.getElementById('spectator-original-image');
-                    // Use GitHub Pages URL for images
-                    originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${message.originalMonster}`;
+                    // Use the correct image path - adapt to your setup
+                    originalImage.src = `images/${message.data.originalMonster}`;
+                    // Fallback for GitHub Pages
+                    originalImage.onerror = () => {
+                        originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${message.data.originalMonster}`;
+                    };
                 }
                 
                 this.showSlideshow();
             }
             
             handleSlideshowDrawing(message) {
-                console.log(`🖼️ Adding drawing ${message.index + 1}: ${message.playerName}`);
-                this.addDrawingSlide(message);
+                console.log(`🖼️ Adding drawing ${message.data?.index + 1}: ${message.data?.playerName}`);
+                this.addDrawingSlide(message.data);
                 
-                if (message.isLast) {
+                if (message.data?.isLast) {
                     console.log('🎬 All drawings loaded, starting slideshow');
                     this.startSlideshow();
                 }
             }
             
             handleShowDrawingsSlideshow(message) {
-                console.log('🎨 Show drawings slideshow with', message.drawings?.length, 'drawings');
-                this.showDrawingsSlideshow(message.drawings, message.originalMonster);
+                console.log('🎨 Show drawings slideshow with', message.data?.drawings?.length, 'drawings');
+                this.showDrawingsSlideshow(message.data?.drawings, message.data?.originalMonster);
             }
             
             handleGameFinished(message) {
@@ -744,7 +854,12 @@
                 // Show original monster
                 if (originalMonster) {
                     const originalImage = document.getElementById('spectator-original-image');
-                    originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${originalMonster}`;
+                    // Use the correct image path - adapt to your setup
+                    originalImage.src = `images/${originalMonster}`;
+                    // Fallback for GitHub Pages
+                    originalImage.onerror = () => {
+                        originalImage.src = `https://teejaywilliamson.github.io/Drawblins/images/${originalMonster}`;
+                    };
                 }
                 
                 // Create slides
@@ -843,7 +958,7 @@
                 
                 // Notify parent that we're closing
                 if (window.opener) {
-                    window.opener.postMessage({ type: 'spectator-closing' }, window.location.origin);
+                    window.opener.postMessage({ type: 'spectator-closing' }, '*');
                 }
             }
         }
@@ -872,6 +987,45 @@
         window.addEventListener('blur', () => {
             if (spectatorView) {
                 spectatorView.updateConnectionStatus('Connected (background)', 'connected');
+            }
+        });
+        
+        // Add click to advance slides manually
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#spectator-slideshow-container')) {
+                if (spectatorView && spectatorView.slideshowDrawings.length > 1) {
+                    const nextIndex = (spectatorView.currentSlideIndex + 1) % spectatorView.slideshowDrawings.length;
+                    spectatorView.showSlide(nextIndex);
+                }
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!spectatorView) return;
+            
+            switch (e.key) {
+                case 'ArrowRight':
+                case ' ': // Spacebar
+                    if (spectatorView.slideshowDrawings.length > 1) {
+                        const nextIndex = (spectatorView.currentSlideIndex + 1) % spectatorView.slideshowDrawings.length;
+                        spectatorView.showSlide(nextIndex);
+                    }
+                    break;
+                    
+                case 'ArrowLeft':
+                    if (spectatorView.slideshowDrawings.length > 1) {
+                        const prevIndex = spectatorView.currentSlideIndex === 0 
+                            ? spectatorView.slideshowDrawings.length - 1 
+                            : spectatorView.currentSlideIndex - 1;
+                        spectatorView.showSlide(prevIndex);
+                    }
+                    break;
+                    
+                case 'Escape':
+                    // Go back to game content
+                    spectatorView.showGameContent();
+                    break;
             }
         });
     </script>

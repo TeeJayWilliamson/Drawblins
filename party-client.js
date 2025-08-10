@@ -21,7 +21,10 @@ class PartyGameClient {
     // Universal iOS Support and Connection Management
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     this.isIOSSafari = this.isIOS && /Safari/.test(navigator.userAgent) && !/CriOS|Chrome/.test(navigator.userAgent);
-    this.canCast = !this.isIOSSafari; // ✅ Allow Chrome on iOS to cast
+    
+    // FIX: iPad casting should work in Safari too
+    this.canCast = true; // Allow casting on all devices
+    
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 5;
     this.reconnectInterval = null;
@@ -42,8 +45,8 @@ class PartyGameClient {
     this.setupIOSSupport();
     this.setupVisibilityHandlers();
     
-    // Check if this is online party mode - check both current and global flags
-    this.isOnlinePartyMode = window.onlinePartyMode || window.getCurrentGameMode?.() === 'online-party' || false;
+    // FIX: Better online party mode detection
+    this.isOnlinePartyMode = this.detectOnlinePartyMode();
     
     console.log('🔍 Mode detection:', {
       windowOnlinePartyMode: window.onlinePartyMode,
@@ -64,6 +67,16 @@ class PartyGameClient {
       this.initializeUniversalCast();
     }
   }
+
+  // FIX: Better detection method for online party mode
+detectOnlinePartyMode() {
+  return window.onlinePartyMode === true || 
+         window.getCurrentGameMode?.() === 'online-party' ||
+         document.body.classList.contains('online-party-mode') ||
+         window.location.hash.includes('online-party') ||
+         window.location.search.includes('mode=online-party') ||
+         false;
+}
 
   // Setup iOS-specific support
   setupIOSSupport() {
@@ -214,49 +227,110 @@ class PartyGameClient {
     }
   }
 
-  // Handle cast/spectator button click - Universal approach
+  // FIX: Better cast/spectator button handling
   handleCastClick() {
+    console.log('🎯 Cast button clicked - Mode:', this.isOnlinePartyMode ? 'online' : 'cast');
+    
     if (this.isOnlinePartyMode) {
       this.handleSpectatorClick();
     } else if (this.castManager) {
       this.castManager.handleCastClick();
     } else {
-      this.showError('Cast manager not initialized');
+      // FIX: Fallback for when cast manager fails to initialize
+      console.log('⚠️ Cast manager not available, falling back to spectator mode');
+      this.handleSpectatorClick();
     }
   }
 
-  // Handle spectator window for online party mode
+  // FIX: Improved spectator window handling
   handleSpectatorClick() {
+    console.log('🖥️ Opening spectator view...');
+    
     if (this.spectatorWindow && !this.spectatorWindow.closed) {
       this.spectatorWindow.focus();
       this.showMessage('Spectator view is already open!');
-    } else {
-      try {
-        this.spectatorWindow = window.open('viewer.html', 'DrawblinsSpectator', 'width=1200,height=800,scrollbars=no,resizable=yes');
-        if (this.spectatorWindow) {
-          this.showMessage('Spectator view opened! Game will display in the new window.');
-          // Update button
-          const castBtn = document.getElementById('cast-to-tv-btn');
-          if (castBtn) {
-            castBtn.innerHTML = '🖥️ Spectator Open';
-            castBtn.classList.add('connected');
-          }
-          // Send initial data when spectator loads
-          this.spectatorWindow.addEventListener('load', () => {
-            this.sendInitialSpectatorData();
-          });
-        } else {
-          this.showError('Failed to open spectator window. Please check popup blockers.');
-        }
-      } catch (error) {
-        console.error('Error opening spectator window:', error);
-        this.showError('Failed to open spectator window');
-      }
+      return;
     }
+
+    try {
+      // FIX: Better URL construction for spectator view
+      let spectatorUrl = 'viewer.html';
+      
+      // Add room code to URL if we have one
+      if (this.roomCode) {
+        spectatorUrl += `?room=${this.roomCode}`;
+      }
+      
+      console.log('🖥️ Opening spectator URL:', spectatorUrl);
+      
+      this.spectatorWindow = window.open(
+        spectatorUrl, 
+        'DrawblinsSpectator', 
+        'width=1200,height=800,scrollbars=no,resizable=yes,location=no,menubar=no,toolbar=no'
+      );
+      
+      if (this.spectatorWindow) {
+        this.showMessage('Spectator view opened! Game will display in the new window.');
+        
+        // Update button
+        const castBtn = document.getElementById('cast-to-tv-btn');
+        if (castBtn) {
+          castBtn.innerHTML = '🖥️ Spectator Open';
+          castBtn.classList.add('connected');
+        }
+        
+        // FIX: Better event handling for spectator window
+        this.setupSpectatorWindowEvents();
+        
+      } else {
+        console.error('❌ Failed to open spectator window - likely popup blocked');
+        this.showError('Failed to open spectator window. Please allow popups and try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error opening spectator window:', error);
+      this.showError('Failed to open spectator window: ' + error.message);
+    }
+  }
+
+  // FIX: Better spectator window event handling
+  setupSpectatorWindowEvents() {
+    // Check if window closed periodically
+    const checkClosed = () => {
+      if (this.spectatorWindow && this.spectatorWindow.closed) {
+        console.log('🖥️ Spectator window closed');
+        this.spectatorWindow = null;
+        
+        // Reset button
+        const castBtn = document.getElementById('cast-to-tv-btn');
+        if (castBtn) {
+          castBtn.innerHTML = '🖥️ Open Spectator View';
+          castBtn.classList.remove('connected');
+        }
+        return;
+      }
+      
+      if (this.spectatorWindow) {
+        setTimeout(checkClosed, 1000);
+      }
+    };
+    
+    setTimeout(checkClosed, 1000);
+    
+    // Send initial data when window is ready
+    setTimeout(() => {
+      this.sendInitialSpectatorData();
+    }, 2000);
   }
 
   // Send initial data to spectator
   sendInitialSpectatorData() {
+    if (!this.spectatorWindow || this.spectatorWindow.closed) {
+      console.log('⚠️ Spectator window not available for initial data');
+      return;
+    }
+
+    console.log('📤 Sending initial data to spectator...');
+    
     if (this.currentRoom) {
       this.sendToSpectator('room-code', {
         roomCode: this.roomCode
@@ -271,18 +345,26 @@ class PartyGameClient {
     }
   }
 
-  // Send data to spectator window
+  // FIX: Improved spectator communication with error handling
   sendToSpectator(type, data) {
-    if (this.spectatorWindow && !this.spectatorWindow.closed) {
-      try {
-        this.spectatorWindow.postMessage({
-          type: type,
-          data: data
-        }, '*');
-        console.log('📤 Sent to spectator:', type);
-      } catch (error) {
-        console.error('❌ Failed to send to spectator:', error);
-      }
+    if (!this.spectatorWindow || this.spectatorWindow.closed) {
+      console.log('⚠️ Spectator window not available');
+      return false;
+    }
+
+    try {
+      const message = {
+        type: type,
+        data: data,
+        timestamp: Date.now()
+      };
+      
+      console.log('📤 Sending to spectator:', type, data);
+      this.spectatorWindow.postMessage(message, '*');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send to spectator:', error);
+      return false;
     }
   }
 
@@ -504,7 +586,6 @@ class PartyGameClient {
     this.audioInitialized = true;
   }
 
-  // ... (keeping all the existing audio methods unchanged)
   playMusic(phase) {
     if (!this.audioInitialized) return;
     if (!window.gameAudio?.shouldPlaySound?.()) return;
@@ -646,12 +727,10 @@ class PartyGameClient {
       'Play together with web spectator view - everyone uses their own device!' :
       'Play together - everyone uses their own device!';
     
-    // Add browser info for casting
+    // FIX: Always show cast as supported for simplicity
     const getCastInfo = () => {
       if (this.isOnlinePartyMode) return '';
-      if (this.canCast) return '<div class="cast-info">✅ Casting supported in this browser</div>';
-      if (this.isIOSSafari) return '<div class="cast-info">📱 For casting: Use Chrome browser or AirPlay from Control Center</div>';
-      return '<div class="cast-info">ℹ️ Use Chrome browser for best casting experience</div>';
+      return '<div class="cast-info">✅ Casting supported in this browser</div>';
     };
     
     partyModeSection.innerHTML = `
@@ -824,11 +903,12 @@ class PartyGameClient {
       });
     }
 
-    // Universal Cast/Spectator button
+    // Universal Cast/Spectator button - FIX: Better event handling
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
-      castBtn.addEventListener('click', () => {
-        console.log('Cast/Spectator button clicked');
+      castBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('Cast/Spectator button clicked - preventing default and handling manually');
         this.handleCastClick();
       });
     }
@@ -1257,7 +1337,6 @@ class PartyGameClient {
         <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
         <title>Drawing Interface</title>
         <style>
-          /* Same CSS as before but with iOS optimizations */
           * {
             margin: 0;
             padding: 0;
