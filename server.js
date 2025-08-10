@@ -117,6 +117,10 @@ function removePlayerFromRoom(playerId, playerName = 'Unknown', isExplicitLeave 
 
   const { roomCode, room } = playerRoom;
   
+  // Store original host status and remaining players before modification
+  const wasHost = room.hostId === playerId;
+  const remainingPlayers = room.players.filter(p => p.id !== playerId);
+  
   // Remove player from room
   const playerIndex = room.players.findIndex(p => p.id === playerId);
   if (playerIndex !== -1) {
@@ -127,13 +131,35 @@ function removePlayerFromRoom(playerId, playerName = 'Unknown', isExplicitLeave 
   // Update room activity
   room.lastActivity = Date.now();
 
-  // If host left, transfer host or delete room
-  if (room.hostId === playerId) {
-    if (room.players.length > 0) {
-      // Transfer host to first remaining player
-      room.hostId = room.players[0].id;
-      room.players[0].isHost = true;
-      console.log(`👑 Host transferred to ${room.players[0].name} (${room.players[0].id.substring(0, 8)}) in room ${roomCode}`);
+  // If host left, handle host departure scenarios
+  if (wasHost) {
+    if (remainingPlayers.length > 0) {
+      // OPTION 1: If you want to kick everyone when host leaves (emergency leave behavior)
+      if (isExplicitLeave) {
+        console.log(`👑 Host ${playerName} left room ${roomCode}, kicking all remaining players`);
+        
+        // Notify all remaining players that host left and they're being kicked
+        io.to(roomCode).emit('host-left-room-closed', {
+          message: 'Host left the game. Returning to main menu.',
+          hostName: playerName
+        });
+        
+        // Clean up and delete room
+        cleanupRoom(room, roomCode);
+        rooms.delete(roomCode);
+        
+        // Remove all remaining players from players map
+        remainingPlayers.forEach(player => {
+          players.delete(player.id);
+        });
+        
+        return { roomCode, deleted: true, kickedPlayers: remainingPlayers };
+      } else {
+        // OPTION 2: Transfer host to first remaining player (for disconnections)
+        room.hostId = remainingPlayers[0].id;
+        room.players.find(p => p.id === remainingPlayers[0].id).isHost = true;
+        console.log(`👑 Host transferred to ${remainingPlayers[0].name} (${remainingPlayers[0].id.substring(0, 8)}) in room ${roomCode}`);
+      }
     } else {
       // No players left, clean up and delete room
       console.log(`🗑️ Room ${roomCode} is empty, cleaning up...`);
@@ -143,7 +169,7 @@ function removePlayerFromRoom(playerId, playerName = 'Unknown', isExplicitLeave 
     }
   }
 
-  return { roomCode, room, leftPlayerName: playerName };
+  return { roomCode, room, leftPlayerName: playerName, wasHost };
 }
 
 // Clean up room resources
@@ -419,15 +445,24 @@ io.on('connection', (socket) => {
     console.log(`🚪 Player ${playerName} explicitly leaving room ${roomCode}`);
     
     const result = removePlayerFromRoom(socket.id, playerName, true);
-    if (result && !result.deleted) {
-      // Notify remaining players
-      socket.to(roomCode).emit('player-left', {
-        room: result.room,
-        leftPlayerId: socket.id,
-        leftPlayerName: playerName
-      });
-      
-      console.log(`📢 Notified remaining players in ${roomCode} about ${playerName} leaving`);
+    if (result) {
+      if (result.deleted) {
+        // Room was deleted (host left or no players remaining)
+        console.log(`🗑️ Room ${roomCode} deleted after ${playerName} left`);
+        
+        if (result.kickedPlayers) {
+          console.log(`👑 ${result.kickedPlayers.length} players were kicked when host left`);
+        }
+      } else if (result.room) {
+        // Notify remaining players (non-host left)
+        socket.to(roomCode).emit('player-left', {
+          room: result.room,
+          leftPlayerId: socket.id,
+          leftPlayerName: playerName
+        });
+        
+        console.log(`📢 Notified remaining players in ${roomCode} about ${playerName} leaving`);
+      }
     }
     
     // Remove from players map
