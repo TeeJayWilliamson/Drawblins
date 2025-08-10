@@ -1,4 +1,4 @@
-// Enhanced Party Mode Client - Fixed Disconnection Issues + iOS Support
+// Enhanced Party Mode Client - Universal Casting Like YouTube/Netflix
 class PartyGameClient {
   constructor() {
     this.socket = null;
@@ -18,8 +18,10 @@ class PartyGameClient {
     this.isOnlinePartyMode = false;
     this.spectatorWindow = null;
     
-    // iOS Support and Connection Management
+    // Universal iOS Support and Connection Management
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.isIOSSafari = this.isIOS && /Safari/.test(navigator.userAgent) && !/CriOS|Chrome/.test(navigator.userAgent);
+    this.canCast = !this.isIOSSafari; // ✅ Allow Chrome on iOS to cast
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 5;
     this.reconnectInterval = null;
@@ -47,7 +49,9 @@ class PartyGameClient {
       windowOnlinePartyMode: window.onlinePartyMode,
       getCurrentGameMode: window.getCurrentGameMode?.(),
       isOnlinePartyMode: this.isOnlinePartyMode,
-      isIOS: this.isIOS
+      isIOS: this.isIOS,
+      isIOSSafari: this.isIOSSafari,
+      canCast: this.canCast
     });
     
     this.createPartyModeUI();
@@ -56,8 +60,8 @@ class PartyGameClient {
       console.log('🌐 Online Party Mode detected - updating UI');
       this.initializeOnlinePartyMode();
     } else {
-      console.log('📺 Regular Party Mode detected - initializing Cast');
-      this.initializeCastSDK();
+      console.log('📺 Regular Party Mode detected - initializing Universal Cast');
+      this.initializeUniversalCast();
     }
   }
 
@@ -185,6 +189,7 @@ class PartyGameClient {
         console.log('📝 Updating button to Open Spectator View');
         castBtn.innerHTML = '🖥️ Open Spectator View';
         castBtn.title = 'Open spectator view in new window';
+        castBtn.disabled = false;
       }
       
       console.log('✅ Online Party Mode UI updates complete');
@@ -202,21 +207,21 @@ class PartyGameClient {
     this.buzzer = buzzer;
   }
 
-  // Initialize Google Cast SDK with custom receiver
-  initializeCastSDK() {
-    if (!this.isOnlinePartyMode && !this.isIOS) {
-      this.castManager = new CustomCastManager(this);
+  // Initialize Universal Cast SDK - YouTube/Netflix style
+  initializeUniversalCast() {
+    if (!this.isOnlinePartyMode) {
+      this.castManager = new UniversalCastManager(this);
     }
   }
 
-  // Handle cast/spectator button click
+  // Handle cast/spectator button click - Universal approach
   handleCastClick() {
     if (this.isOnlinePartyMode) {
       this.handleSpectatorClick();
-    } else if (this.castManager && !this.isIOS) {
+    } else if (this.castManager) {
       this.castManager.handleCastClick();
-    } else if (this.isIOS) {
-      this.showError('Casting is not supported on iOS devices. Use Chrome on Android or desktop.');
+    } else {
+      this.showError('Cast manager not initialized');
     }
   }
 
@@ -285,7 +290,7 @@ class PartyGameClient {
   sendToCastDisplay(type, data) {
     if (this.isOnlinePartyMode) {
       this.sendToSpectator(type, data);
-    } else if (this.castManager && !this.isIOS) {
+    } else if (this.castManager) {
       this.castManager.sendToCast(type, data);
     }
   }
@@ -617,7 +622,7 @@ class PartyGameClient {
     this.buzzer.play().catch(() => {});
   }
 
-  // Create enhanced party mode UI with iOS indicators
+  // Create enhanced party mode UI with universal cast support
   createPartyModeUI() {
     console.log('Creating Enhanced Party Mode UI...');
     const container = document.querySelector('.container');
@@ -641,15 +646,19 @@ class PartyGameClient {
       'Play together with web spectator view - everyone uses their own device!' :
       'Play together - everyone uses their own device!';
     
-    // Add iOS warning if needed
-    const iosWarning = this.isIOS ? 
-      '<div class="ios-warning">📱 iOS Device: Casting not available, limited background support</div>' : '';
+    // Add browser info for casting
+    const getCastInfo = () => {
+      if (this.isOnlinePartyMode) return '';
+      if (this.canCast) return '<div class="cast-info">✅ Casting supported in this browser</div>';
+      if (this.isIOSSafari) return '<div class="cast-info">📱 For casting: Use Chrome browser or AirPlay from Control Center</div>';
+      return '<div class="cast-info">ℹ️ Use Chrome browser for best casting experience</div>';
+    };
     
     partyModeSection.innerHTML = `
       <div class="party-mode-card">
         <h3>${modeTitle}</h3>
         <p>${modeDescription}</p>
-        ${iosWarning}
+        ${getCastInfo()}
         
         <div id="party-connection-status" class="connection-status">
           <span class="status-indicator"></span>
@@ -705,8 +714,8 @@ class PartyGameClient {
             </div>
             <div class="host-action-buttons">
               <button id="start-party-game-btn" class="party-btn start-btn">Start Game</button>
-              <button id="cast-to-tv-btn" class="party-btn cast-btn" ${this.isIOS ? 'disabled' : ''}>
-                ${this.isOnlinePartyMode ? '🖥️ Open Spectator View' : (this.isIOS ? '📺 iOS Not Supported' : '📺 Cast to TV')}
+              <button id="cast-to-tv-btn" class="party-btn cast-btn">
+                ${this.isOnlinePartyMode ? '🖥️ Open Spectator View' : '📺 Cast'}
               </button>
             </div>
           </div>
@@ -815,7 +824,7 @@ class PartyGameClient {
       });
     }
 
-    // Cast/Spectator button
+    // Universal Cast/Spectator button
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
       castBtn.addEventListener('click', () => {
@@ -2197,16 +2206,8 @@ class PartyGameClient {
     
     // Reset cast/spectator button
     const castBtn = document.getElementById('cast-to-tv-btn');
-    if (castBtn) {
-      castBtn.classList.remove('connected', 'connecting');
-      if (this.isOnlinePartyMode) {
-        castBtn.innerHTML = '🖥️ Open Spectator View';
-      } else if (this.isIOS) {
-        castBtn.innerHTML = '📺 iOS Not Supported';
-      } else {
-        castBtn.innerHTML = '📺 Cast to TV';
-      }
-      castBtn.disabled = this.isIOS;
+    if (castBtn && this.castManager) {
+      this.castManager.updateCastButton('ready');
     }
     
     // Remove event listeners
@@ -2234,140 +2235,388 @@ class PartyGameClient {
   }
 }
 
-// Enhanced Custom Cast Manager with iOS Detection
-class CustomCastManager {
+// Universal Cast Manager - YouTube/Netflix Style
+class UniversalCastManager {
   constructor(partyClient) {
     this.partyClient = partyClient;
     this.castSession = null;
     this.APPLICATION_ID = '570D13B8';
     this.useDefaultReceiver = false;
-    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
-    if (this.isIOS) {
-      this.setupIOSFallback();
-    } else {
-      this.init();
-    }
+    // Universal device detection
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    this.isChrome = /Chrome|CriOS/.test(navigator.userAgent);
+    this.isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    this.isIOSSafari = this.isIOS && this.isSafari;
+    
+    // Capability detection (like YouTube)
+    this.canUseCastSDK = this.isChrome; // Chrome on any platform
+    this.shouldUseAirPlay = this.isIOSSafari;
+    this.canCast = this.canUseCastSDK || this.shouldUseAirPlay;
+    
+    console.log('🎯 Universal Cast Manager initialized:', {
+      isIOS: this.isIOS,
+      isChrome: this.isChrome,
+      isIOSSafari: this.isIOSSafari,
+      canUseCastSDK: this.canUseCastSDK,
+      shouldUseAirPlay: this.shouldUseAirPlay,
+      canCast: this.canCast
+    });
+    
+    this.init();
   }
 
   init() {
+    if (this.canUseCastSDK) {
+      // Initialize Google Cast SDK (works on Chrome including iOS)
+      this.initializeGoogleCast();
+    } else if (this.shouldUseAirPlay) {
+      // iOS Safari - prepare for AirPlay
+      this.initializeAirPlay();
+    } else {
+      // Other browsers - show guidance
+      this.initializeFallback();
+    }
+  }
+
+  initializeGoogleCast() {
+    console.log('📡 Initializing Google Cast SDK...');
     if (!window.chrome || !window.chrome.cast) {
       const script = document.createElement('script');
       script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
-      script.onload = () => this.setupCast();
-      script.onerror = () => this.showError('Failed to load Cast SDK');
+      script.onload = () => this.setupGoogleCast();
+      script.onerror = () => {
+        console.error('Failed to load Cast SDK');
+        this.updateCastButton('not-supported');
+      };
       document.head.appendChild(script);
     } else {
-      this.setupCast();
+      this.setupGoogleCast();
     }
   }
 
-  setupIOSFallback() {
-    // For iOS, update the cast button to show it's not available
-    const castBtn = document.getElementById('cast-to-tv-btn');
-    if (castBtn) {
-      castBtn.innerHTML = '📺 iOS Not Supported';
-      castBtn.disabled = true;
-      castBtn.title = 'Casting is not available on iOS devices. Use Chrome on Android or desktop.';
-      castBtn.style.opacity = '0.6';
-    }
-  }
-
-  setupCast() {
+  setupGoogleCast() {
     window['__onGCastApiAvailable'] = (isAvailable) => {
       if (isAvailable) {
-        this.initializeCast();
+        try {
+          const castContext = cast.framework.CastContext.getInstance();
+          castContext.setOptions({
+            receiverApplicationId: this.useDefaultReceiver
+              ? chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
+              : this.APPLICATION_ID,
+            autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+          });
+
+          castContext.addEventListener(
+            cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+            (event) => this.onCastStateChanged(event)
+          );
+
+          this.updateCastButton('ready');
+          console.log('✅ Google Cast SDK initialized');
+        } catch (error) {
+          console.error('Cast init failed:', error);
+          this.updateCastButton('not-supported');
+        }
       } else {
-        this.showError('Google Cast not available');
+        console.error('Cast API not available');
+        this.updateCastButton('not-supported');
       }
     };
   }
 
-  initializeCast() {
+  initializeAirPlay() {
+    console.log('🍎 Initializing AirPlay support...');
+    this.updateCastButton('airplay-ready');
+  }
+
+  initializeFallback() {
+    console.log('⚠️ Initializing fallback mode...');
+    this.updateCastButton('not-supported');
+  }
+
+  // Universal cast button click handler (YouTube-style)
+  handleCastClick() {
+    console.log('🎯 Universal cast click handler');
+    
+    if (this.canUseCastSDK) {
+      // Use Google Cast SDK (Chrome on any platform)
+      this.handleGoogleCast();
+    } else if (this.shouldUseAirPlay) {
+      // Use iOS native AirPlay (Safari on iOS)
+      this.handleNativeAirPlay();
+    } else {
+      // Show browser guidance
+      this.showBrowserGuidance();
+    }
+  }
+
+  handleGoogleCast() {
+    console.log('📡 Handling Google Cast...');
     try {
       const castContext = cast.framework.CastContext.getInstance();
-      castContext.setOptions({
-        receiverApplicationId: this.useDefaultReceiver
-          ? chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
-          : this.APPLICATION_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
-      });
-
-      castContext.addEventListener(
-        cast.framework.CastContextEventType.CAST_STATE_CHANGED,
-        (event) => this.onCastStateChanged(event)
-      );
-
-      this.updateCastButton('ready');
-      console.log('Cast initialized with Application ID:', this.useDefaultReceiver ? 'DEFAULT_MEDIA_RECEIVER' : this.APPLICATION_ID);
-    } catch (error) {
-      console.error('Cast init failed:', error);
-      this.showError('Cast initialization failed');
-    }
-  }
-
-  onCastStateChanged(event) {
-    const castState = event.castState;
-    const castBtn = document.getElementById('cast-to-tv-btn');
-
-    switch (castState) {
-      case cast.framework.CastState.CONNECTED:
-        this.castSession = cast.framework.CastContext.getInstance().getCurrentSession();
-        if (castBtn) {
-          castBtn.classList.add('connected');
-          castBtn.innerHTML = '📺 Connected';
-        }
-        this.partyClient.showMessage('Connected to Chromecast! Game will display on TV.');
-        if (!this.useDefaultReceiver) {
-          this.sendInitialGameData();
-        }
-        break;
-
-      case cast.framework.CastState.CONNECTING:
-        if (castBtn) {
-          castBtn.classList.add('connecting');
-          castBtn.innerHTML = '📺 Connecting...';
-        }
-        break;
-
-      case cast.framework.CastState.NOT_CONNECTED:
-        this.castSession = null;
-        if (castBtn) {
-          castBtn.classList.remove('connected', 'connecting');
-          castBtn.innerHTML = '📺 Cast to TV';
-        }
-        break;
-    }
-  }
-
-  handleCastClick() {
-    if (this.isIOS) {
-      this.partyClient.showError('Casting is not supported on iOS devices. Please use Chrome on Android or desktop.');
-      return;
-    }
-
-    if (this.castSession) {
-      this.partyClient.showMessage('Already connected to Chromecast. Game is displaying on TV.');
-    } else {
-      try {
-        const castContext = cast.framework.CastContext.getInstance();
+      
+      if (this.castSession) {
+        // Already connected - show message
+        this.partyClient.showMessage('Already connected to Chromecast. Game is displaying on TV.');
+      } else {
+        // Request new session
         castContext.requestSession()
           .then(() => {
-            console.log('Cast session started');
+            console.log('✅ Cast session started');
           })
           .catch((error) => {
             if (error.code !== 'cancel') {
               console.error('Cast error:', error);
-              this.partyClient.showError('Failed to connect to Chromecast');
+              this.partyClient.showError('Failed to connect to Chromecast. Make sure you\'re on the same WiFi network.');
             }
           });
-      } catch (error) {
-        console.error('Cast click error:', error);
-        this.partyClient.showError('Cast not available');
       }
+    } catch (error) {
+      console.error('Cast click error:', error);
+      this.partyClient.showError('Cast not available. Please refresh and try again.');
     }
   }
 
+  handleNativeAirPlay() {
+    console.log('🍎 Handling native AirPlay...');
+    
+    // Check for modern presentation API
+    if ('webkitPresentationMode' in HTMLVideoElement.prototype || 
+        navigator.mediaDevices?.getDisplayMedia) {
+      this.createAirPlayVideo();
+    } else {
+      // Fallback: open fullscreen view and instruct user
+      this.createAirPlayFallback();
+    }
+  }
+
+  createAirPlayVideo() {
+    console.log('📺 Creating AirPlay video element...');
+    
+    // Create video element for AirPlay (like YouTube does)
+    const video = document.createElement('video');
+    video.controls = true;
+    video.playsInline = false; // Important for AirPlay
+    video.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000;
+      width: 80vw;
+      height: 45vw;
+      max-width: 800px;
+      max-height: 450px;
+      background: black;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    `;
+
+    // Create a canvas stream for the game
+    const canvas = this.createGameCanvas();
+    const stream = canvas.captureStream(30);
+    video.srcObject = stream;
+
+    // Add to page
+    document.body.appendChild(video);
+    
+    // Auto-play and trigger AirPlay picker
+    video.play().then(() => {
+      if ('webkitShowPlaybackTargetPicker' in video) {
+        // Trigger AirPlay picker automatically
+        video.webkitShowPlaybackTargetPicker();
+      }
+      this.partyClient.showMessage('Video created! Use AirPlay button or Control Center → Screen Mirroring to cast to Apple TV');
+    }).catch((error) => {
+      console.error('Video play failed:', error);
+      this.partyClient.showError('Failed to start video for AirPlay');
+    });
+
+    // Store references
+    this.airPlayVideo = video;
+    this.airPlayCanvas = canvas;
+
+    // Add close button
+    this.createAirPlayCloseButton(video);
+  }
+
+  createAirPlayCloseButton(video) {
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '×';
+    closeBtn.style.cssText = `
+      position: fixed;
+      top: calc(50% - 45vw/2 - 15px);
+      right: calc(50% - 80vw/2 - 15px);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+    
+    closeBtn.onclick = () => {
+      video.remove();
+      closeBtn.remove();
+      this.cleanupAirPlay();
+    };
+
+    document.body.appendChild(closeBtn);
+  }
+
+  createAirPlayFallback() {
+    console.log('🍎 Creating AirPlay fallback...');
+    
+    // Simple fallback - open game view in new window
+    const castWindow = window.open(
+      'viewer.html?airplay=true', 
+      'GameCast', 
+      'width=1280,height=720,scrollbars=no,resizable=yes'
+    );
+
+    if (castWindow) {
+      this.partyClient.showMessage('Game view opened! Use Control Center → Screen Mirroring to cast to Apple TV');
+    } else {
+      this.partyClient.showError('Please allow popups and try again');
+    }
+  }
+
+  createGameCanvas() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1280;
+    canvas.height = 720;
+    const ctx = canvas.getContext('2d');
+
+    // Start rendering game to canvas
+    this.renderGameToCanvas(ctx, canvas);
+    
+    return canvas;
+  }
+
+  renderGameToCanvas(ctx, canvas) {
+    // Clear with game background
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Game title
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Drawblins Party', canvas.width / 2, 100);
+
+    // Room code
+    if (this.partyClient.roomCode) {
+      ctx.font = '36px Arial';
+      ctx.fillText(`Room: ${this.partyClient.roomCode}`, canvas.width / 2, 160);
+    }
+
+    // Game status
+    if (this.partyClient.currentRoom) {
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'left';
+      
+      let y = 250;
+      ctx.fillText('Players:', 100, y);
+      y += 40;
+      
+      this.partyClient.currentRoom.players?.forEach((player, index) => {
+        ctx.fillText(`${index + 1}. ${player.name} ${player.isHost ? '(Host)' : ''}`, 120, y);
+        y += 35;
+      });
+    }
+
+    // Continue animation loop
+    requestAnimationFrame(() => this.renderGameToCanvas(ctx, canvas));
+  }
+
+  showBrowserGuidance() {
+    console.log('ℹ️ Showing browser guidance...');
+    
+    if (this.isIOSSafari) {
+      this.partyClient.showMessage('💡 For Chromecast: Use Chrome browser app. For Apple TV: Use Control Center → Screen Mirroring');
+    } else {
+      this.partyClient.showError('For casting, please use Chrome browser or Safari on iOS');
+    }
+  }
+
+  // Cast state change handler (Google Cast)
+  onCastStateChanged(event) {
+    console.log('📡 Cast state changed:', event.castState);
+    
+    switch (event.castState) {
+      case cast.framework.CastState.CONNECTED:
+        this.castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+        this.updateCastButton('connected');
+        this.partyClient.showMessage('✅ Connected to Chromecast! Game will display on TV.');
+        this.sendInitialGameData();
+        break;
+        
+      case cast.framework.CastState.CONNECTING:
+        this.updateCastButton('connecting');
+        break;
+        
+      case cast.framework.CastState.NOT_CONNECTED:
+        this.castSession = null;
+        this.updateCastButton('ready');
+        break;
+    }
+  }
+
+  // Update cast button based on state (universal)
+  updateCastButton(state) {
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (!castBtn) return;
+
+    // Reset classes
+    castBtn.classList.remove('connected', 'connecting');
+
+    switch (state) {
+      case 'ready':
+        // Google Cast ready (Chrome)
+        castBtn.innerHTML = '📺 Cast';
+        castBtn.disabled = false;
+        castBtn.title = 'Cast to Chromecast';
+        break;
+        
+      case 'airplay-ready':
+        // iOS Safari - AirPlay ready
+        castBtn.innerHTML = '📺 Cast';
+        castBtn.disabled = false;
+        castBtn.title = 'Cast to Apple TV';
+        break;
+        
+      case 'connecting':
+        castBtn.innerHTML = '📺 Connecting...';
+        castBtn.disabled = true;
+        castBtn.classList.add('connecting');
+        break;
+        
+      case 'connected':
+        castBtn.innerHTML = '📺 Connected';
+        castBtn.disabled = false;
+        castBtn.classList.add('connected');
+        castBtn.title = 'Game is displaying on TV';
+        break;
+        
+      case 'not-supported':
+        castBtn.innerHTML = '📺 Cast';
+        castBtn.disabled = true;
+        castBtn.title = 'Use Chrome or Safari on iOS for casting';
+        break;
+    }
+  }
+
+  // Send initial game data to cast display
   sendInitialGameData() {
     console.log('🎮 Sending initial game data to cast...');
     if (this.castSession && this.partyClient.currentRoom) {
@@ -2384,70 +2633,65 @@ class CustomCastManager {
     }
   }
 
-  // Ultra-aggressive image compression for Cast
-  async compressImageData(imageData, quality = 0.4) {
-    return new Promise((resolve) => {
-      console.log('🗜️ Starting ultra compression...');
-      console.log('🗜️ Original data length:', imageData.length);
-      
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        console.log('🗜️ Image loaded for compression:', img.width, 'x', img.height);
-        
-        // Much smaller size for TV display
-        const maxSize = 300;
-        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        
-        console.log('🗜️ Canvas size for compression:', canvas.width, 'x', canvas.height);
-        
-        // Fill with white background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw and compress heavily
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        try {
-          const compressedData = canvas.toDataURL('image/jpeg', quality);
-          console.log('🗜️ Compressed data length:', compressedData.length);
-          console.log('🗜️ Compression ratio:', Math.round(compressedData.length/imageData.length*100) + '%');
-          resolve(compressedData);
-        } catch (error) {
-          console.error('🗜️ Compression failed:', error);
-          resolve(imageData);
-        }
-      };
-      
-      img.onerror = (error) => {
-        console.error('🗜️ Failed to load image for compression:', error);
-        resolve(imageData);
-      };
-      
-      img.src = imageData;
-    });
-  }
-
+  // Universal send to cast method
   sendToCast(type, data) {
-    console.log('📡 sendToCast called:', type);
+    console.log('📤 Universal sendToCast:', type);
     
-    if (type === 'show-drawings-slideshow') {
-      this.sendDrawingsSlideshowData(data);
-    } else {
-      this.sendMessage(type, data);
+    if (this.canUseCastSDK && this.castSession) {
+      // Send to Google Cast
+      if (type === 'show-drawings-slideshow') {
+        this.sendDrawingsSlideshowData(data);
+      } else {
+        this.sendMessage(type, data);
+      }
+    } else if (this.airPlayCanvas) {
+      // Update AirPlay canvas
+      this.updateAirPlayCanvas(type, data);
     }
   }
 
+  // Send message to Google Cast
+  sendMessage(type, data) {
+    if (!this.castSession) {
+      console.error('❌ No cast session available');
+      return;
+    }
+
+    try {
+      const message = { type, ...data };
+      const messageSize = JSON.stringify(message).length;
+      
+      console.log('📡 Sending to Google Cast:', type, 'Size:', messageSize);
+      
+      // Size limit for Cast
+      if (messageSize > 30000) {
+        console.error('❌ Message too large for Cast:', messageSize);
+        this.partyClient.showError(`Message too large for Cast: ${messageSize} characters`);
+        return;
+      }
+      
+      this.castSession.sendMessage(
+        'urn:x-cast:com.drawblins.gamedata',
+        message
+      ).then(() => {
+        console.log('✅ Cast message sent:', type);
+      }).catch((error) => {
+        console.error('❌ Cast message error:', error);
+        if (error === 'invalid_parameter') {
+          this.partyClient.showError('Message too large for Cast TV');
+        }
+      });
+    } catch (error) {
+      console.error('❌ Send message error:', error);
+    }
+  }
+
+  // Send drawings slideshow to Google Cast
   async sendDrawingsSlideshowData(data) {
-    console.log('🎨 Sending drawings slideshow data...');
+    console.log('🎨 Sending drawings slideshow to Cast...');
     
     try {
-      // First, send the original monster
+      // Send original monster first
       if (data.originalMonster) {
         this.sendMessage('slideshow-start', {
           originalMonster: data.originalMonster,
@@ -2455,18 +2699,17 @@ class CustomCastManager {
         });
       }
 
-      // Then send compressed drawings one by one
+      // Send compressed drawings one by one
       if (data.drawings && data.drawings.length > 0) {
         for (let i = 0; i < data.drawings.length; i++) {
           const drawing = data.drawings[i];
-          console.log(`📤 Processing drawing ${i + 1}/${data.drawings.length} for slideshow`);
+          console.log(`📤 Processing drawing ${i + 1}/${data.drawings.length}`);
           
           if (drawing.imageData) {
             try {
-              // Ultra compress for slideshow
+              // Compress for Cast
               const compressedImage = await this.compressImageData(drawing.imageData, 0.3);
               
-              // Send individual drawing for slideshow
               this.sendMessage('slideshow-drawing', {
                 playerName: drawing.playerName,
                 imageData: compressedImage,
@@ -2479,7 +2722,7 @@ class CustomCastManager {
               await new Promise(resolve => setTimeout(resolve, 200));
               
             } catch (error) {
-              console.error('Error processing drawing for slideshow:', error);
+              console.error('Error processing drawing:', error);
             }
           }
         }
@@ -2487,89 +2730,116 @@ class CustomCastManager {
       
     } catch (error) {
       console.error('Error sending slideshow data:', error);
-      this.partyClient.showError('Failed to send drawings to TV');
     }
   }
 
-  sendMessage(type, data) {
-    if (!this.castSession) {
-      console.error('❌ No cast session available for message:', type);
-      return;
-    }
-
-    if (this.isIOS) {
-      console.error('❌ iOS devices cannot send cast messages');
-      return;
-    }
-
-    try {
-      const message = { type, ...data };
-      const messageSize = JSON.stringify(message).length;
+  // Ultra-aggressive image compression for Cast
+  async compressImageData(imageData, quality = 0.4) {
+    return new Promise((resolve) => {
+      console.log('🗜️ Compressing image...');
       
-      console.log('=== SENDING TO CAST ===');
-      console.log('Type:', type);
-      console.log('Message size:', messageSize, 'characters');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
       
-      // Much stricter size limit to prevent accumulation
-      if (messageSize > 30000) {
-        console.error('❌ Message too large:', messageSize);
-        this.partyClient.showError(`Message too large for Cast: ${messageSize} characters`);
-        return;
-      }
-      
-      this.castSession.sendMessage(
-        'urn:x-cast:com.drawblins.gamedata',
-        message
-      ).then(() => {
-        console.log('✅ Cast message sent successfully:', type);
-      }).catch((error) => {
-        console.error('❌ Cast message error:', error);
-        if (error === 'invalid_parameter') {
-          console.error('Message was likely too large or contained invalid data');
-          this.partyClient.showError('Message too large for Cast TV');
+      img.onload = () => {
+        // Smaller size for TV display
+        const maxSize = 300;
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        // Fill with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        try {
+          const compressedData = canvas.toDataURL('image/jpeg', quality);
+          console.log('🗜️ Compressed:', Math.round(compressedData.length/imageData.length*100) + '%');
+          resolve(compressedData);
+        } catch (error) {
+          console.error('Compression failed:', error);
+          resolve(imageData);
         }
-      });
-    } catch (error) {
-      console.error('❌ Send message error:', error);
-    }
+      };
+      
+      img.onerror = (error) => {
+        console.error('Failed to load image for compression:', error);
+        resolve(imageData);
+      };
+      
+      img.src = imageData;
+    });
   }
 
-  updateCastButton(state) {
-    const castBtn = document.getElementById('cast-to-tv-btn');
-    if (!castBtn) return;
+  // Update AirPlay canvas with game data
+  updateAirPlayCanvas(type, data) {
+    if (!this.airPlayCanvas) return;
 
-    if (this.isIOS) {
-      // iOS button handled in setupIOSFallback
-      return;
-    }
-
-    switch (state) {
-      case 'ready':
-        castBtn.innerHTML = '📺 Cast to TV';
-        castBtn.disabled = false;
-        castBtn.title = 'Cast game display to your TV';
+    const ctx = this.airPlayCanvas.getContext('2d');
+    
+    switch (type) {
+      case 'game-update':
+        this.renderGameUpdate(ctx, data);
         break;
-      case 'connecting':
-        castBtn.innerHTML = '📺 Connecting...';
-        castBtn.disabled = true;
+      case 'show-drawings-slideshow':
+        this.renderDrawingsSlideshow(ctx, data);
         break;
-      case 'connected':
-        castBtn.innerHTML = '📺 Connected';
-        castBtn.disabled = false;
-        castBtn.title = 'Game is displaying on TV';
+      case 'timer-update':
+        this.renderTimer(ctx, data);
         break;
     }
   }
 
-  showError(message) {
-    console.error('Cast error:', message);
-    if (this.partyClient) {
-      this.partyClient.showError(message);
+  renderGameUpdate(ctx, data) {
+    // This will be handled by the continuous renderGameToCanvas loop
+    // Just store the data for the next render
+    this.gameUpdateData = data;
+  }
+
+  renderDrawingsSlideshow(ctx, data) {
+    // For AirPlay, we could implement a slideshow here
+    // For now, just indicate that drawings are being shown
+    if (data.drawings && data.drawings.length > 0) {
+      ctx.fillStyle = '#2c3e50';
+      ctx.fillRect(0, 0, this.airPlayCanvas.width, this.airPlayCanvas.height);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Drawings Complete!', this.airPlayCanvas.width / 2, this.airPlayCanvas.height / 2);
+      
+      ctx.font = '32px Arial';
+      ctx.fillText(`${data.drawings.length} drawings submitted`, this.airPlayCanvas.width / 2, this.airPlayCanvas.height / 2 + 60);
+    }
+  }
+
+  renderTimer(ctx, data) {
+    // Timer will be rendered as part of the game state in renderGameToCanvas
+    this.timerData = data;
+  }
+
+  // Cleanup methods
+  cleanupAirPlay() {
+    if (this.airPlayVideo) {
+      this.airPlayVideo.remove();
+      this.airPlayVideo = null;
+    }
+    
+    if (this.airPlayCanvas) {
+      this.airPlayCanvas = null;
     }
   }
 
   cleanup() {
-    if (this.castSession && !this.isIOS) {
+    console.log('🧹 Cleaning up Universal Cast Manager...');
+    
+    // Cleanup Google Cast
+    if (this.castSession) {
       try {
         this.castSession.endSession(false);
       } catch (error) {
@@ -2578,12 +2848,23 @@ class CustomCastManager {
       this.castSession = null;
     }
 
+    // Cleanup AirPlay
+    this.cleanupAirPlay();
+
+    // Reset cast button
     const castBtn = document.getElementById('cast-to-tv-btn');
-    if (castBtn && !this.isIOS) {
+    if (castBtn) {
       castBtn.classList.remove('connected', 'connecting');
-      castBtn.innerHTML = '📺 Cast to TV';
-      castBtn.disabled = false;
+      if (this.canCast) {
+        castBtn.innerHTML = '📺 Cast';
+        castBtn.disabled = false;
+      } else {
+        castBtn.innerHTML = '📺 Cast';
+        castBtn.disabled = true;
+      }
     }
+    
+    console.log('✅ Universal Cast Manager cleanup complete');
   }
 }
 
