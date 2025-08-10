@@ -78,82 +78,6 @@ function initializeUnifiedSoundSystem() {
     updateAudioVolumes();
   });
 
-  // Add this to your frontend socket event listeners
-// (wherever you handle socket events in your React component or socket manager)
-
-// Handle host leaving and room being closed
-socket.on('host-left-room-closed', (data) => {
-  console.log('Host left and room closed:', data);
-  
-  // Show a message to the user
-  if (data.message) {
-    // You can use your existing notification system, toast, or alert
-    showNotification(data.message, 'warning'); // or however you show messages
-    // Alternative: alert(data.message);
-  }
-  
-  // Clean up local game state
-  setRoom(null);
-  setGameState(null);
-  setCurrentPlayer(null);
-  // ... any other state cleanup you need
-  
-  // Redirect to home page/main menu
-  // Replace this with your actual routing method:
-  navigate('/'); // if using React Router
-  // or window.location.href = '/'; // if using vanilla JS
-  // or setCurrentView('home'); // if using state-based routing
-});
-
-// Optional: Handle when any player leaves (not just host)
-socket.on('player-left', (data) => {
-  console.log('Player left:', data);
-  
-  // Update room state with the player removed
-  if (data.room) {
-    setRoom(data.room);
-  }
-  
-  // Show notification
-  if (data.leftPlayerName) {
-    showNotification(`${data.leftPlayerName} left the game`, 'info');
-  }
-});
-
-// Optional: Add error handling for socket disconnection
-socket.on('disconnect', (reason) => {
-  console.log('Disconnected from server:', reason);
-  
-  // If disconnected during a game, show message and redirect
-  if (reason === 'io server disconnect' || reason === 'transport close') {
-    showNotification('Connection lost. Returning to main menu.', 'error');
-    
-    // Clean up and redirect after a short delay
-    setTimeout(() => {
-      setRoom(null);
-      setGameState(null);
-      navigate('/'); // or your preferred redirect method
-    }, 2000);
-  }
-});
-
-// Helper function examples (adapt to your notification system)
-function showNotification(message, type = 'info') {
-  // Example implementations:
-  
-  // If using react-toastify:
-  // toast[type](message);
-  
-  // If using a custom notification state:
-  // setNotification({ message, type, show: true });
-  
-  // If using browser alert (simple fallback):
-  alert(message);
-  
-  // If using a custom modal/popup:
-  // setModal({ message, type, show: true });
-}
-
   // Visibility change (for mobile/tab switching)
   document.addEventListener('visibilitychange', () => {
     windowHasFocus = !document.hidden;
@@ -162,6 +86,66 @@ function showNotification(message, type = 'info') {
   });
 }
 
+// Socket event listeners - only run when socket is available
+function initializeSocketEventListeners() {
+  if (typeof socket === 'undefined') return;
+  
+  // Handle host leaving and room being closed
+  socket.on('host-left-room-closed', (data) => {
+    console.log('Host left and room closed:', data);
+    
+    // Show a message to the user
+    if (data.message) {
+      showNotification(data.message, 'warning');
+    }
+    
+    // Clean up local game state
+    setRoom(null);
+    setGameState(null);
+    setCurrentPlayer(null);
+    
+    // Redirect to home page/main menu
+    navigate('/');
+  });
+
+  // Handle when any player leaves (not just host)
+  socket.on('player-left', (data) => {
+    console.log('Player left:', data);
+    
+    // Update room state with the player removed
+    if (data.room) {
+      setRoom(data.room);
+    }
+    
+    // Show notification
+    if (data.leftPlayerName) {
+      showNotification(`${data.leftPlayerName} left the game`, 'info');
+    }
+  });
+
+  // Add error handling for socket disconnection
+  socket.on('disconnect', (reason) => {
+    console.log('Disconnected from server:', reason);
+    
+    // If disconnected during a game, show message and redirect
+    if (reason === 'io server disconnect' || reason === 'transport close') {
+      showNotification('Connection lost. Returning to main menu.', 'error');
+      
+      // Clean up and redirect after a short delay
+      setTimeout(() => {
+        setRoom(null);
+        setGameState(null);
+        navigate('/');
+      }, 2000);
+    }
+  });
+}
+
+// Helper function for notifications
+function showNotification(message, type = 'info') {
+  // Simple fallback - you can enhance this
+  alert(message);
+}
 // Update the sound toggle to reflect current state
 function updateSoundToggle() {
   const soundToggle = document.getElementById('sound-toggle');
