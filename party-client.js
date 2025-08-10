@@ -195,66 +195,134 @@ detectOnlinePartyMode() {
 initializeOnlinePartyMode() {
   console.log('🌐 Setting up Online Party Mode UI updates...');
   
+  // Wait for the party UI to be fully created
   setTimeout(() => {
-    // Update the header text for Online Party Mode
-    const partyModeCardHeader = document.querySelector('.party-mode-card h3');
-    if (partyModeCardHeader) {
-      partyModeCardHeader.textContent = 'Online Party Mode';
+    this.updatePartyUIForOnlineMode();
+  }, 500); // Give more time for UI creation
+}
+
+// NEW METHOD: Update the actual party UI (not menu) for online mode
+updatePartyUIForOnlineMode() {
+  console.log('🌐 Updating party UI for Online Party Mode...');
+  
+  // Update the party mode section title (the actual game UI, not menu)
+  const partyModeSection = document.getElementById('party-mode-section');
+  if (partyModeSection) {
+    // Update the main title in the party UI
+    const partyTitle = partyModeSection.querySelector('h3');
+    if (partyTitle) {
+      console.log('📝 Updating party section title');
+      partyTitle.textContent = 'Online Party Mode';
     }
     
-    // Update the description
-    const partyModeDescription = document.querySelector('.party-mode-card p');
-    if (partyModeDescription) {
-      console.log('📝 Updating description for Online Party Mode');
-      partyModeDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
+    // Update the description in the party UI  
+    const partyDescription = partyTitle ? partyTitle.nextElementSibling : null;
+    if (partyDescription && partyDescription.tagName === 'P') {
+      console.log('📝 Updating party section description');
+      partyDescription.textContent = 'Play together with web spectator view - everyone uses their own device!';
     }
     
-    // Update cast button for online mode
+    // Most importantly: Update the cast button
     const castBtn = document.getElementById('cast-to-tv-btn');
     if (castBtn) {
-      console.log('📝 Updating button to Open Spectator View');
+      console.log('🔄 Updating cast button for Online Party Mode');
       castBtn.innerHTML = '🖥️ Open Spectator View';
       castBtn.title = 'Open spectator view in new window';
+      
+      // Remove any cast-specific styling
+      castBtn.classList.remove('cast-btn');
+      castBtn.classList.add('spectator-btn');
+      
+      // Make sure it's enabled
       castBtn.disabled = false;
     }
     
+    // Hide cast info for online mode
+    const castInfo = partyModeSection.querySelector('.cast-info');
+    if (castInfo) {
+      console.log('🙈 Hiding cast info for Online Party Mode');
+      castInfo.style.display = 'none';
+    }
+    
+    // Add spectator info
+    this.addSpectatorInfo(partyModeSection);
+    
     console.log('✅ Online Party Mode UI updates complete');
-  }, 100);
+  } else {
+    console.error('❌ Party mode section not found for UI updates');
+    // Retry after more time
+    setTimeout(() => {
+      this.updatePartyUIForOnlineMode();
+    }, 1000);
+  }
 }
 
-
-  // Setup audio system
-  setupAudio() {
-    const waitingMusic = document.getElementById('waiting-music');
-    const drawingMusic = document.getElementById('drawing-music');
-    const buzzer = document.getElementById('buzzer');
-    
-    this.waitingMusic = waitingMusic;
-    this.drawingMusic = drawingMusic;
-    this.buzzer = buzzer;
+// NEW METHOD: Add spectator-specific info
+addSpectatorInfo(partyModeSection) {
+  // Check if spectator info already exists
+  const existingSpectatorInfo = partyModeSection.querySelector('.spectator-info');
+  if (existingSpectatorInfo) {
+    return; // Already added
   }
-
-  // Initialize Universal Cast SDK - YouTube/Netflix style
-  initializeUniversalCast() {
-    if (!this.isOnlinePartyMode) {
-      this.castManager = new UniversalCastManager(this);
-    }
+  
+  // Create spectator info element
+  const spectatorInfo = document.createElement('div');
+  spectatorInfo.className = 'spectator-info';
+  spectatorInfo.innerHTML = `
+    <div style="
+      background: rgba(230, 126, 34, 0.1);
+      border: 1px solid #e67e22;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 10px 0;
+      color: #e67e22;
+      font-size: 14px;
+      text-align: center;
+    ">
+      🌐 <strong>Online Party Mode:</strong> Web spectator view instead of TV casting
+    </div>
+  `;
+  
+  // Insert after the description
+  const description = partyModeSection.querySelector('p');
+  if (description) {
+    description.parentNode.insertBefore(spectatorInfo, description.nextSibling);
+    console.log('📋 Added spectator info');
   }
+}
 
-  // FIX: Better cast/spectator button handling
-  handleCastClick() {
-    console.log('🎯 Cast button clicked - Mode:', this.isOnlinePartyMode ? 'online' : 'cast');
-    
-    if (this.isOnlinePartyMode) {
-      this.handleSpectatorClick();
-    } else if (this.castManager) {
-      this.castManager.handleCastClick();
-    } else {
-      // FIX: Fallback for when cast manager fails to initialize
-      console.log('⚠️ Cast manager not available, falling back to spectator mode');
-      this.handleSpectatorClick();
-    }
+// Setup audio system
+setupAudio() {
+  const waitingMusic = document.getElementById('waiting-music');
+  const drawingMusic = document.getElementById('drawing-music');
+  const buzzer = document.getElementById('buzzer');
+  
+  this.waitingMusic = waitingMusic;
+  this.drawingMusic = drawingMusic;
+  this.buzzer = buzzer;
+}
+
+// Initialize Universal Cast SDK - YouTube/Netflix style
+initializeUniversalCast() {
+  if (!this.isOnlinePartyMode) {
+    this.castManager = new UniversalCastManager(this);
   }
+}
+
+// FIX: Better cast/spectator button handling
+handleCastClick() {
+  console.log('🎯 Cast button clicked - Mode:', this.isOnlinePartyMode ? 'online' : 'cast');
+  
+  if (this.isOnlinePartyMode) {
+    this.handleSpectatorClick();
+  } else if (this.castManager) {
+    this.castManager.handleCastClick();
+  } else {
+    // FIX: Fallback for when cast manager fails to initialize
+    console.log('⚠️ Cast manager not available, falling back to spectator mode');
+    this.handleSpectatorClick();
+  }
+}
 
   // FIX: Improved spectator window handling
   handleSpectatorClick() {
