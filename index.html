@@ -632,22 +632,25 @@
       }
       
       // Online Party Mode Selection  
-      const onlinePartyModeCard = document.getElementById('online-party-mode-card');
-      if (onlinePartyModeCard) {
-        onlinePartyModeCard.addEventListener('click', function() {
-          console.log('Online party mode selected');
-          window.onlinePartyMode = true; // Set flag for viewer.html AND party client
-          currentGameMode = 'online-party';
-          hideMenu();
-          
-          // Set the party client to online party mode
-          if (window.partyClient) {
-            window.partyClient.setOnlinePartyMode(true);
-          }
-          
-          activatePartyMode();
-        });
-      }
+const onlinePartyModeCard = document.getElementById('online-party-mode-card');
+if (onlinePartyModeCard) {
+  onlinePartyModeCard.addEventListener('click', function() {
+    console.log('Online party mode selected');
+    window.onlinePartyMode = true;
+    currentGameMode = 'online-party';
+    hideMenu();
+    
+    // THIS LINE IS MISSING OR NOT WORKING:
+    if (window.partyClient) {
+      console.log('🔧 Calling setOnlinePartyMode(true)...');
+      window.partyClient.setOnlinePartyMode(true);
+    } else {
+      console.log('❌ window.partyClient is not available!');
+    }
+    
+    activatePartyMode();
+  });
+}
       
       // Common party mode activation logic
       function activatePartyMode() {
