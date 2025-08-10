@@ -93,18 +93,25 @@ init() {
 
   
 setOnlinePartyMode(mode) {
-  console.log("🔧 setOnlinePartyMode called with:", mode);
+  console.log("🔧🔧🔧 setOnlinePartyMode called with:", mode);
+  console.log("🔧🔧🔧 Before setting - this.isOnlinePartyMode:", this.isOnlinePartyMode);
+  console.log("🔧🔧🔧 window.onlinePartyMode:", window.onlinePartyMode);
+  console.log("🔧🔧🔧 window.getCurrentGameMode():", window.getCurrentGameMode?.());
+  
   this.isOnlinePartyMode = mode;
+  
+  console.log("🔧🔧🔧 After setting - this.isOnlinePartyMode:", this.isOnlinePartyMode);
   
   // FORCE immediate UI update if switching to online mode
   if (mode === true) {
-    console.log("🌐 IMMEDIATE: Switching to Online Party Mode");
+    console.log("🌐🌐🌐 IMMEDIATE: Switching to Online Party Mode");
     setTimeout(() => {
+      console.log("🌐🌐🌐 Running updatePartyUIForOnlineMode...");
       this.updatePartyUIForOnlineMode();
     }, 100);
   }
   
-  console.log("🔧 Mode set via menu:", mode ? "Online Party Mode" : "Regular Party Mode");
+  console.log("🔧🔧🔧 Mode set via menu:", mode ? "Online Party Mode" : "Regular Party Mode");
 }
 
   // FIX: Better detection method for online party mode
@@ -358,15 +365,22 @@ initializeUniversalCast() {
 }
 // FIX: Better cast/spectator button handling
 handleCastClick() {
+  console.log('🎯🎯🎯 Cast button clicked - DEBUGGING:');
+  console.log('🎯🎯🎯 this.isOnlinePartyMode:', this.isOnlinePartyMode);
+  console.log('🎯🎯🎯 window.onlinePartyMode:', window.onlinePartyMode);
+  console.log('🎯🎯🎯 Mode should be:', this.isOnlinePartyMode ? 'online' : 'cast');
+  
   console.log('🎯 Cast button clicked - Mode:', this.isOnlinePartyMode ? 'online' : 'cast');
   
   if (this.isOnlinePartyMode) {
+    console.log('🌐🌐🌐 Calling handleSpectatorClick...');
     this.handleSpectatorClick();
   } else if (this.castManager) {
+    console.log('📡📡📡 Calling castManager.handleCastClick...');
     this.castManager.handleCastClick();
   } else {
     // FIX: Fallback for when cast manager fails to initialize
-    console.log('⚠️ Cast manager not available, falling back to spectator mode');
+    console.log('⚠️⚠️⚠️ Cast manager not available, falling back to spectator mode');
     this.handleSpectatorClick();
   }
 }
