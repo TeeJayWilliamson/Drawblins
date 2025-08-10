@@ -17,13 +17,28 @@ class PartyGameClient {
     // Online Party Mode support
     this.isOnlinePartyMode = null;
     this.spectatorWindow = null;
-    
-    // Universal iOS Support and Connection Management
-    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    this.isIOSSafari = this.isIOS && /Safari/.test(navigator.userAgent) && !/CriOS|Chrome/.test(navigator.userAgent);
-    
-    // FIX: iPad casting should work in Safari too
-    this.canCast = true; // Allow casting on all devices
+   // Replace lines 19-30 in your constructor with this:
+
+// FIXED: Better iOS and browser detection for casting
+this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+this.isChrome = /Chrome|CriOS/.test(navigator.userAgent); // Include Chrome on iOS (CriOS)
+this.isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS/.test(navigator.userAgent);
+this.isIOSSafari = this.isIOS && this.isSafari;
+this.isChromeOnIOS = this.isIOS && /CriOS/.test(navigator.userAgent);
+
+console.log('🔍 Device Detection:', {
+  isIOS: this.isIOS,
+  isChrome: this.isChrome,
+  isSafari: this.isSafari,
+  isIOSSafari: this.isIOSSafari,
+  isChromeOnIOS: this.isChromeOnIOS,
+  userAgent: navigator.userAgent.substring(0, 100) + '...'
+});
+
+// FIXED: Proper casting capability detection
+this.canUseChromecast = this.isChrome; // Chrome on ANY platform (including iOS)
+this.canUseAirPlay = this.isIOS; // Any browser on iOS can potentially use AirPlay
+this.canCast = true; // Always allow casting attempts - let the system figure it out
     
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 5;
@@ -304,11 +319,30 @@ setupAudio() {
 
 // Initialize Universal Cast SDK - YouTube/Netflix style
 initializeUniversalCast() {
+  console.log('🎯 Initializing Universal Cast...');
+  console.log('🎯 Capabilities:', {
+    canUseChromecast: this.canUseChromecast,
+    canUseAirPlay: this.canUseAirPlay,
+    isOnlinePartyMode: this.isOnlinePartyMode
+  });
+  
   if (!this.isOnlinePartyMode) {
-    this.castManager = new UniversalCastManager(this);
+    // Try Chromecast first (works on Chrome on any platform including iOS)
+    if (this.canUseChromecast) {
+      console.log('📡 Initializing Chromecast (Chrome detected)');
+      this.castManager = new UniversalCastManager(this);
+    } else if (this.canUseAirPlay) {
+      console.log('🍎 Initializing AirPlay fallback (iOS detected)');
+      this.castManager = new UniversalCastManager(this);
+    } else {
+      console.log('❌ No casting method available');
+      // Still create cast manager for fallback guidance
+      this.castManager = new UniversalCastManager(this);
+    }
+  } else {
+    console.log('🌐 Online Party Mode - skipping cast initialization');
   }
 }
-
 // FIX: Better cast/spectator button handling
 handleCastClick() {
   console.log('🎯 Cast button clicked - Mode:', this.isOnlinePartyMode ? 'online' : 'cast');
@@ -2400,34 +2434,38 @@ handleCastClick() {
 
 // Universal Cast Manager - YouTube/Netflix Style
 class UniversalCastManager {
-  constructor(partyClient) {
-    this.partyClient = partyClient;
-    this.castSession = null;
-    this.APPLICATION_ID = '570D13B8';
-    this.useDefaultReceiver = false;
-    
-    // Universal device detection
-    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    this.isChrome = /Chrome|CriOS/.test(navigator.userAgent);
-    this.isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    this.isIOSSafari = this.isIOS && this.isSafari;
-    
-    // Capability detection (like YouTube)
-    this.canUseCastSDK = this.isChrome; // Chrome on any platform
-    this.shouldUseAirPlay = this.isIOSSafari;
-    this.canCast = this.canUseCastSDK || this.shouldUseAirPlay;
-    
-    console.log('🎯 Universal Cast Manager initialized:', {
-      isIOS: this.isIOS,
-      isChrome: this.isChrome,
-      isIOSSafari: this.isIOSSafari,
-      canUseCastSDK: this.canUseCastSDK,
-      shouldUseAirPlay: this.shouldUseAirPlay,
-      canCast: this.canCast
-    });
-    
-    this.init();
-  }
+constructor(partyClient) {
+  this.partyClient = partyClient;
+  this.castSession = null;
+  this.APPLICATION_ID = '570D13B8';
+  this.useDefaultReceiver = false;
+  
+  // FIXED: Better device detection
+  this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  this.isChrome = /Chrome|CriOS/.test(navigator.userAgent); // Include Chrome on iOS!
+  this.isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS/.test(navigator.userAgent);
+  this.isIOSSafari = this.isIOS && this.isSafari;
+  this.isChromeOnIOS = this.isIOS && /CriOS/.test(navigator.userAgent);
+  
+  // FIXED: Better capability detection
+  this.canUseCastSDK = this.isChrome; // Chrome on ANY platform (including iOS)
+  this.shouldUseAirPlay = this.isIOS && !this.isChrome; // iOS Safari only
+  this.canCast = this.canUseCastSDK || this.shouldUseAirPlay || true; // Always allow attempts
+  
+  console.log('🎯 Universal Cast Manager - Capabilities:', {
+    isIOS: this.isIOS,
+    isChrome: this.isChrome,
+    isSafari: this.isSafari,
+    isIOSSafari: this.isIOSSafari,
+    isChromeOnIOS: this.isChromeOnIOS,
+    canUseCastSDK: this.canUseCastSDK,
+    shouldUseAirPlay: this.shouldUseAirPlay,
+    canCast: this.canCast,
+    userAgent: navigator.userAgent
+  });
+  
+  this.init();
+}
 
   init() {
     if (this.canUseCastSDK) {
@@ -3030,48 +3068,6 @@ class UniversalCastManager {
     console.log('✅ Universal Cast Manager cleanup complete');
   }
 }
-
-function setupMenuEventListeners() {
-  const partyModeCard = document.getElementById('party-mode-card');
-  if (partyModeCard) {
-    partyModeCard.addEventListener('click', function() {
-      console.log('Party mode selected');
-      window.onlinePartyMode = false;
-      currentGameMode = 'party';
-      hideMenu();
-      
-      if (window.partyClient) {
-        window.partyClient.setOnlinePartyMode(false);
-        window.partyClient.init();
-      }
-      
-      activatePartyMode();
-    });
-  }
-
-  const onlinePartyModeCard = document.getElementById('online-party-mode-card');
-  if (onlinePartyModeCard) {
-    onlinePartyModeCard.addEventListener('click', function() {
-      console.log('Online party mode selected');
-      window.onlinePartyMode = true;
-      currentGameMode = 'online-party';
-      hideMenu();
-      
-      if (window.partyClient) {
-        window.partyClient.setOnlinePartyMode(true);
-        window.partyClient.init();
-      }
-      
-      activatePartyMode();
-    });
-  }
-}
-
-// Call this once when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  setupMenuEventListeners();
-});
-
 
 // Initialize party mode when DOM is loaded
 let partyClient = null;
