@@ -15,7 +15,7 @@ class PartyGameClient {
     // Add storage for preventing accumulation
     this.lastSentDrawings = null;
     // Online Party Mode support
-    this.isOnlinePartyMode = false;
+    this.isOnlinePartyMode = null;
     this.spectatorWindow = null;
     
     // Universal iOS Support and Connection Management
@@ -46,7 +46,10 @@ class PartyGameClient {
     this.setupVisibilityHandlers();
     
     // FIX: Better online party mode detection
-    this.isOnlinePartyMode = this.detectOnlinePartyMode();
+    if (this.isOnlinePartyMode === null) {
+  this.isOnlinePartyMode = this.detectOnlinePartyMode();
+}
+
     
     console.log('🔍 Mode detection:', {
       windowOnlinePartyMode: window.onlinePartyMode,
@@ -67,6 +70,12 @@ class PartyGameClient {
       this.initializeUniversalCast();
     }
   }
+
+  
+  setOnlinePartyMode(mode) {
+  this.isOnlinePartyMode = mode;
+  console.log("🔧 Mode set via menu:", mode ? "Online Party Mode" : "Local Party Mode");
+}
 
   // FIX: Better detection method for online party mode
 detectOnlinePartyMode() {
@@ -183,11 +192,43 @@ detectOnlinePartyMode() {
     // Wait a bit for DOM to be ready, then update
     setTimeout(() => {
       // Update the header text for Online Party Mode
-      const partyModeCard = document.querySelector('.party-mode-card h3');
-      if (partyModeCard) {
-        console.log('📝 Updating header to Online Party Mode');
-        partyModeCard.textContent = 'Online Party Mode';
-      }
+// Party Mode Selection  
+const partyModeCard = document.getElementById('party-mode-card');
+if (partyModeCard) {
+  partyModeCard.addEventListener('click', function() {
+    console.log('Party mode selected');
+    window.onlinePartyMode = false;
+    currentGameMode = 'party';
+    hideMenu();
+    
+    if (window.partyClient) {
+      window.partyClient.setOnlinePartyMode(false);
+      window.partyClient.init();
+    }
+    
+    activatePartyMode();
+  });
+}
+
+// Online Party Mode Selection  
+const onlinePartyModeCard = document.getElementById('online-party-mode-card');
+if (onlinePartyModeCard) {
+  onlinePartyModeCard.addEventListener('click', function() {
+    console.log('Online party mode selected');
+    window.onlinePartyMode = true;
+    currentGameMode = 'online-party';
+    hideMenu();
+    
+    if (window.partyClient) {
+      window.partyClient.setOnlinePartyMode(true);
+      window.partyClient.init();
+    }
+    
+    activatePartyMode();
+  });
+}
+
+
       
       // Update the description
       const partyModeDescription = document.querySelector('.party-mode-card p');
