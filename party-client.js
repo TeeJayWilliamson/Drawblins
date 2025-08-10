@@ -102,12 +102,18 @@ setOnlinePartyMode(mode) {
   
   console.log("🔧🔧🔧 After setting - this.isOnlinePartyMode:", this.isOnlinePartyMode);
   
-  // FORCE immediate UI update if switching to online mode
+  // FORCE immediate UI update based on mode
   if (mode === true) {
     console.log("🌐🌐🌐 IMMEDIATE: Switching to Online Party Mode");
     setTimeout(() => {
       console.log("🌐🌐🌐 Running updatePartyUIForOnlineMode...");
       this.updatePartyUIForOnlineMode();
+    }, 100);
+  } else {
+    console.log("📺📺📺 IMMEDIATE: Switching to Regular Party Mode");
+    setTimeout(() => {
+      console.log("📺📺📺 Running updatePartyUIForRegularMode...");
+      this.updatePartyUIForRegularMode();
     }, 100);
   }
   
@@ -323,6 +329,66 @@ addSpectatorInfo(partyModeSection) {
   if (description) {
     description.parentNode.insertBefore(spectatorInfo, description.nextSibling);
     console.log('📋 Added spectator info');
+  }
+}
+
+// NEW METHOD: Reset UI back to regular party mode
+updatePartyUIForRegularMode() {
+  console.log('📺 Updating party UI for Regular Party Mode...');
+  
+  const partyModeSection = document.getElementById('party-mode-section');
+  if (partyModeSection) {
+    // Reset the main title in the party UI
+    const partyTitle = partyModeSection.querySelector('h3');
+    if (partyTitle) {
+      console.log('📝 Resetting party section title to Regular Party Mode');
+      partyTitle.textContent = 'Party Mode';
+    }
+    
+    // Reset the description in the party UI  
+    const partyDescription = partyTitle ? partyTitle.nextElementSibling : null;
+    if (partyDescription && partyDescription.tagName === 'P') {
+      console.log('📝 Resetting party section description');
+      partyDescription.textContent = 'Play together - everyone uses their own device!';
+    }
+    
+    // Most importantly: Reset the cast button
+    const castBtn = document.getElementById('cast-to-tv-btn');
+    if (castBtn) {
+      console.log('🔄 Resetting cast button for Regular Party Mode');
+      castBtn.innerHTML = '📺 Cast';
+      castBtn.title = 'Cast to TV';
+      
+      // Reset styling
+      castBtn.classList.remove('spectator-btn');
+      castBtn.classList.add('cast-btn');
+      
+      // Make sure it's enabled
+      castBtn.disabled = false;
+    }
+    
+    // Show cast info for regular mode
+    const castInfo = partyModeSection.querySelector('.cast-info');
+    if (castInfo) {
+      console.log('👁️ Showing cast info for Regular Party Mode');
+      castInfo.style.display = 'block';
+    }
+    
+    // Remove spectator info
+    this.removeSpectatorInfo(partyModeSection);
+    
+    console.log('✅ Regular Party Mode UI updates complete');
+  } else {
+    console.error('❌ Party mode section not found for UI reset');
+  }
+}
+
+// NEW METHOD: Remove spectator-specific info
+removeSpectatorInfo(partyModeSection) {
+  const existingSpectatorInfo = partyModeSection.querySelector('.spectator-info');
+  if (existingSpectatorInfo) {
+    existingSpectatorInfo.remove();
+    console.log('🗑️ Removed spectator info');
   }
 }
 
