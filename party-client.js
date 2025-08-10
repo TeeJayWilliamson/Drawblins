@@ -54,44 +54,57 @@ this.canCast = true; // Always allow casting attempts - let the system figure it
   }
 
   // Initialize party mode
-  init() {
-    console.log('Initializing Enhanced Party Mode...');
-    this.setupAudio();
-    this.setupIOSSupport();
-    this.setupVisibilityHandlers();
-    
-    // FIX: Better online party mode detection
-    if (this.isOnlinePartyMode === null) {
-  this.isOnlinePartyMode = this.detectOnlinePartyMode();
+init() {
+  console.log('Initializing Enhanced Party Mode...');
+  this.setupAudio();
+  this.setupIOSSupport();
+  this.setupVisibilityHandlers();
+  
+  // FIXED: Force online party mode detection from global flag
+  if (window.onlinePartyMode === true || window.getCurrentGameMode?.() === 'online-party') {
+    console.log('🌐 FORCING Online Party Mode from window flags');
+    this.isOnlinePartyMode = true;
+  } else if (this.isOnlinePartyMode === null) {
+    console.log('🔍 Detecting party mode...');
+    this.isOnlinePartyMode = this.detectOnlinePartyMode();
+  }
+  
+  console.log('🔍 Mode detection FINAL:', {
+    windowOnlinePartyMode: window.onlinePartyMode,
+    getCurrentGameMode: window.getCurrentGameMode?.(),
+    isOnlinePartyMode: this.isOnlinePartyMode,
+    isIOS: this.isIOS,
+    isIOSSafari: this.isIOSSafari,
+    canCast: this.canCast
+  });
+  
+  this.createPartyModeUI();
+  
+  if (this.isOnlinePartyMode) {
+    console.log('🌐 Online Party Mode detected - updating UI');
+    this.initializeOnlinePartyMode();
+  } else {
+    console.log('📺 Regular Party Mode detected - initializing Universal Cast');
+    this.initializeUniversalCast();
+  }
 }
 
-    
-    console.log('🔍 Mode detection:', {
-      windowOnlinePartyMode: window.onlinePartyMode,
-      getCurrentGameMode: window.getCurrentGameMode?.(),
-      isOnlinePartyMode: this.isOnlinePartyMode,
-      isIOS: this.isIOS,
-      isIOSSafari: this.isIOSSafari,
-      canCast: this.canCast
-    });
-    
-    this.createPartyModeUI();
-    
-    if (this.isOnlinePartyMode) {
-      console.log('🌐 Online Party Mode detected - updating UI');
-      this.initializeOnlinePartyMode();
-    } else {
-      console.log('📺 Regular Party Mode detected - initializing Universal Cast');
-      this.initializeUniversalCast();
-    }
-  }
-
   
 
   
-  setOnlinePartyMode(mode) {
+setOnlinePartyMode(mode) {
+  console.log("🔧 setOnlinePartyMode called with:", mode);
   this.isOnlinePartyMode = mode;
-  console.log("🔧 Mode set via menu:", mode ? "Online Party Mode" : "Local Party Mode");
+  
+  // FORCE immediate UI update if switching to online mode
+  if (mode === true) {
+    console.log("🌐 IMMEDIATE: Switching to Online Party Mode");
+    setTimeout(() => {
+      this.updatePartyUIForOnlineMode();
+    }, 100);
+  }
+  
+  console.log("🔧 Mode set via menu:", mode ? "Online Party Mode" : "Regular Party Mode");
 }
 
   // FIX: Better detection method for online party mode
