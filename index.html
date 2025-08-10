@@ -302,14 +302,6 @@
 </head>
 <body>
   <div class="container">
-    
-    <!-- UPDATED: Better back button HTML -->
-<button class="back-to-menu-btn" onclick="showMenu()">
-    <svg class="back-arrow-svg" viewBox="0 0 24 24">
-        <path d="M19 12H5"></path>
-        <path d="M12 19l-7-7 7-7"></path>
-    </svg>
-</button>
 
     <!-- Game Mode Selection Menu -->
     <div id="game-mode-menu" class="game-mode-menu">
@@ -594,15 +586,34 @@
       
       const menu = document.getElementById('game-mode-menu');
       const gameContent = document.getElementById('game-content');
-      const backBtn = document.getElementById('back-to-menu-btn');
       
-      if (!menu || !gameContent || !backBtn) {
-        console.error('Missing required menu elements:', {
-          menu: !!menu,
-          gameContent: !!gameContent,
-          backBtn: !!backBtn
-        });
+      if (!menu || !gameContent) {
+        console.error('Missing required menu elements');
         return;
+      }
+      
+      // Create and add back button dynamically
+      function addBackButton() {
+        if (document.querySelector('.back-to-menu-btn')) return; // Already exists
+        
+        const backBtn = document.createElement('button');
+        backBtn.className = 'back-to-menu-btn';
+        backBtn.innerHTML = `
+          <svg class="back-arrow-svg" viewBox="0 0 24 24">
+            <path d="M19 12H5"></path>
+            <path d="M12 19l-7-7 7-7"></path>
+          </svg>
+        `;
+        backBtn.addEventListener('click', showMenu);
+        document.body.appendChild(backBtn);
+      }
+      
+      // Remove back button
+      function removeBackButton() {
+        const backBtn = document.querySelector('.back-to-menu-btn');
+        if (backBtn) {
+          backBtn.remove();
+        }
       }
       
       // Show menu initially
@@ -610,7 +621,7 @@
         console.log('Showing menu');
         menu.classList.remove('hidden');
         gameContent.classList.add('hidden');
-        backBtn.classList.add('hidden');
+        removeBackButton();
         currentGameMode = null;
         
         // Clean up party mode if active
@@ -641,7 +652,6 @@
         }
         if (roundInfo) {
           roundInfo.style.display = '';
-          // Keep round info hidden initially
         }
         
         // Hide party elements
@@ -672,7 +682,7 @@
         console.log('Hiding menu');
         menu.classList.add('hidden');
         gameContent.classList.remove('hidden');
-        backBtn.classList.remove('hidden');
+        addBackButton();
       }
       
       // Event Listeners
@@ -719,16 +729,15 @@
         });
       }
       
-// Party Mode Selection  
+      // Party Mode Selection  
       const partyModeCard = document.getElementById('party-mode-card');
       if (partyModeCard) {
         partyModeCard.addEventListener('click', function() {
           console.log('Party mode selected');
-          window.onlinePartyMode = false; // Explicitly set to false
+          window.onlinePartyMode = false;
           currentGameMode = 'party';
           hideMenu();
           
-          // Set the party client to regular party mode
           if (window.partyClient) {
             window.partyClient.setOnlinePartyMode(false);
           }
@@ -738,25 +747,24 @@
       }
       
       // Online Party Mode Selection  
-const onlinePartyModeCard = document.getElementById('online-party-mode-card');
-if (onlinePartyModeCard) {
-  onlinePartyModeCard.addEventListener('click', function() {
-    console.log('Online party mode selected');
-    window.onlinePartyMode = true;
-    currentGameMode = 'online-party';
-    hideMenu();
-    
-    // THIS LINE IS MISSING OR NOT WORKING:
-    if (window.partyClient) {
-      console.log('🔧 Calling setOnlinePartyMode(true)...');
-      window.partyClient.setOnlinePartyMode(true);
-    } else {
-      console.log('❌ window.partyClient is not available!');
-    }
-    
-    activatePartyMode();
-  });
-}
+      const onlinePartyModeCard = document.getElementById('online-party-mode-card');
+      if (onlinePartyModeCard) {
+        onlinePartyModeCard.addEventListener('click', function() {
+          console.log('Online party mode selected');
+          window.onlinePartyMode = true;
+          currentGameMode = 'online-party';
+          hideMenu();
+          
+          if (window.partyClient) {
+            console.log('🔧 Calling setOnlinePartyMode(true)...');
+            window.partyClient.setOnlinePartyMode(true);
+          } else {
+            console.log('❌ window.partyClient is not available!');
+          }
+          
+          activatePartyMode();
+        });
+      }
       
       // Common party mode activation logic
       function activatePartyMode() {
@@ -818,18 +826,10 @@ if (onlinePartyModeCard) {
         console.log('Party mode activation started');
       }
       
-      // Back button event listener
-      backBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        console.log('Back to menu clicked');
-        showMenu();
-      });
-      
       // Logo click override
       const logoClick = document.getElementById('logo-click');
       if (logoClick) {
         logoClick.addEventListener('click', function(e) {
-          // Don't trigger if clicking on corner buttons
           if (e.target.closest('.corner-buttons')) {
             return;
           }
