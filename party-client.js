@@ -3103,6 +3103,10 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, initializing enhanced party client...');
   if (window.self === window.top) {
     partyClient = new PartyGameClient();
+    
+    // FIXED: Make partyClient available globally IMMEDIATELY
+    window.partyClient = partyClient;
+    
     partyClient.init();
     console.log('Enhanced party client initialized');
   }
@@ -3115,5 +3119,7 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-// Make partyClient available globally
-window.partyClient = partyClient;
+// ALSO set a backup global reference
+window.getPartyClient = function() {
+  return partyClient;
+};
