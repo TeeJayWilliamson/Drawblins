@@ -150,7 +150,30 @@ detectOnlinePartyMode() {
     };
   }
 
-  
+  detectHostDisconnect() {
+  // This method can be called when the host intentionally disconnects
+  if (this.isHost && this.isInRoom) {
+    console.log('🚨 Host is disconnecting - immediate cleanup and redirect');
+    
+    // Set flag to prevent reconnection attempts
+    this.forceDisconnectOnCleanup = true;
+    
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    
+    // Disconnect socket
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+    
+    // Show message and redirect
+    this.showMessage('Leaving game...');
+    
+    setTimeout(() => {
+      this.returnToHomePage();
+    }, 1000);
+  }
+}
 
  // ENHANCED: Better beforeunload handler specifically for hosts
 setupVisibilityHandlers() {
