@@ -711,7 +711,13 @@ handleCastClick() {
       this.updatePlayerList();
     });
 
-    // NEW: Listen for host disconnection
+    // NEW: Listen for host disconnection (updated event name)
+    this.socket.on('host-left-room-closed', (data) => {
+      console.log('⚠️ Host left and room closed:', data);
+      this.handleHostLeftRoomClosed(data);
+    });
+
+    // NEW: Keep the original event too for backward compatibility
     this.socket.on('host-left', (data) => {
       console.log('⚠️ Host left the game:', data);
       this.handleHostLeft(data);
@@ -775,6 +781,22 @@ handleCastClick() {
     });
   }
 
+  // NEW: Handle when host leaves and room is closed immediately
+  handleHostLeftRoomClosed(data) {
+    console.log('🚨 Host left and room closed immediately - returning to main menu');
+    
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    
+    // Show notification
+    this.showError(data.message || `Game ended: ${data.hostName || 'Host'} left the game`);
+    
+    // Return to main menu after short delay
+    setTimeout(() => {
+      this.returnToMainMenu();
+    }, 2500);
+  }
+
   // NEW: Handle when host leaves the game
   handleHostLeft(data) {
     console.log('🚨 Host left - returning to main menu');
@@ -807,25 +829,45 @@ handleCastClick() {
     }, 1500);
   }
 
-  // NEW: Return to main menu from party mode
+  // FIXED: Return to main menu from party mode
   returnToMainMenu() {
     console.log('🏠 Returning to main menu...');
     
     // Clean up party mode completely
     this.cleanup();
     
-    // Reset to local mode UI
+    // CRITICAL FIX: Don't navigate away from the page!
+    // Just show the local mode UI on the current page
     this.showLocalMode();
-    
-    // Also trigger any global main menu reset if it exists
-    if (window.resetToMainMenu) {
-      window.resetToMainMenu();
-    }
     
     // Hide any game interfaces that might be showing
     this.hideAllGameInterfaces();
     
-    console.log('✅ Returned to main menu');
+    // Ensure we're back to the start screen on the same page
+    this.showStartScreen();
+    
+    // Reset any URL hash that might cause navigation issues
+    if (window.location.hash) {
+      history.replaceState(null, null, window.location.pathname);
+    }
+    
+    console.log('✅ Returned to main menu on same page');
+  }
+
+  // NEW: Ensure start screen is visible
+  showStartScreen() {
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) {
+      startScreen.classList.remove('hidden');
+      startScreen.style.display = 'block';
+      startScreen.style.visibility = 'visible';
+    }
+    
+    // Make sure we're in local mode
+    const container = document.querySelector('.container');
+    if (container) {
+      container.classList.remove('party-mode');
+    }
   }
 
   // NEW: Hide all game interfaces when returning to menu

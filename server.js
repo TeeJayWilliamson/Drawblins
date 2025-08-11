@@ -439,44 +439,102 @@ io.on('connection', (socket) => {
   });
 
   // Handle explicit room leaving
-  socket.on('leave-room', (data) => {
-    const { roomCode, playerName } = data;
+socket.on('leave-room', (data) => {
+  const { roomCode, playerName, isHost } = data;
+  console.log(`🚪 Player ${playerName} explicitly leaving room ${roomCode} (isHost: ${isHost})`);
+  
+  const playerRoom = getPlayerRoom(socket.id);
+  if (!playerRoom) {
+    console.log(`❌ Player ${playerName} not found in any room`);
+    return;
+  }
+
+  const { room } = playerRoom;
+  
+  // Find the leaving player
+  const leavingPlayerIndex = room.players.findIndex(p => p.id === socket.id);
+  if (leavingPlayerIndex === -1) {
+    console.log(`❌ Player not found in room: ${playerName}`);
+    return;
+  }
+
+  const leavingPlayer = room.players[leavingPlayerIndex];
+  const wasActualHost = leavingPlayer.isHost || room.hostId === socket.id;
+  
+  console.log(`🔍 Leave analysis: wasActualHost=${wasActualHost}, leavingPlayer.isHost=${leavingPlayer.isHost}, room.hostId matches=${room.hostId === socket.id}`);
+
+  // Remove the player from the room first
+  room.players.splice(leavingPlayerIndex, 1);
+  
+  // CRITICAL: Handle host leaving - kick everyone and close room
+  if (wasActualHost) {
+    console.log(`👑 Host ${playerName} is leaving room ${roomCode} - closing room for all players`);
     
-    console.log(`🚪 Player ${playerName} explicitly leaving room ${roomCode}`);
-    
-    const result = removePlayerFromRoom(socket.id, playerName, true);
-    if (result) {
-      if (result.deleted) {
-        // Room was deleted (host left or no players remaining)
-        console.log(`🗑️ Room ${roomCode} deleted after ${playerName} left`);
-        
-        if (result.kickedPlayers) {
-          console.log(`👑 ${result.kickedPlayers.length} players were kicked when host left`);
-        }
-      } else if (result.room) {
-        // Notify remaining players (non-host left)
-        socket.to(roomCode).emit('player-left', {
-          room: result.room,
-          leftPlayerId: socket.id,
-          leftPlayerName: playerName
+    // Notify all remaining players immediately that they're being kicked
+    room.players.forEach(player => {
+      if (player.id !== socket.id) { // Don't send to the leaving host
+        io.to(player.id).emit('host-left-room-closed', {
+          message: `Host ${playerName} left the game. Returning to main menu.`,
+          hostName: playerName,
+          reason: 'Host left the game'
         });
         
-        console.log(`📢 Notified remaining players in ${roomCode} about ${playerName} leaving`);
+        // Also remove them from the socket room
+        const playerSocket = io.sockets.sockets.get(player.id);
+        if (playerSocket) {
+          playerSocket.leave(roomCode);
+        }
+        
+        // Remove from players map
+        players.delete(player.id);
       }
-    }
-    
-    // Remove from players map
-    players.delete(socket.id);
-    
-    // Leave the socket room
-    socket.leave(roomCode);
-    
-    // Acknowledge the leave
-    socket.emit('left-room', {
-      success: true,
-      message: `Left room ${roomCode}`
     });
+    
+    // Clean up and delete the room
+    cleanupRoom(room, roomCode);
+    rooms.delete(roomCode);
+    
+    console.log(`🗑️ Room ${roomCode} deleted - host left, all players kicked`);
+    
+  } else if (room.players.length === 0) {
+    // Last player left (non-host scenario)
+    console.log(`🗑️ Last player left room ${roomCode}, cleaning up`);
+    cleanupRoom(room, roomCode);
+    rooms.delete(roomCode);
+    
+  } else {
+    // Regular player left, notify others
+    console.log(`👋 Regular player ${playerName} left room ${roomCode}`);
+    
+    // Update room activity
+    room.lastActivity = Date.now();
+    
+    // Notify remaining players
+    room.players.forEach(player => {
+      io.to(player.id).emit('player-left', {
+        player: leavingPlayer,
+        room: {
+          code: room.code,
+          players: room.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            isHost: p.isHost
+          }))
+        }
+      });
+    });
+  }
+  
+  // Remove leaving player from players map and socket room
+  players.delete(socket.id);
+  socket.leave(roomCode);
+  
+  // Acknowledge the leave to the leaving player
+  socket.emit('left-room', {
+    success: true,
+    message: `Left room ${roomCode}`
   });
+});
 
   // Start game (only host can do this)
   socket.on('start-game', (data) => {
@@ -783,36 +841,93 @@ io.on('connection', (socket) => {
   });
 
   // Handle disconnection with enhanced cleanup
-  socket.on('disconnect', (reason) => {
-    const playerData = players.get(socket.id);
-    const playerName = playerData?.name || 'Unknown';
-    
-    console.log(`🔌 Client disconnected: ${playerName} (${socket.id.substring(0, 8)}) - Reason: ${reason}`);
-    
-    // Only clean up if player was in a room (not just browsing)
-    if (playerData?.roomCode) {
-      const result = removePlayerFromRoom(socket.id, playerName, false);
-      if (result) {
-        const { roomCode, room, deleted } = result;
+socket.on('disconnect', (reason) => {
+  const playerData = players.get(socket.id);
+  const playerName = playerData?.name || 'Unknown';
+  
+  console.log(`🔌 Client disconnected: ${playerName} (${socket.id.substring(0, 8)}) - Reason: ${reason}`);
+  
+  // Only clean up if player was in a room
+  if (playerData?.roomCode) {
+    const playerRoom = getPlayerRoom(socket.id);
+    if (playerRoom) {
+      const { room, roomCode } = playerRoom;
+      
+      // Find the disconnecting player
+      const disconnectingPlayer = room.players.find(p => p.id === socket.id);
+      if (!disconnectingPlayer) {
+        console.log(`❌ Disconnecting player not found in room data`);
+        return;
+      }
+      
+      const wasHost = disconnectingPlayer.isHost || room.hostId === socket.id;
+      
+      // Remove player from room
+      const playerIndex = room.players.findIndex(p => p.id === socket.id);
+      if (playerIndex !== -1) {
+        room.players.splice(playerIndex, 1);
+      }
+      
+      if (wasHost && room.players.length > 0) {
+        console.log(`👑 Host ${playerName} disconnected unexpectedly from room ${roomCode}`);
         
-        if (deleted) {
-          console.log(`🗑️ Room ${roomCode} deleted - no players left`);
-        } else if (room) {
-          // Notify remaining players
-          socket.to(roomCode).emit('player-left', {
-            room: room,
-            leftPlayerId: socket.id,
-            leftPlayerName: playerName
+        // For unexpected disconnections, we can either:
+        // OPTION 1: Kick everyone (like explicit leave)
+        console.log(`🚨 Kicking all remaining players due to host disconnect`);
+        
+        room.players.forEach(player => {
+          io.to(player.id).emit('host-left-room-closed', {
+            message: `Host ${playerName} disconnected. Returning to main menu.`,
+            hostName: playerName,
+            reason: 'Host disconnected'
           });
           
-          console.log(`📢 Notified remaining players in ${roomCode} about ${playerName} disconnecting`);
-        }
+          // Remove from socket room and players map
+          const playerSocket = io.sockets.sockets.get(player.id);
+          if (playerSocket) {
+            playerSocket.leave(roomCode);
+          }
+          players.delete(player.id);
+        });
+        
+        // Clean up and delete room
+        cleanupRoom(room, roomCode);
+        rooms.delete(roomCode);
+        
+      } else if (room.players.length === 0) {
+        // Last player disconnected
+        console.log(`🗑️ Last player disconnected from room ${roomCode}`);
+        cleanupRoom(room, roomCode);
+        rooms.delete(roomCode);
+        
+      } else {
+        // Regular player disconnected
+        console.log(`👋 Regular player ${playerName} disconnected from room ${roomCode}`);
+        
+        // Update room activity
+        room.lastActivity = Date.now();
+        
+        // Notify remaining players
+        room.players.forEach(player => {
+          io.to(player.id).emit('player-left', {
+            player: disconnectingPlayer,
+            room: {
+              code: room.code,
+              players: room.players.map(p => ({
+                id: p.id,
+                name: p.name,
+                isHost: p.isHost
+              }))
+            }
+          });
+        });
       }
     }
+  }
 
-    // Always remove from players map
-    players.delete(socket.id);
-  });
+  // Always remove from players map
+  players.delete(socket.id);
+});
 });
 
 // Health check endpoint
