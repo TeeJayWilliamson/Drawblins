@@ -728,27 +728,32 @@ this.socket.on('disconnect', (reason) => {
     this.heartbeatInterval = null;
   }
   
-  // CRITICAL FIX: Handle host disconnection differently
+  // 🚨 CRITICAL FIX: Handle host disconnection - GO DIRECTLY TO INDEX.HTML
   if (this.isHost && this.isInRoom && !this.forceDisconnectOnCleanup) {
-    console.log('🚨 HOST DISCONNECTED - Returning to home page immediately');
+    console.log('🚨🚨🚨 HOST DISCONNECTED - Going to index.html immediately');
     
-    // Stop all audio
-    this.stopAllMusicImmediate();
+    // Stop all audio immediately
+    if (this.stopAllMusicImmediate) {
+      this.stopAllMusicImmediate();
+    }
     
-    // Show brief message
-    this.showError('Disconnected from server - returning to home page');
+    // Clean up resources
+    this.cleanup();
     
-    // Return to home page immediately - don't try to reconnect
+    // Show brief message  
+    this.showError('Connection lost - returning to home page');
+    
+    // 🎯 THE ACTUAL FIX - Direct navigation to index.html
     setTimeout(() => {
-      this.returnToHomePage();
+      console.log('🏠🏠🏠 HOST: Redirecting to index.html...');
+      window.location.href = 'index.html';
     }, 1500);
     
     return; // Don't continue with normal reconnection logic
   }
   
-  // For non-hosts or if we're cleaning up normally
+  // For non-hosts: try reconnection or go home if failed
   if (!this.forceDisconnectOnCleanup) {
-    // Only attempt reconnection if we were in a room and we're not the host
     if (this.isInRoom && !this.isHost && this.connectionAttempts < this.maxConnectionAttempts) {
       console.log('🔄 Attempting reconnection (non-host)...');
       this.connectionAttempts++;
@@ -758,10 +763,11 @@ this.socket.on('disconnect', (reason) => {
         }
       }, 2000 * this.connectionAttempts);
     } else if (this.isInRoom) {
-      // If we can't reconnect or hit max attempts, go home
-      console.log('🏠 Cannot reconnect - returning to home page');
+      // Non-host can't reconnect - go home
+      console.log('🏠 Cannot reconnect - going to index.html');
+      this.cleanup();
       setTimeout(() => {
-        this.returnToHomePage();
+        window.location.href = 'index.html';
       }, 1000);
     }
   }
@@ -901,6 +907,28 @@ this.socket.on('room-joined', (data) => {
       this.showError(data.error);
     });
   }
+
+  // ALTERNATIVE: Also add this direct method to your class if you want
+returnToHomePage() {
+  console.log('🏠 returnToHomePage called - going to index.html');
+  
+  // Clean up first
+  this.cleanup();
+  
+  // Direct navigation
+  window.location.href = 'index.html';
+}
+
+// DEBUGGING: Add this method to test what's happening
+debugHostDisconnect() {
+  console.log('🔍 DEBUG: Host disconnect state:', {
+    isHost: this.isHost,
+    isInRoom: this.isInRoom,
+    forceDisconnectOnCleanup: this.forceDisconnectOnCleanup,
+    currentUrl: window.location.href,
+    hasReturnToHomePage: typeof this.returnToHomePage === 'function'
+  });
+}
 
   // FIXED: NEW - Return to actual home page (index.html)
   returnToHomePage() {
