@@ -711,6 +711,18 @@ handleCastClick() {
       this.updatePlayerList();
     });
 
+    // NEW: Listen for host disconnection
+    this.socket.on('host-left', (data) => {
+      console.log('⚠️ Host left the game:', data);
+      this.handleHostLeft(data);
+    });
+
+    // NEW: Listen for room closure due to host leaving
+    this.socket.on('room-closed', (data) => {
+      console.log('🚪 Room was closed:', data);
+      this.handleRoomClosed(data);
+    });
+
     // Game events
     this.socket.on('game-started', (data) => {
       console.log('Game started:', data);
@@ -761,6 +773,88 @@ handleCastClick() {
       console.error('Drawing error:', data);
       this.showError(data.error);
     });
+  }
+
+  // NEW: Handle when host leaves the game
+  handleHostLeft(data) {
+    console.log('🚨 Host left - returning to main menu');
+    
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    
+    // Show notification
+    this.showError(`Game ended: ${data.hostName || 'Host'} left the game`);
+    
+    // Return to main menu after short delay
+    setTimeout(() => {
+      this.returnToMainMenu();
+    }, 2000);
+  }
+
+  // NEW: Handle when room is closed
+  handleRoomClosed(data) {
+    console.log('🚪 Room closed - returning to main menu');
+    
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    
+    // Show notification
+    this.showError(data.reason || 'Room was closed');
+    
+    // Return to main menu
+    setTimeout(() => {
+      this.returnToMainMenu();
+    }, 1500);
+  }
+
+  // NEW: Return to main menu from party mode
+  returnToMainMenu() {
+    console.log('🏠 Returning to main menu...');
+    
+    // Clean up party mode completely
+    this.cleanup();
+    
+    // Reset to local mode UI
+    this.showLocalMode();
+    
+    // Also trigger any global main menu reset if it exists
+    if (window.resetToMainMenu) {
+      window.resetToMainMenu();
+    }
+    
+    // Hide any game interfaces that might be showing
+    this.hideAllGameInterfaces();
+    
+    console.log('✅ Returned to main menu');
+  }
+
+  // NEW: Hide all game interfaces when returning to menu
+  hideAllGameInterfaces() {
+    // Hide drawing overlay
+    this.hideDrawingOverlay();
+    
+    // Hide any game-specific UI elements
+    const gameElements = [
+      'party-game-area',
+      'monster-view', 
+      'waiting-area',
+      'drawing-interface'
+    ];
+    
+    gameElements.forEach(elementId => {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.classList.add('hidden');
+        element.style.display = 'none';
+      }
+    });
+    
+    // Show the start screen
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) {
+      startScreen.classList.remove('hidden');
+      startScreen.style.display = 'block';
+    }
   }
 
   // Start heartbeat for iOS stability
