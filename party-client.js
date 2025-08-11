@@ -152,36 +152,95 @@ detectOnlinePartyMode() {
 
   
 
-  // Setup visibility change handlers for iOS background detection
-  setupVisibilityHandlers() {
-    // Page visibility API
-    this.visibilityChangeHandler = () => {
-      if (document.hidden) {
-        console.log('📱 Page hidden - handling iOS background state');
-        this.handlePageHidden();
-      } else {
-        console.log('📱 Page visible - handling iOS foreground state');
-        this.handlePageVisible();
-      }
-    };
-
-    // Page hide event (better for iOS)
-    this.pageHideHandler = () => {
-      console.log('📱 Page hide event - iOS cleanup');
+ // ENHANCED: Better beforeunload handler specifically for hosts
+setupVisibilityHandlers() {
+  // Page visibility API
+  this.visibilityChangeHandler = () => {
+    if (document.hidden) {
+      console.log('📱 Page hidden - handling iOS background state');
       this.handlePageHidden();
-    };
+    } else {
+      console.log('📱 Page visible - handling iOS foreground state');
+      this.handlePageVisible();
+    }
+  };
 
-    // Before unload
-    this.beforeUnloadHandler = (e) => {
-      console.log('📱 Before unload - final cleanup');
+  // Page hide event (better for iOS)
+  this.pageHideHandler = () => {
+    console.log('📱 Page hide event - iOS cleanup');
+    this.handlePageHidden();
+  };
+
+  // ENHANCED: Better before unload handler
+  this.beforeUnloadHandler = (e) => {
+    console.log('📱 Before unload - final cleanup', {
+      isHost: this.isHost,
+      isInRoom: this.isInRoom
+    });
+    
+    // Special handling for hosts
+    if (this.isHost && this.isInRoom) {
+      console.log('🚨 HOST is leaving page - immediate disconnect');
       this.forceDisconnectOnCleanup = true;
-      this.cleanup();
-    };
+      
+      // Try to notify server that host is leaving
+      if (this.socket && this.isConnected) {
+        this.socket.emit('host-leaving', {
+          roomCode: this.roomCode,
+          playerName: this.playerName
+        });
+      }
+    }
+    
+    this.cleanup();
+  };
 
-    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
-    window.addEventListener('pagehide', this.pageHideHandler);
-    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+  document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+  window.addEventListener('pagehide', this.pageHideHandler);
+  window.addEventListener('beforeunload', this.beforeUnloadHandler);
+}
+
+handleUserNavigation() {
+  if (this.isHost && this.isInRoom) {
+    console.log('🚨 Host attempting to navigate away');
+    
+    // Show confirmation dialog
+    const shouldLeave = confirm('You are the host! Leaving will end the game for all players. Are you sure?');
+    
+    if (shouldLeave) {
+      this.detectHostDisconnect();
+    }
+    
+    return shouldLeave;
+  } else if (this.isInRoom) {
+    // Regular player leaving
+    this.handlePlayerLeaveGame();
+    return true;
   }
+  
+  return true;
+}
+
+// ENHANCED: Add browser navigation interception
+interceptBrowserNavigation() {
+  // Intercept back button and other navigation
+  window.addEventListener('popstate', (e) => {
+    if (this.isInRoom) {
+      console.log('🔄 Browser navigation detected');
+      e.preventDefault();
+      
+      if (!this.handleUserNavigation()) {
+        // If user cancels leaving, push state back
+        history.pushState(null, null, window.location.href);
+      }
+    }
+  });
+  
+  // Push initial state to enable popstate detection
+  if (this.isInRoom) {
+    history.pushState(null, null, window.location.href);
+  }
+}
 
   // Handle iOS page hidden state
   handlePageHidden() {
@@ -627,31 +686,63 @@ handleCastClick() {
       }
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from party server:', reason);
-      this.isConnected = false;
-      this.updateConnectionStatus('Disconnected');
-      
-      // Clear heartbeat
-      if (this.heartbeatInterval) {
-        clearInterval(this.heartbeatInterval);
-        this.heartbeatInterval = null;
-      }
-      
-      // Don't try to reconnect if we're cleaning up
-      if (!this.forceDisconnectOnCleanup) {
-        // Only attempt reconnection if we were in a room
-        if (this.isInRoom && this.connectionAttempts < this.maxConnectionAttempts) {
-          console.log('🔄 Attempting reconnection...');
-          this.connectionAttempts++;
-          setTimeout(() => {
-            if (!this.isConnected && this.isInRoom) {
-              this.connect();
-            }
-          }, 2000 * this.connectionAttempts);
+this.socket.on('disconnect', (reason) => {
+  console.log('❌ Disconnected from party server:', reason);
+  console.log('❌ Disconnect context:', {
+    isHost: this.isHost,
+    isInRoom: this.isInRoom,
+    roomCode: this.roomCode,
+    reason: reason,
+    forceDisconnectOnCleanup: this.forceDisconnectOnCleanup
+  });
+  
+  this.isConnected = false;
+  this.updateConnectionStatus('Disconnected');
+  
+  // Clear heartbeat
+  if (this.heartbeatInterval) {
+    clearInterval(this.heartbeatInterval);
+    this.heartbeatInterval = null;
+  }
+  
+  // CRITICAL FIX: Handle host disconnection differently
+  if (this.isHost && this.isInRoom && !this.forceDisconnectOnCleanup) {
+    console.log('🚨 HOST DISCONNECTED - Returning to home page immediately');
+    
+    // Stop all audio
+    this.stopAllMusicImmediate();
+    
+    // Show brief message
+    this.showError('Disconnected from server - returning to home page');
+    
+    // Return to home page immediately - don't try to reconnect
+    setTimeout(() => {
+      this.returnToHomePage();
+    }, 1500);
+    
+    return; // Don't continue with normal reconnection logic
+  }
+  
+  // For non-hosts or if we're cleaning up normally
+  if (!this.forceDisconnectOnCleanup) {
+    // Only attempt reconnection if we were in a room and we're not the host
+    if (this.isInRoom && !this.isHost && this.connectionAttempts < this.maxConnectionAttempts) {
+      console.log('🔄 Attempting reconnection (non-host)...');
+      this.connectionAttempts++;
+      setTimeout(() => {
+        if (!this.isConnected && this.isInRoom) {
+          this.connect();
         }
-      }
-    });
+      }, 2000 * this.connectionAttempts);
+    } else if (this.isInRoom) {
+      // If we can't reconnect or hit max attempts, go home
+      console.log('🏠 Cannot reconnect - returning to home page');
+      setTimeout(() => {
+        this.returnToHomePage();
+      }, 1000);
+    }
+  }
+});
 
     this.socket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error);
@@ -669,34 +760,41 @@ handleCastClick() {
     });
 
     // Room events
-    this.socket.on('room-created', (data) => {
-      console.log('Room created response:', data);
-      if (data.success) {
-        this.roomCode = data.roomCode;
-        this.currentRoom = data.room;
-        this.isHost = true;
-        this.isInRoom = true;
-        this.showLobby();
-        console.log('Room created successfully:', data.roomCode);
-      } else {
-        console.error('Room creation failed:', data.error);
-        this.showError(data.error);
-      }
-    });
-
-    this.socket.on('room-joined', (data) => {
-      console.log('Room joined response:', data);
-      if (data.success) {
-        this.currentRoom = data.room;
-        this.isInRoom = true;
-        this.showLobby();
-        console.log('Joined room successfully');
-      } else {
-        console.error('Failed to join room:', data.error);
-        this.showError(data.error);
-        this.isInRoom = false;
-      }
-    });
+this.socket.on('room-created', (data) => {
+  console.log('Room created response:', data);
+  if (data.success) {
+    this.roomCode = data.roomCode;
+    this.currentRoom = data.room;
+    this.isHost = true;
+    this.isInRoom = true;
+    this.showLobby();
+    
+    // NEW: Setup navigation interception
+    this.interceptBrowserNavigation();
+    
+    console.log('Room created successfully:', data.roomCode);
+  } else {
+    console.error('Room creation failed:', data.error);
+    this.showError(data.error);
+  }
+});
+this.socket.on('room-joined', (data) => {
+  console.log('Room joined response:', data);
+  if (data.success) {
+    this.currentRoom = data.room;
+    this.isInRoom = true;
+    this.showLobby();
+    
+    // NEW: Setup navigation interception
+    this.interceptBrowserNavigation();
+    
+    console.log('Joined room successfully');
+  } else {
+    console.error('Failed to join room:', data.error);
+    this.showError(data.error);
+    this.isInRoom = false;
+  }
+});
 
     this.socket.on('player-joined', (data) => {
       console.log('Player joined:', data);
