@@ -737,6 +737,10 @@ this.socket.on('disconnect', (reason) => {
       this.stopAllMusicImmediate();
     }
     
+    // CRITICAL: Set flags to prevent loops and further processing
+    this.forceDisconnectOnCleanup = true;
+    this.isInRoom = false;
+    
     // Clean up resources
     this.cleanup();
     
@@ -773,22 +777,22 @@ this.socket.on('disconnect', (reason) => {
   }
 });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error);
-      this.updateConnectionStatus('Connection Failed');
-      this.connectionAttempts++;
-      
-      if (this.connectionAttempts < this.maxConnectionAttempts) {
-        console.log(`🔄 Retrying connection (${this.connectionAttempts}/${this.maxConnectionAttempts})...`);
-        setTimeout(() => {
-          this.connect();
-        }, 2000 * this.connectionAttempts);
-      } else {
-        this.showError('Failed to connect to server after multiple attempts');
-      }
-    });
+this.socket.on('connect_error', (error) => {
+  console.error('❌ Connection error:', error);
+  this.updateConnectionStatus('Connection Failed');
+  this.connectionAttempts++;
+  
+  if (this.connectionAttempts < this.maxConnectionAttempts) {
+    console.log(`🔄 Retrying connection (${this.connectionAttempts}/${this.maxConnectionAttempts})...`);
+    setTimeout(() => {
+      this.connect();
+    }, 2000 * this.connectionAttempts);
+  } else {
+    this.showError('Failed to connect to server after multiple attempts');
+  }
+});
 
-    // Room events
+// Room events
 this.socket.on('room-created', (data) => {
   console.log('Room created response:', data);
   if (data.success) {
@@ -807,6 +811,7 @@ this.socket.on('room-created', (data) => {
     this.showError(data.error);
   }
 });
+
 this.socket.on('room-joined', (data) => {
   console.log('Room joined response:', data);
   if (data.success) {
@@ -825,87 +830,87 @@ this.socket.on('room-joined', (data) => {
   }
 });
 
-    this.socket.on('player-joined', (data) => {
-      console.log('Player joined:', data);
-      this.currentRoom = data.room;
-      this.updatePlayerList();
-      this.showMessage(`${data.player.name} joined the game!`);
-    });
+this.socket.on('player-joined', (data) => {
+  console.log('Player joined:', data);
+  this.currentRoom = data.room;
+  this.updatePlayerList();
+  this.showMessage(`${data.player.name} joined the game!`);
+});
 
-    this.socket.on('player-left', (data) => {
-      console.log('Player left:', data);
-      this.currentRoom = data.room;
-      this.updatePlayerList();
-    });
+this.socket.on('player-left', (data) => {
+  console.log('Player left:', data);
+  this.currentRoom = data.room;
+  this.updatePlayerList();
+});
 
-    // NEW: Listen for host disconnection (updated event name)
-    this.socket.on('host-left-room-closed', (data) => {
-      console.log('⚠️ Host left and room closed:', data);
-      this.handleHostLeftRoomClosed(data);
-    });
+// NEW: Listen for host disconnection (updated event name)
+this.socket.on('host-left-room-closed', (data) => {
+  console.log('⚠️ Host left and room closed:', data);
+  this.handleHostLeftRoomClosed(data);
+});
 
-    // NEW: Keep the original event too for backward compatibility
-    this.socket.on('host-left', (data) => {
-      console.log('⚠️ Host left the game:', data);
-      this.handleHostLeft(data);
-    });
+// NEW: Keep the original event too for backward compatibility
+this.socket.on('host-left', (data) => {
+  console.log('⚠️ Host left the game:', data);
+  this.handleHostLeft(data);
+});
 
-    // NEW: Listen for room closure due to host leaving
-    this.socket.on('room-closed', (data) => {
-      console.log('🚪 Room was closed:', data);
-      this.handleRoomClosed(data);
-    });
+// NEW: Listen for room closure due to host leaving
+this.socket.on('room-closed', (data) => {
+  console.log('🚪 Room was closed:', data);
+  this.handleRoomClosed(data);
+});
 
-    // Game events
-    this.socket.on('game-started', (data) => {
-      console.log('Game started:', data);
-      this.currentRoom = data.room;
-      this.handleGamePhase(data.gameState);
-    });
+// Game events
+this.socket.on('game-started', (data) => {
+  console.log('Game started:', data);
+  this.currentRoom = data.room;
+  this.handleGamePhase(data.gameState);
+});
 
-    this.socket.on('phase-changed', (data) => {
-      console.log('Phase changed:', data);
-      this.currentRoom = data.room;
-      // Clear previous drawings when new phase starts
-      if (data.gameState.phase === 'studying') {
-        this.lastSentDrawings = null;
-      }
-      this.handleGamePhase(data.gameState, data);
-    });
+this.socket.on('phase-changed', (data) => {
+  console.log('Phase changed:', data);
+  this.currentRoom = data.room;
+  // Clear previous drawings when new phase starts
+  if (data.gameState.phase === 'studying') {
+    this.lastSentDrawings = null;
+  }
+  this.handleGamePhase(data.gameState, data);
+});
 
-    this.socket.on('monster-revealed', (data) => {
-      console.log('Monster revealed to me:', data);
-      this.showMonsterToDrawer(data.monster, data.viewTime);
-    });
+this.socket.on('monster-revealed', (data) => {
+  console.log('Monster revealed to me:', data);
+  this.showMonsterToDrawer(data.monster, data.viewTime);
+});
 
-    this.socket.on('timer-update', (data) => {
-      this.updateGameTimer(data.timeLeft, data.phase);
-    });
+this.socket.on('timer-update', (data) => {
+  this.updateGameTimer(data.timeLeft, data.phase);
+});
 
-    this.socket.on('drawing-submitted', (data) => {
-      console.log('Drawing submitted:', data);
-      this.updateDrawingProgress(data);
-    });
+this.socket.on('drawing-submitted', (data) => {
+  console.log('Drawing submitted:', data);
+  this.updateDrawingProgress(data);
+});
 
-    this.socket.on('auto-submit-drawing', (data) => {
-      console.log('Auto-submit requested');
-      this.handleAutoSubmit();
-    });
+this.socket.on('auto-submit-drawing', (data) => {
+  console.log('Auto-submit requested');
+  this.handleAutoSubmit();
+});
 
-    this.socket.on('game-finished', (data) => {
-      console.log('Game finished:', data);
-      this.handleGameFinished(data);
-    });
+this.socket.on('game-finished', (data) => {
+  console.log('Game finished:', data);
+  this.handleGameFinished(data);
+});
 
-    this.socket.on('game-error', (data) => {
-      console.error('Game error:', data);
-      this.showError(data.error);
-    });
+this.socket.on('game-error', (data) => {
+  console.error('Game error:', data);
+  this.showError(data.error);
+});
 
-    this.socket.on('drawing-error', (data) => {
-      console.error('Drawing error:', data);
-      this.showError(data.error);
-    });
+this.socket.on('drawing-error', (data) => {
+  console.error('Drawing error:', data);
+  this.showError(data.error);
+});
   }
 
   // ALTERNATIVE: Also add this direct method to your class if you want
@@ -946,7 +951,13 @@ debugHostDisconnect() {
     console.log('🚨 Host left and room closed - returning to HOME PAGE');
     
     // Stop all audio
-    this.stopAllMusicImmediate();
+    if (this.stopAllMusicImmediate) {
+      this.stopAllMusicImmediate();
+    }
+    
+    // Set cleanup flags
+    this.forceDisconnectOnCleanup = true;
+    this.isInRoom = false;
     
     // Show notification
     this.showError(data.message || `Game ended: ${data.hostName || 'Host'} left the game`);
@@ -962,7 +973,13 @@ debugHostDisconnect() {
     console.log('🚨 Host left - returning to HOME PAGE');
     
     // Stop all audio
-    this.stopAllMusicImmediate();
+    if (this.stopAllMusicImmediate) {
+      this.stopAllMusicImmediate();
+    }
+    
+    // Set cleanup flags
+    this.forceDisconnectOnCleanup = true;
+    this.isInRoom = false;
     
     // Show notification
     this.showError(`Game ended: ${data.hostName || 'Host'} left the game`);
@@ -978,7 +995,13 @@ debugHostDisconnect() {
     console.log('🚪 Room closed - returning to HOME PAGE');
     
     // Stop all audio
-    this.stopAllMusicImmediate();
+    if (this.stopAllMusicImmediate) {
+      this.stopAllMusicImmediate();
+    }
+    
+    // Set cleanup flags
+    this.forceDisconnectOnCleanup = true;
+    this.isInRoom = false;
     
     // Show notification
     this.showError(data.reason || 'Room was closed');
@@ -993,12 +1016,21 @@ debugHostDisconnect() {
   handlePlayerLeaveGame() {
     console.log('👋 Player leaving game manually...');
     
+    // Set flags to prevent reconnection attempts
+    this.forceDisconnectOnCleanup = true;
+    this.isInRoom = false;
+    
     // Disconnect from room
     if (this.socket && this.isConnected) {
       this.socket.emit('leave-room', {
         roomCode: this.roomCode,
         playerName: this.playerName
       });
+    }
+    
+    // Stop audio
+    if (this.stopAllMusicImmediate) {
+      this.stopAllMusicImmediate();
     }
     
     // Clean up and return to home
