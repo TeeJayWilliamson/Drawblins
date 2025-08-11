@@ -1833,12 +1833,41 @@ handlePlayerLeaveGame() {
   }
 
   // Leave room and go back to local mode
-  leaveRoomAndGoLocal() {
-    console.log('🚪 Leaving room and going to local mode...');
-    this.leaveRoom();
+// FIXED: Leave room and handle hosts properly
+leaveRoomAndGoLocal() {
+  console.log('🚪 Leaving room...');
+  console.log('🔍 Leave context:', {
+    isHost: this.isHost,
+    isInRoom: this.isInRoom,
+    playerName: this.playerName,
+    roomCode: this.roomCode
+  });
+  
+  // Leave the room first
+  this.leaveRoom();
+  
+  // CRITICAL FIX: Check if this was a host
+  if (this.isHost) {
+    console.log('🚨 HOST LEAVING - Redirecting to index.html instead of local mode');
+    
+    // Clean up and redirect to home page
+    this.cleanup();
+    
+    // Show message and redirect
+    this.showMessage('Leaving game...');
+    
+    setTimeout(() => {
+      console.log('🏠 HOST: Redirecting to index.html');
+      window.location.href = 'index.html';
+    }, 1000);
+    
+  } else {
+    // Regular players can go to local mode
+    console.log('👤 Regular player - showing local mode');
     this.showLocalMode();
     this.cleanup();
   }
+}
 
   // Emergency leave during game
   emergencyLeave() {
