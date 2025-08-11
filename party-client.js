@@ -836,15 +836,13 @@ handleCastClick() {
     // Clean up party mode completely
     this.cleanup();
     
-    // CRITICAL FIX: Don't navigate away from the page!
-    // Just show the local mode UI on the current page
+    // CRITICAL FIX: Properly show the main game interface
     this.showLocalMode();
-    
-    // Hide any game interfaces that might be showing
     this.hideAllGameInterfaces();
-    
-    // Ensure we're back to the start screen on the same page
     this.showStartScreen();
+    
+    // ADDITIONAL FIX: Make sure all main menu elements are visible
+    this.ensureMainMenuVisible();
     
     // Reset any URL hash that might cause navigation issues
     if (window.location.hash) {
@@ -854,24 +852,126 @@ handleCastClick() {
     console.log('✅ Returned to main menu on same page');
   }
 
-  // NEW: Ensure start screen is visible
+  // NEW: Ensure all main menu elements are properly visible
+  ensureMainMenuVisible() {
+    console.log('👁️ Ensuring main menu is visible...');
+    
+    // Show the main container
+    const container = document.querySelector('.container');
+    if (container) {
+      container.style.display = 'block';
+      container.style.visibility = 'visible';
+      container.classList.remove('hidden');
+      console.log('✅ Container made visible');
+    }
+    
+    // Show the start screen specifically
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) {
+      startScreen.style.display = 'block';
+      startScreen.style.visibility = 'visible';
+      startScreen.classList.remove('hidden');
+      console.log('✅ Start screen made visible');
+    }
+    
+    // Show the main game title/logo
+    const title = document.querySelector('h1, .game-title, .title');
+    if (title) {
+      title.style.display = 'block';
+      title.style.visibility = 'visible';
+      title.classList.remove('hidden');
+      console.log('✅ Game title made visible');
+    }
+    
+    // Show settings and start buttons
+    const settingsGroup = document.querySelector('.settings-group');
+    if (settingsGroup) {
+      settingsGroup.style.display = 'block';
+      settingsGroup.style.visibility = 'visible';
+      settingsGroup.classList.remove('hidden');
+      console.log('✅ Settings group made visible');
+    }
+    
+    const startButtons = document.getElementById('start-buttons');
+    if (startButtons) {
+      startButtons.style.display = 'block';
+      startButtons.style.visibility = 'visible';
+      startButtons.classList.remove('hidden');
+      console.log('✅ Start buttons made visible');
+    }
+    
+    // Hide any lingering party mode sections
+    const partySection = document.getElementById('party-mode-section');
+    if (partySection) {
+      partySection.classList.add('hidden');
+      partySection.style.display = 'none';
+      console.log('✅ Party section hidden');
+    }
+    
+    // Make sure body is visible (in case something hid it)
+    document.body.style.display = 'block';
+    document.body.style.visibility = 'visible';
+    
+    console.log('✅ Main menu visibility check complete');
+  }
+
+  // ENHANCED: Show start screen with more thorough checks
   showStartScreen() {
+    console.log('📺 Showing start screen...');
+    
     const startScreen = document.getElementById('start-screen');
     if (startScreen) {
       startScreen.classList.remove('hidden');
       startScreen.style.display = 'block';
       startScreen.style.visibility = 'visible';
+      console.log('✅ Start screen displayed');
+    } else {
+      console.error('❌ Start screen element not found!');
+      // Try to find alternative main menu elements
+      const alternatives = [
+        '.start-screen',
+        '.main-menu', 
+        '.game-menu',
+        '#main-menu'
+      ];
+      
+      for (const selector of alternatives) {
+        const element = document.querySelector(selector);
+        if (element) {
+          element.classList.remove('hidden');
+          element.style.display = 'block';
+          element.style.visibility = 'visible';
+          console.log('✅ Found and showed alternative main menu:', selector);
+          break;
+        }
+      }
     }
     
     // Make sure we're in local mode
     const container = document.querySelector('.container');
     if (container) {
       container.classList.remove('party-mode');
+      container.classList.add('local-mode');
+    }
+    
+    // Reset mode toggle buttons to show local mode as active
+    const localBtn = document.getElementById('local-mode-btn');
+    const partyBtn = document.getElementById('party-mode-btn');
+    
+    if (localBtn) {
+      localBtn.classList.add('active');
+      console.log('✅ Local mode button activated');
+    }
+    if (partyBtn) {
+      partyBtn.classList.remove('active');
+      console.log('✅ Party mode button deactivated');
     }
   }
 
-  // NEW: Hide all game interfaces when returning to menu
+  // ENHANCED: Hide all game interfaces with thorough cleanup
   hideAllGameInterfaces() {
+    console.log('🙈 Hiding all game interfaces...');
+    
     // Hide drawing overlay
     this.hideDrawingOverlay();
     
@@ -880,7 +980,11 @@ handleCastClick() {
       'party-game-area',
       'monster-view', 
       'waiting-area',
-      'drawing-interface'
+      'drawing-interface',
+      'party-lobby', // Also hide lobby when returning to main menu
+      'game-interface',
+      'game-screen',
+      'gameplay-area'
     ];
     
     gameElements.forEach(elementId => {
@@ -888,9 +992,31 @@ handleCastClick() {
       if (element) {
         element.classList.add('hidden');
         element.style.display = 'none';
+        element.style.visibility = 'hidden';
+        console.log(`✅ Hidden: ${elementId}`);
       }
     });
     
+    // Hide any overlays or modals
+    const overlays = [
+      '.overlay',
+      '.modal',
+      '.popup',
+      '.drawing-overlay',
+      '#drawing-overlay'
+    ];
+    
+    overlays.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        element.classList.add('hidden');
+        element.style.display = 'none';
+        element.style.visibility = 'hidden';
+      });
+    });
+    
+        console.log('✅ Game interfaces hidden');
+
     // Show the start screen
     const startScreen = document.getElementById('start-screen');
     if (startScreen) {
