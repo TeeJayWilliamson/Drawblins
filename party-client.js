@@ -1843,8 +1843,32 @@ leaveRoomAndGoLocal() {
     roomCode: this.roomCode
   });
   
-  // Leave the room first
+  // CRITICAL FIX: Store host status BEFORE calling leaveRoom (which clears it)
+  const wasHost = this.isHost;
+  
+  // Leave the room
   this.leaveRoom();
+
+  if (wasHost) {
+    console.log('🚨 HOST LEAVING - Redirecting to index.html instead of local mode');
+    
+    // Clean up and redirect to home page
+    this.cleanup();
+    
+    // Show message and redirect
+    this.showMessage('Leaving game...');
+    
+    setTimeout(() => {
+      console.log('🏠 HOST: Redirecting to index.html');
+      window.location.href = 'index.html';
+    }, 1000);
+    
+  } else {
+    // Regular players can go to local mode
+    console.log('👤 Regular player - showing local mode');
+    this.showLocalMode();
+    this.cleanup();
+  }
   
   // CRITICAL FIX: Check if this was a host
   if (this.isHost) {
