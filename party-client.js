@@ -781,9 +781,20 @@ handleCastClick() {
     });
   }
 
-  // NEW: Handle when host leaves and room is closed immediately
+  // FIXED: NEW - Return to actual home page (index.html)
+  returnToHomePage() {
+    console.log('🏠 Returning to home page (index.html)...');
+    
+    // Clean up party mode completely first
+    this.cleanup();
+    
+    // CRITICAL: Navigate to the actual home page
+    window.location.href = 'index.html';
+  }
+
+  // FIXED: Handle when host leaves and room is closed immediately
   handleHostLeftRoomClosed(data) {
-    console.log('🚨 Host left and room closed immediately - returning to main menu');
+    console.log('🚨 Host left and room closed - returning to HOME PAGE');
     
     // Stop all audio
     this.stopAllMusicImmediate();
@@ -791,15 +802,15 @@ handleCastClick() {
     // Show notification
     this.showError(data.message || `Game ended: ${data.hostName || 'Host'} left the game`);
     
-    // Return to main menu after short delay
+    // FIXED: Go to home page instead of trying to show local mode
     setTimeout(() => {
-      this.returnToMainMenu();
+      this.returnToHomePage();
     }, 2500);
   }
 
-  // NEW: Handle when host leaves the game
+  // FIXED: Handle when host leaves the game
   handleHostLeft(data) {
-    console.log('🚨 Host left - returning to main menu');
+    console.log('🚨 Host left - returning to HOME PAGE');
     
     // Stop all audio
     this.stopAllMusicImmediate();
@@ -807,15 +818,15 @@ handleCastClick() {
     // Show notification
     this.showError(`Game ended: ${data.hostName || 'Host'} left the game`);
     
-    // Return to main menu after short delay
+    // FIXED: Go to home page
     setTimeout(() => {
-      this.returnToMainMenu();
+      this.returnToHomePage();
     }, 2000);
   }
 
-  // NEW: Handle when room is closed
+  // FIXED: Handle when room is closed
   handleRoomClosed(data) {
-    console.log('🚪 Room closed - returning to main menu');
+    console.log('🚪 Room closed - returning to HOME PAGE');
     
     // Stop all audio
     this.stopAllMusicImmediate();
@@ -823,148 +834,205 @@ handleCastClick() {
     // Show notification
     this.showError(data.reason || 'Room was closed');
     
-    // Return to main menu
+    // FIXED: Go to home page
     setTimeout(() => {
-      this.returnToMainMenu();
+      this.returnToHomePage();
     }, 1500);
   }
 
-  // FIXED: Return to main menu from party mode
+  // NEW: Method for when player manually leaves (back button, etc.)
+  handlePlayerLeaveGame() {
+    console.log('👋 Player leaving game manually...');
+    
+    // Disconnect from room
+    if (this.socket && this.isConnected) {
+      this.socket.emit('leave-room', {
+        roomCode: this.roomCode,
+        playerName: this.playerName
+      });
+    }
+    
+    // Clean up and return to home
+    this.cleanup();
+    
+    // Show message briefly then redirect
+    this.showMessage('Left the game');
+    
+    setTimeout(() => {
+      this.returnToHomePage();
+    }, 1000);
+  }
+
+  // ENHANCED: Better cleanup method
+  cleanup() {
+    console.log('🧹 Cleaning up party mode...');
+    
+    // Clear all timers
+    if (this.gameTimer) {
+      clearInterval(this.gameTimer);
+      this.gameTimer = null;
+    }
+    
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    
+    if (this.reconnectInterval) {
+      clearInterval(this.reconnectInterval);
+      this.reconnectInterval = null;
+    }
+    
+    // Stop all audio immediately
+    this.stopAllMusicImmediate();
+    
+    // Close spectator window
+    if (this.spectatorWindow && !this.spectatorWindow.closed) {
+      this.spectatorWindow.close();
+      this.spectatorWindow = null;
+    }
+    
+    // Disconnect cast
+    if (this.castManager) {
+      this.castManager.disconnect();
+    }
+    
+    // Disconnect socket
+    if (this.socket) {
+      this.forceDisconnectOnCleanup = true;
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    
+    // Reset state
+    this.isConnected = false;
+    this.isInRoom = false;
+    this.isHost = false;
+    this.roomCode = '';
+    this.currentRoom = null;
+    this.playerName = '';
+    this.connectionAttempts = 0;
+    
+    // Remove event listeners
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+    }
+    if (this.pageHideHandler) {
+      window.removeEventListener('pagehide', this.pageHideHandler);
+    }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+    }
+    
+    console.log('✅ Party mode cleanup complete');
+  }
+
+  // NEW: Verify that we have the proper home page elements
+  verifyHomePageElements() {
+    const requiredElements = [
+      '#start-screen',
+      '#start-buttons', 
+      '.container',
+      'h1' // Game title
+    ];
+    
+    for (const selector of requiredElements) {
+      if (!document.querySelector(selector)) {
+        console.log('❌ Missing required element:', selector);
+        return false;
+      }
+    }
+    
+    console.log('✅ Home page elements verified');
+    return true;
+  }
+
+  // BACKUP METHOD: Alternative return to main menu (if index.html redirect fails)
   returnToMainMenu() {
-    console.log('🏠 Returning to main menu...');
+    console.log('🏠 Returning to main menu on same page...');
     
     // Clean up party mode completely
     this.cleanup();
     
-    // CRITICAL FIX: Properly show the main game interface
-    this.showLocalMode();
-    this.hideAllGameInterfaces();
-    this.showStartScreen();
+    // CRITICAL FIX: Check if we're currently on a party-specific page
+    const currentPage = window.location.pathname.toLowerCase();
     
-    // ADDITIONAL FIX: Make sure all main menu elements are visible
-    this.ensureMainMenuVisible();
-    
-    // Reset any URL hash that might cause navigation issues
-    if (window.location.hash) {
-      history.replaceState(null, null, window.location.pathname);
+    // If we're on a party/game specific page, go to index
+    if (currentPage.includes('party') || 
+        currentPage.includes('game') || 
+        currentPage.includes('lobby') ||
+        currentPage === '/viewer.html' ||
+        currentPage === '/cast.html') {
+      console.log('📍 Currently on game page, redirecting to home...');
+      window.location.href = 'index.html';
+      return;
     }
     
-    console.log('✅ Returned to main menu on same page');
-  }
-
-  // NEW: Ensure all main menu elements are properly visible
-  ensureMainMenuVisible() {
-    console.log('👁️ Ensuring main menu is visible...');
+    // Otherwise try to show the local mode interface
+    this.showLocalModeInterface();
     
-    // Show the main container
-    const container = document.querySelector('.container');
-    if (container) {
-      container.style.display = 'block';
-      container.style.visibility = 'visible';
-      container.classList.remove('hidden');
-      console.log('✅ Container made visible');
-    }
-    
-    // Show the start screen specifically
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen) {
-      startScreen.style.display = 'block';
-      startScreen.style.visibility = 'visible';
-      startScreen.classList.remove('hidden');
-      console.log('✅ Start screen made visible');
-    }
-    
-    // Show the main game title/logo
-    const title = document.querySelector('h1, .game-title, .title');
-    if (title) {
-      title.style.display = 'block';
-      title.style.visibility = 'visible';
-      title.classList.remove('hidden');
-      console.log('✅ Game title made visible');
-    }
-    
-    // Show settings and start buttons
-    const settingsGroup = document.querySelector('.settings-group');
-    if (settingsGroup) {
-      settingsGroup.style.display = 'block';
-      settingsGroup.style.visibility = 'visible';
-      settingsGroup.classList.remove('hidden');
-      console.log('✅ Settings group made visible');
-    }
-    
-    const startButtons = document.getElementById('start-buttons');
-    if (startButtons) {
-      startButtons.style.display = 'block';
-      startButtons.style.visibility = 'visible';
-      startButtons.classList.remove('hidden');
-      console.log('✅ Start buttons made visible');
-    }
-    
-    // Hide any lingering party mode sections
-    const partySection = document.getElementById('party-mode-section');
-    if (partySection) {
-      partySection.classList.add('hidden');
-      partySection.style.display = 'none';
-      console.log('✅ Party section hidden');
-    }
-    
-    // Make sure body is visible (in case something hid it)
-    document.body.style.display = 'block';
-    document.body.style.visibility = 'visible';
-    
-    console.log('✅ Main menu visibility check complete');
-  }
-
-  // ENHANCED: Show start screen with more thorough checks
-  showStartScreen() {
-    console.log('📺 Showing start screen...');
-    
-    const startScreen = document.getElementById('start-screen');
-    if (startScreen) {
-      startScreen.classList.remove('hidden');
-      startScreen.style.display = 'block';
-      startScreen.style.visibility = 'visible';
-      console.log('✅ Start screen displayed');
-    } else {
-      console.error('❌ Start screen element not found!');
-      // Try to find alternative main menu elements
-      const alternatives = [
-        '.start-screen',
-        '.main-menu', 
-        '.game-menu',
-        '#main-menu'
-      ];
-      
-      for (const selector of alternatives) {
-        const element = document.querySelector(selector);
-        if (element) {
-          element.classList.remove('hidden');
-          element.style.display = 'block';
-          element.style.visibility = 'visible';
-          console.log('✅ Found and showed alternative main menu:', selector);
-          break;
-        }
+    // ADDITIONAL: Check if home elements exist, if not redirect
+    setTimeout(() => {
+      if (!this.verifyHomePageElements()) {
+        console.log('⚠️ Home page elements missing, redirecting...');
+        window.location.href = 'index.html';
       }
-    }
+    }, 500);
+  }
+
+  // ENHANCED: Show local mode interface with better error handling
+  showLocalModeInterface() {
+    console.log('📺 Showing local mode interface...');
     
-    // Make sure we're in local mode
-    const container = document.querySelector('.container');
-    if (container) {
-      container.classList.remove('party-mode');
-      container.classList.add('local-mode');
-    }
-    
-    // Reset mode toggle buttons to show local mode as active
-    const localBtn = document.getElementById('local-mode-btn');
-    const partyBtn = document.getElementById('party-mode-btn');
-    
-    if (localBtn) {
-      localBtn.classList.add('active');
-      console.log('✅ Local mode button activated');
-    }
-    if (partyBtn) {
-      partyBtn.classList.remove('active');
-      console.log('✅ Party mode button deactivated');
+    try {
+      // Show main container
+      const container = document.querySelector('.container');
+      if (container) {
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.classList.remove('hidden', 'party-mode');
+        container.classList.add('local-mode');
+      }
+      
+      // Show start screen
+      const startScreen = document.getElementById('start-screen');
+      if (startScreen) {
+        startScreen.classList.remove('hidden');
+        startScreen.style.display = 'block';
+        startScreen.style.visibility = 'visible';
+      }
+      
+      // Hide party mode section
+      const partySection = document.getElementById('party-mode-section');
+      if (partySection) {
+        partySection.classList.add('hidden');
+        partySection.style.display = 'none';
+      }
+      
+      // Show start buttons
+      const startButtons = document.getElementById('start-buttons');
+      if (startButtons) {
+        startButtons.style.display = 'block';
+        startButtons.style.visibility = 'visible';
+        startButtons.classList.remove('hidden');
+      }
+      
+      // Reset mode buttons
+      const localBtn = document.getElementById('local-mode-btn');
+      const partyBtn = document.getElementById('party-mode-btn');
+      
+      if (localBtn) localBtn.classList.add('active');
+      if (partyBtn) partyBtn.classList.remove('active');
+      
+      // Hide all game interfaces
+      this.hideAllGameInterfaces();
+      
+      console.log('✅ Local mode interface shown');
+      
+    } catch (error) {
+      console.error('❌ Error showing local mode interface:', error);
+      // Fallback to redirect
+      window.location.href = 'index.html';
     }
   }
 
@@ -1015,7 +1083,74 @@ handleCastClick() {
       });
     });
     
-        console.log('✅ Game interfaces hidden');
+    console.log('✅ Game interfaces hidden');
+  }
+
+  // EXAMPLE: How to add a "Leave Game" button that works properly
+  addLeaveGameButton() {
+    // Find or create a leave game button
+    let leaveBtn = document.getElementById('leave-game-btn');
+    
+    if (!leaveBtn) {
+      leaveBtn = document.createElement('button');
+      leaveBtn.id = 'leave-game-btn';
+      leaveBtn.innerHTML = '← Leave Game';
+      leaveBtn.className = 'leave-btn';
+      leaveBtn.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+      `;
+      
+      // Add to page
+      document.body.appendChild(leaveBtn);
+    }
+    
+    // Remove any existing listeners
+    leaveBtn.replaceWith(leaveBtn.cloneNode(true));
+    leaveBtn = document.getElementById('leave-game-btn');
+    
+    // Add click handler
+    leaveBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to leave the game?')) {
+        this.handlePlayerLeaveGame();
+      }
+    });
+    
+    console.log('✅ Leave game button added');
+  }
+
+  // HELPER: Method to show on the correct page type
+  showCorrectInterface() {
+    // Check what page we're supposed to be on
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const room = urlParams.get('room');
+    
+    if (mode === 'party' || room) {
+      // We're supposed to be in party mode
+      console.log('📍 Should be in party mode');
+      this.showPartyMode();
+    } else {
+      // We should be on the home page
+      console.log('📍 Should be on home page');
+      if (this.verifyHomePageElements()) {
+        this.showLocalModeInterface();
+      } else {
+        // Redirect to home if elements missing
+        window.location.href = 'index.html';
+      }
+    }
+  
 
     // Show the start screen
     const startScreen = document.getElementById('start-screen');
