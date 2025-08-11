@@ -788,6 +788,28 @@ this.socket.on('disconnect', (reason) => {
   }
 });
 
+this.socket.on('room-too-small', (data) => {
+  console.log('⚠️ Room closed - not enough players:', data);
+  
+  // Stop all audio
+  if (this.stopAllMusicImmediate) {
+    this.stopAllMusicImmediate();
+  }
+  
+  // Set cleanup flags
+  this.forceDisconnectOnCleanup = true;
+  this.isInRoom = false;
+  
+  // Show notification
+  this.showError(data.message || 'Not enough players - returning to main menu');
+  
+  // Clean up and redirect
+  this.cleanup();
+  setTimeout(() => {
+    window.location.href = 'index.html';
+  }, 2500);
+});
+
 this.socket.on('connect_error', (error) => {
   console.error('❌ Connection error:', error);
   this.updateConnectionStatus('Connection Failed');
@@ -1842,53 +1864,35 @@ leaveRoomAndGoLocal() {
     playerName: this.playerName,
     roomCode: this.roomCode
   });
-  
-  // CRITICAL FIX: Store host status BEFORE calling leaveRoom (which clears it)
+
+  // Store host status BEFORE calling leaveRoom (which clears it)
   const wasHost = this.isHost;
-  
+
   // Leave the room
   this.leaveRoom();
 
   if (wasHost) {
     console.log('🚨 HOST LEAVING - Redirecting to index.html instead of local mode');
-    
+
     // Clean up and redirect to home page
     this.cleanup();
-    
+
     // Show message and redirect
     this.showMessage('Leaving game...');
-    
+
     setTimeout(() => {
       console.log('🏠 HOST: Redirecting to index.html');
       window.location.href = 'index.html';
     }, 1000);
-    
+
   } else {
     // Regular players can go to local mode
     console.log('👤 Regular player - showing local mode');
+
+    // Show local mode first
     this.showLocalMode();
-    this.cleanup();
-  }
-  
-  // CRITICAL FIX: Check if this was a host
-  if (this.isHost) {
-    console.log('🚨 HOST LEAVING - Redirecting to index.html instead of local mode');
-    
-    // Clean up and redirect to home page
-    this.cleanup();
-    
-    // Show message and redirect
-    this.showMessage('Leaving game...');
-    
-    setTimeout(() => {
-      console.log('🏠 HOST: Redirecting to index.html');
-      window.location.href = 'index.html';
-    }, 1000);
-    
-  } else {
-    // Regular players can go to local mode
-    console.log('👤 Regular player - showing local mode');
-    this.showLocalMode();
+
+    // Then cleanup (or do cleanup before showLocalMode if needed)
     this.cleanup();
   }
 }
