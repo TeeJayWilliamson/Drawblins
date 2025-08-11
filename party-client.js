@@ -196,26 +196,21 @@ setupVisibilityHandlers() {
 
   // ENHANCED: Better before unload handler
   this.beforeUnloadHandler = (e) => {
-    console.log('📱 Before unload - final cleanup', {
+    console.log('📱📱📱 BEFORE UNLOAD TRIGGERED 📱📱📱');
+    console.log('📱 Context:', {
       isHost: this.isHost,
-      isInRoom: this.isInRoom
+      isInRoom: this.isInRoom,
+      forceDisconnectOnCleanup: this.forceDisconnectOnCleanup
     });
     
-    // Special handling for hosts
-    if (this.isHost && this.isInRoom) {
-      console.log('🚨 HOST is leaving page - immediate disconnect');
-      this.forceDisconnectOnCleanup = true;
-      
-      // Try to notify server that host is leaving
-      if (this.socket && this.isConnected) {
-        this.socket.emit('host-leaving', {
-          roomCode: this.roomCode,
-          playerName: this.playerName
-        });
-      }
+    // Special handling for hosts - use force redirect
+    if (this.isHost && this.isInRoom && !this.forceDisconnectOnCleanup) {
+      console.log('🚨 HOST BEFORE UNLOAD - FORCE REDIRECT');
+      this.forceHostRedirect();
+    } else {
+      // Regular cleanup for non-hosts
+      this.cleanup();
     }
-    
-    this.cleanup();
   };
 
   document.addEventListener('visibilitychange', this.visibilityChangeHandler);
@@ -710,11 +705,13 @@ handleCastClick() {
     });
 
 this.socket.on('disconnect', (reason) => {
-  console.log('❌ Disconnected from party server:', reason);
-  console.log('❌ Disconnect context:', {
+  console.log('❌❌❌ DISCONNECT EVENT FIRED ❌❌❌');
+  console.log('❌ Reason:', reason);
+  console.log('❌ Full context:', {
     isHost: this.isHost,
     isInRoom: this.isInRoom,
     roomCode: this.roomCode,
+    playerName: this.playerName,
     reason: reason,
     forceDisconnectOnCleanup: this.forceDisconnectOnCleanup
   });
@@ -729,8 +726,14 @@ this.socket.on('disconnect', (reason) => {
   }
   
   // 🚨 CRITICAL FIX: Handle host disconnection - GO DIRECTLY TO INDEX.HTML
-  if (this.isHost && this.isInRoom && !this.forceDisconnectOnCleanup) {
-    console.log('🚨🚨🚨 HOST DISCONNECTED - Going to index.html immediately');
+  if (this.isHost && this.isInRoom) {
+    console.log('🚨🚨🚨 HOST DISCONNECT DETECTED - FORCING REDIRECT 🚨🚨🚨');
+    console.log('🚨 Host details:', {
+      isHost: this.isHost,
+      isInRoom: this.isInRoom,
+      roomCode: this.roomCode,
+      playerName: this.playerName
+    });
     
     // Stop all audio immediately
     if (this.stopAllMusicImmediate) {
@@ -741,20 +744,28 @@ this.socket.on('disconnect', (reason) => {
     this.forceDisconnectOnCleanup = true;
     this.isInRoom = false;
     
-    // Clean up resources
-    this.cleanup();
-    
     // Show brief message  
-    this.showError('Connection lost - returning to home page');
+    this.showError('Host disconnected - returning to home page');
     
-    // 🎯 THE ACTUAL FIX - Direct navigation to index.html
+    // 🎯 IMMEDIATE REDIRECT - NO CLEANUP, NO DELAYS
+    console.log('🏠🏠🏠 HOST: IMMEDIATE REDIRECT TO INDEX.HTML 🏠🏠🏠');
     setTimeout(() => {
-      console.log('🏠🏠🏠 HOST: Redirecting to index.html...');
+      console.log('🏠 EXECUTING REDIRECT NOW...');
       window.location.href = 'index.html';
-    }, 1500);
+    }, 500); // Shorter delay
+    
+    // ALSO try immediate redirect as backup
+    setTimeout(() => {
+      console.log('🏠 BACKUP REDIRECT...');
+      if (window.location.pathname !== '/index.html') {
+        window.location.replace('index.html');
+      }
+    }, 2000);
     
     return; // Don't continue with normal reconnection logic
   }
+  
+  console.log('👤 Non-host disconnect logic...');
   
   // For non-hosts: try reconnection or go home if failed
   if (!this.forceDisconnectOnCleanup) {
@@ -1012,37 +1023,84 @@ debugHostDisconnect() {
     }, 1500);
   }
 
-  // NEW: Method for when player manually leaves (back button, etc.)
-  handlePlayerLeaveGame() {
-    console.log('👋 Player leaving game manually...');
-    
-    // Set flags to prevent reconnection attempts
-    this.forceDisconnectOnCleanup = true;
-    this.isInRoom = false;
-    
-    // Disconnect from room
-    if (this.socket && this.isConnected) {
-      this.socket.emit('leave-room', {
-        roomCode: this.roomCode,
-        playerName: this.playerName
-      });
-    }
-    
-    // Stop audio
-    if (this.stopAllMusicImmediate) {
-      this.stopAllMusicImmediate();
-    }
-    
-    // Clean up and return to home
-    this.cleanup();
-    
-    // Show message briefly then redirect
-    this.showMessage('Left the game');
-    
-    setTimeout(() => {
-      this.returnToHomePage();
-    }, 1000);
+  forceHostRedirect() {
+  console.log('🚨🚨🚨 FORCE HOST REDIRECT CALLED 🚨🚨🚨');
+  
+  // Set flags immediately
+  this.forceDisconnectOnCleanup = true;
+  this.isInRoom = false;
+  this.isHost = false; // Clear host flag too
+  
+  // Stop audio
+  if (this.stopAllMusicImmediate) {
+    this.stopAllMusicImmediate();
   }
+  
+  // Disconnect socket
+  if (this.socket) {
+    this.socket.disconnect();
+    this.socket = null;
+  }
+  
+  // Multiple redirect attempts
+  console.log('🏠 Multiple redirect attempts...');
+  
+  // Attempt 1: Standard redirect
+  setTimeout(() => {
+    console.log('🏠 Redirect attempt 1...');
+    window.location.href = 'index.html';
+  }, 100);
+  
+  // Attempt 2: Replace (in case href is blocked)
+  setTimeout(() => {
+    console.log('🏠 Redirect attempt 2...');
+    window.location.replace('index.html');
+  }, 500);
+  
+  // Attempt 3: Assign (last resort)
+  setTimeout(() => {
+    console.log('🏠 Redirect attempt 3...');
+    window.location.assign('index.html');
+  }, 1000);
+}
+
+  // NEW: Method for when player manually leaves (back button, etc.)
+handlePlayerLeaveGame() {
+  console.log('👋 Player leaving game manually...');
+  console.log('👋 Leave context:', {
+    isHost: this.isHost,
+    isInRoom: this.isInRoom,
+    playerName: this.playerName
+  });
+  
+  if (this.isHost) {
+    console.log('🚨 HOST IS LEAVING - USING FORCE REDIRECT');
+    this.forceHostRedirect();
+    return;
+  }
+  
+  // Regular player logic
+  this.forceDisconnectOnCleanup = true;
+  this.isInRoom = false;
+  
+  if (this.socket && this.isConnected) {
+    this.socket.emit('leave-room', {
+      roomCode: this.roomCode,
+      playerName: this.playerName
+    });
+  }
+  
+  if (this.stopAllMusicImmediate) {
+    this.stopAllMusicImmediate();
+  }
+  
+  this.cleanup();
+  this.showMessage('Left the game');
+  
+  setTimeout(() => {
+    this.returnToHomePage();
+  }, 1000);
+}
 
   // ENHANCED: Better cleanup method
   cleanup() {
